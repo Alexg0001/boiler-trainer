@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Marine Air Compressor – 3D Trainer</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#245676">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script>
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg1:#eef2f7; --bg2:#cdd8e6;
+  --panel:rgba(250,252,255,.95); --ink:#0e1a2b; --muted:#566379; --line:rgba(14,26,43,.15);
+  --chip:rgba(14,26,43,.07); --accent:#d94f0b; --accent-ink:#fff; --cool:#0a72b8; --ok:#12843c; --warn:#a6480a; --bad:#c62828;
+  --glass:rgba(255,255,255,.84);
+  --font-ui:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-head:'Barlow Condensed','Arial Narrow',Impact,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg1:#0b1119; --bg2:#182332; --panel:rgba(13,20,30,.95); --ink:#e8eef7; --muted:#97a5ba; --line:rgba(232,238,247,.15);
+    --chip:rgba(232,238,247,.08); --accent:#ff7a2b; --accent-ink:#1a0d03; --cool:#4cc2ff; --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
+    --glass:rgba(15,23,35,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --bg1:#0b1119; --bg2:#182332; --panel:rgba(13,20,30,.95); --ink:#e8eef7; --muted:#97a5ba; --line:rgba(232,238,247,.15);
+  --chip:rgba(232,238,247,.08); --accent:#ff7a2b; --accent-ink:#1a0d03; --cool:#4cc2ff; --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
+  --glass:rgba(15,23,35,.8);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*{box-sizing:border-box}
+body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;color:var(--ink);font-family:var(--font-ui);
+  background:radial-gradient(120% 90% at 50% 25%,var(--bg2),var(--bg1));-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;color:inherit}
+#app{position:fixed;inset:0;overflow:hidden}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:2}
+.lbl{position:absolute;left:0;top:0;font:600 11px/1 var(--font-ui);background:var(--glass);border:1px solid var(--line);color:var(--ink);
+  padding:4px 7px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s;cursor:pointer;will-change:transform}
+.lbl.on{opacity:1;pointer-events:auto}
+.lbl.hl{border-color:var(--cool);color:var(--cool)}
+.lbl.sel{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.lbl.pin{border-style:dashed;color:var(--muted);pointer-events:none;cursor:default}
+
+#top{position:absolute;left:0;right:0;top:0;z-index:5;padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 6px;pointer-events:none;display:flex;flex-direction:column;gap:7px}
+#top>*{pointer-events:auto}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand h1{font:700 21px/1 var(--font-head);letter-spacing:.03em;margin:0}
+.brand span{font:500 11px var(--font-mono);color:var(--muted)}
+.tools{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.tools::-webkit-scrollbar{display:none}
+.tb{flex:none;border:1px solid var(--line);background:var(--glass);border-radius:999px;padding:7px 12px;font:500 12px var(--font-ui);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer}
+.tb[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.tb:focus-visible,.btn:focus-visible,.tab:focus-visible,.pcard:focus-visible,.opt:focus-visible,.lbl:focus-visible,.chip:focus-visible,.handle:focus-visible{outline:2px solid var(--cool);outline-offset:2px}
+
+#hud{position:absolute;left:12px;top:calc(env(safe-area-inset-top,0px) + 84px);z-index:4;display:flex;flex-direction:column;gap:4px;pointer-events:none}
+.pill{font:500 11px var(--font-mono);background:var(--glass);border:1px solid var(--line);border-radius:8px;padding:4px 8px;display:flex;gap:6px;align-items:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);width:max-content}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.legend{display:flex;align-items:center;gap:6px;font:500 10px var(--font-mono);color:var(--muted);margin-top:2px}
+.legend i{display:block;width:84px;height:6px;border-radius:3px;background:linear-gradient(90deg,#38bdf8,#4ade80,#facc15,#fb923c,#ef4444)}
+#toast{position:absolute;left:50%;transform:translateX(-50%) translateY(8px);top:calc(env(safe-area-inset-top,0px) + 124px);z-index:8;max-width:86%;background:var(--ink);color:var(--bg1);
+  font:500 13px/1.35 var(--font-ui);padding:9px 14px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;text-align:center}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+#sheet{position:absolute;left:0;right:0;bottom:0;height:46vh;max-height:560px;z-index:6;background:var(--panel);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--line);border-radius:18px 18px 0 0;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom,0px);transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+#sheet.collapsed{transform:translateY(calc(100% - 132px - env(safe-area-inset-bottom,0px)))}
+.handle{border:0;background:none;padding:8px 0 4px;cursor:pointer;display:flex;justify-content:center}
+.handle i{width:42px;height:4px;border-radius:2px;background:var(--muted);opacity:.6}
+.tabs{display:flex;gap:2px;padding:0 10px;border-bottom:1px solid var(--line)}
+.tab{flex:1;border:0;background:none;padding:8px 4px 9px;font:600 13px var(--font-ui);color:var(--muted);border-bottom:2px solid transparent;cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.ctl{display:flex;gap:6px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line)}
+.btn{border:1px solid var(--line);background:var(--chip);border-radius:10px;padding:9px 10px;font:600 13px var(--font-ui);cursor:pointer;min-height:40px;white-space:nowrap}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn[disabled]{opacity:.4;cursor:default}
+.speed{flex:1;min-width:60px;display:flex;flex-direction:column;gap:1px;font:500 10px var(--font-mono);color:var(--muted)}
+.speed input{width:100%;accent-color:var(--accent);margin:0}
+.panel{display:none;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px 18px}
+.panel.on{display:block}
+.stepbar{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.dots{display:flex;gap:5px;flex:1}
+.dots button{flex:1;height:6px;border:0;border-radius:3px;background:var(--chip);padding:0;cursor:pointer;min-width:0}
+.dots button.done{background:var(--cool);opacity:.55}
+.dots button.cur{background:var(--accent);opacity:1}
+#stepNo,.qno{font:500 11px var(--font-mono);color:var(--muted)}
+h2{font:700 26px/1.05 var(--font-head);letter-spacing:.01em;margin:4px 0 2px}
+.sub{font:500 12px var(--font-ui);color:var(--muted);margin:0 0 8px}
+p{font-size:14px;line-height:1.55;margin:0 0 10px;max-width:68ch}
+ul.pts{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:6px;max-width:68ch}
+ul.pts li{font-size:13.5px;line-height:1.45;padding-left:16px;position:relative}
+ul.pts li::before{content:"";position:absolute;left:2px;top:.55em;width:6px;height:6px;border-radius:1px;background:var(--accent)}
+.vals{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.val{background:var(--chip);border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-size:12px;display:flex;flex-direction:column}
+.val b{font:500 13px var(--font-mono)}
+.val span{color:var(--muted);font-size:10.5px}
+.tip{border-left:3px solid var(--cool);padding:6px 10px;font-size:13px;line-height:1.45;background:var(--chip);border-radius:0 8px 8px 0}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:10px;padding-bottom:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--chip);border-radius:999px;padding:6px 11px;font:500 12px var(--font-ui);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg1);border-color:transparent}
+.plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px}
+.pcard{display:flex;flex-direction:column;gap:2px;text-align:left;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--chip);cursor:pointer}
+.pcard b{font:600 13px/1.2 var(--font-ui)}
+.pcard span{font-size:11px;color:var(--muted)}
+.pcard.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.detail{border:1px solid var(--line);border-radius:12px;padding:12px 12px 4px;margin-bottom:12px;background:var(--chip)}
+.detail h3{font:700 22px/1.05 var(--font-head);margin:0 0 2px}
+.detail .sys{font:500 11px var(--font-mono);color:var(--muted);margin-bottom:8px;display:block}
+.empty{font-size:13px;color:var(--muted);margin:0 0 12px}
+#pv{width:100%;height:200px;display:block;border:1px solid var(--line);border-radius:10px;background:var(--chip)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0}
+.kv div{background:var(--chip);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:11px;color:var(--muted)}
+.kv b{display:block;font:500 13px var(--font-mono);color:var(--ink);margin-top:1px}
+.row{display:flex;flex-direction:column;gap:3px;margin:8px 0;font:500 12px var(--font-ui);color:var(--muted)}
+.row input{width:100%;accent-color:var(--accent);margin:0}
+.row .quick{display:flex;gap:6px;margin-top:4px}
+.qtxt{font:600 15px/1.35 var(--font-ui);margin:6px 0 10px}
+.opt{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--chip);border-radius:10px;padding:10px 12px;font:500 13.5px/1.35 var(--font-ui);margin-bottom:7px;cursor:pointer}
+.opt.right{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,transparent)}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 16%,transparent)}
+.expl{font-size:13px;line-height:1.45;margin:4px 0 10px;padding:8px 10px;border-radius:8px;background:var(--chip)}
+
+@media (min-width:900px){
+  #sheet{left:auto;top:0;right:0;bottom:0;width:430px;height:auto;max-height:none;border-radius:0;border-top:0;border-left:1px solid var(--line)}
+  #sheet.collapsed{transform:none}
+  .handle{display:none}
+  #top{right:430px}
+  #toast{left:calc(50% - 215px)}
+}
+@media (prefers-reduced-motion:reduce){ #sheet,#toast,.lbl{transition:none} }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="gl" tabindex="0" aria-label="Interactive 3D model of a two-stage marine air compressor"></canvas>
+  <div id="labels"></div>
+
+  <header id="top">
+    <div class="brand"><h1>Marine Air Compressor</h1><span>2-stage · 30 bar</span></div>
+    <div class="tools" role="toolbar" aria-label="View options">
+      <button class="tb" id="bX" aria-pressed="true">X-ray</button>
+      <button class="tb" id="bL" aria-pressed="false">Labels</button>
+      <button class="tb" id="bE" aria-pressed="false">Explode</button>
+      <button class="tb" id="bR">Reset view</button>
+    </div>
+  </header>
+
+  <div id="hud" aria-live="off">
+    <div class="pill"><span class="dot" id="dLP"></span><span id="hLP">LP</span></div>
+    <div class="pill"><span class="dot" id="dHP"></span><span id="hHP">HP</span></div>
+    <div class="pill"><span class="dot" style="background:#ef4444"></span><span id="hRec">Receiver</span></div>
+    <div class="legend"><span>30°C</span><i></i><span>200°C</span></div>
+  </div>
+  <div id="toast" role="status"></div>
+
+  <section id="sheet" aria-label="Lesson panel">
+    <button class="handle" id="handle" aria-label="Expand or collapse the lesson panel"><i></i></button>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="learn" aria-selected="true">Learn</button>
+      <button class="tab" role="tab" data-tab="parts" aria-selected="false">Parts</button>
+      <button class="tab" role="tab" data-tab="live" aria-selected="false">Live data</button>
+      <button class="tab" role="tab" data-tab="quiz" aria-selected="false">Quiz</button>
+    </div>
+    <div class="ctl">
+      <button class="btn" id="bPrev" aria-label="Previous step">‹ Back</button>
+      <button class="btn primary" id="bRun">Start motor</button>
+      <button class="btn" id="bNext" aria-label="Next step">Next ›</button>
+      <label class="speed">Speed <span id="spdTxt">0.5×</span>
+        <input type="range" id="sSpeed" min="0.1" max="2" step="0.05" value="0.5" aria-label="Animation speed"></label>
+    </div>
+
+    <div class="panel on" id="p-learn">
+      <div class="stepbar"><div class="dots" id="dots"></div><span id="stepNo"></span></div>
+      <h2 id="stTitle"></h2>
+      <p class="sub" id="stSub"></p>
+      <p id="stBody"></p>
+      <ul class="pts" id="stPts"></ul>
+      <div class="vals" id="stVals"></div>
+      <div class="tip" id="stTip"></div>
+    </div>
+
+    <div class="panel" id="p-parts">
+      <div id="partDetail"><p class="empty">Tap any part on the model, or pick one below, to see what it does and what to check.</p></div>
+      <div class="chips" id="sysChips"></div>
+      <div class="plist" id="partList"></div>
+    </div>
+
+    <div class="panel" id="p-live">
+      <canvas id="pv" aria-label="Pressure–volume diagram for both stages"></canvas>
+      <div class="kv">
+        <div>LP stage<b id="kLP">–</b></div>
+        <div>HP stage<b id="kHP">–</b></div>
+        <div>Interstage pressure<b id="kInt">–</b></div>
+        <div>Receiver<b id="kRec">–</b></div>
+        <div>Crank angle<b id="kAng">–</b></div>
+        <div>Mode<b id="kMode">–</b></div>
+      </div>
+      <div class="row">
+        <label for="sCrank">Turn by hand: crank angle (motor stopped)</label>
+        <input type="range" id="sCrank" min="0" max="360" step="1" value="0">
+      </div>
+      <div class="row">
+        <label for="sRec">Receiver pressure: <span id="recTxt"></span></label>
+        <input type="range" id="sRec" min="0" max="30" step="0.5" value="20">
+        <div class="quick">
+          <button class="chip" data-rec="0">Empty</button><button class="chip" data-rec="15">Half</button><button class="chip" data-rec="30">Full</button>
+        </div>
+      </div>
+      <p class="empty">Animation runs in slow motion (a real unit turns at roughly 700 rpm). The log-scale diagram shows the LP loop (blue) sitting between 1 bar and the interstage pressure, and the HP loop (orange) above it. At 30 bar a real pressure switch would stop the motor; here it keeps running so you can keep watching.</p>
+    </div>
+
+    <div class="panel" id="p-quiz"></div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+if(typeof THREE==='undefined'){
+  document.body.insertAdjacentHTML('beforeend','<p style="padding:24px">The 3D engine could not load. Check your connection and reload the page.</p>');
+  return;
+}
+const TAU=Math.PI*2;
+const $=(s,r)=>(r||document).querySelector(s);
+const $$=(s,r)=>Array.from((r||document).querySelectorAll(s));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
+const ease=(c,t,dt,k)=>c+(t-c)*(1-Math.exp(-dt*k));
+
+/* ============================== DATA ============================== */
+const PARTS=[
+{id:'motor',name:'Electric drive motor',sys:'Drive',at:[5.4,2.5,0],main:1,
+ fn:'Three-phase induction motor that turns the crankshaft through a flexible coupling. It is sized to carry full load at the final delivery pressure, and the compressor is unloaded at start so the motor starts light.',
+ pts:['Overload and winding-temperature protection trip the starter','Check insulation resistance, bearing temperature and direction of rotation','A fan on the shaft end cools the frame (visible in X-ray)']},
+{id:'coupling',name:'Flexible coupling',sys:'Drive',at:[3.6,2.3,0],
+ fn:'Joins the motor shaft to the crankshaft. Its elastomer element absorbs torque pulses and small misalignment.',
+ pts:['Cracked or hardened rubber means it is due for renewal','Misalignment shows up as vibration and warm bearings','Always run with the guard fitted']},
+{id:'flywheel',name:'Flywheel',sys:'Drive',at:[-3.35,2.8,0],main:1,
+ fn:'Stores energy while the pistons are not loading the shaft and returns it during compression, smoothing torque and motor current. Its rim also carries marks for turning the machine by hand.',
+ pts:['Heavy rim = steady speed with only two cylinders','Turn it by hand before starting to catch liquid in a cylinder','A loose key or hub is a serious hazard: check at overhaul']},
+{id:'crankshaft',name:'Crankshaft & main bearings',sys:'Compression',at:[-0.8,1.4,1.15],
+ fn:'Turns rotation into piston movement. The two throws are 180° apart: when the LP piston is delivering, the HP piston is drawing in air, so the stages work in alternation and the load is balanced.',
+ pts:['Counterweights opposite each crank pin balance the moving masses','Journals run in shell bearings fed with pressurised oil','Check bearing clearances and web deflection at overhaul']},
+{id:'crankcase',name:'Crankcase & oil sump',sys:'Compression',at:[1.3,0.55,1.15],main:1,
+ fn:'The rigid casing that carries the bearings and cylinders and holds the lube oil. A sight glass and dipstick show the level; the breather keeps crankcase pressure near atmospheric.',
+ pts:['Keep the level between the marks, using the maker’s oil grade','Milky oil means water is leaking in from a cooler or jacket','A blocked breather pushes oil out past the seals']},
+{id:'conrod',name:'Connecting rods',sys:'Compression',at:[1.5,2.2,0],
+ fn:'Link each crank pin (big end) to its piston gudgeon pin (small end), converting rotation to straight-line motion.',
+ pts:['Big-end bolts are torqued to a stated value and locked','A knock at dead centre points to small-end or big-end wear','Rod length against crank radius sets how smoothly the piston speeds up and slows']},
+{id:'piston',name:'Pistons & rings',sys:'Compression',at:[-1.5,3.25,0],
+ fn:'The LP piston is large and the HP piston small, because air is much denser once it is partly compressed. Compression rings seal the gas; the scraper ring keeps crankcase oil out of the compression space.',
+ pts:['Worn rings cause blow-by, hot discharge and lost capacity','Excess oil carry-over fouls valves and adds a fire risk','Gudgeon pin joins piston and rod']},
+{id:'lpcyl',name:'LP cylinder & water jacket',sys:'Compression',at:[-2.5,2.7,0.5],main:1,
+ fn:'First stage. Air is drawn in at about 1 bar and compressed to roughly 5–6 bar absolute. Cooling water circulates in the jacket around the liner to carry away heat of compression.',
+ pts:['Never run without cooling water: liner and oil film fail quickly','Scored liners cause ring wear and poor sealing','Stiffening ribs surround the jacket']},
+{id:'hpcyl',name:'HP cylinder & water jacket',sys:'Compression',at:[2.2,2.7,0.4],main:1,
+ fn:'Second stage. It takes the cooled interstage air and compresses it to the final pressure (about 30 bar). Small bore, thick walls and strong head studs cope with the high pressure.',
+ pts:['Swept volume is only a fraction of the LP cylinder’s','Highest gas loads on rings, rod and bearings','Final delivery temperature is limited by the cooling here']},
+{id:'lphead',name:'LP cylinder head',sys:'Compression',at:[-1.5,4.75,0.2],
+ fn:'Holds the LP suction and discharge valves and the unloader, with flanges to the air filter and intercooler. Water-cooled.',
+ pts:['Head gaskets and studs are tightened to a set torque','Valve covers come off for valve inspection','Carbon build-up in the passages restricts flow']},
+{id:'hphead',name:'HP cylinder head',sys:'Compression',at:[1.5,4.85,-0.1],
+ fn:'Holds the HP suction valve (fed from the intercooler) and the HP discharge valve whose outlet goes to the aftercooler.',
+ pts:['Small valves, high pressure: keep them clean and correctly sprung','Joint faces must be flat and undamaged','Water jacket keeps valve temperature in check']},
+{id:'lpsv',name:'LP suction valve',sys:'Compression',at:[-1.5,4.0,0.38],
+ fn:'A spring-loaded, self-acting valve. On the down-stroke cylinder pressure falls below atmospheric and the disc is pushed open; as the piston turns round, the spring and pressure close it.',
+ pts:['No mechanical drive: opens purely on pressure difference','Carbon or a broken spring leaks: low capacity, hot LP discharge','The unloader can hold it open']},
+{id:'lpdv',name:'LP discharge valve',sys:'Compression',at:[-1.5,4.1,-0.38],
+ fn:'Lifts when cylinder pressure rises above the intercooler pressure plus the spring force, near the end of the up-stroke, and closes as the piston reverses.',
+ pts:['Leakage lets hot air flow back into the cylinder','Interstage pressure low and LP temperature high points to LP valves or rings','Lift is limited by a stop plate']},
+{id:'hpsv',name:'HP suction valve',sys:'Compression',at:[1.5,4.0,-0.2],
+ fn:'Admits the cooled interstage air into the HP cylinder on its down-stroke, while the LP piston is delivering into the intercooler.',
+ pts:['A leaking HP suction valve pushes air back into the intercooler and raises interstage pressure','Hot HP suction pipe is a warning sign','Small parts, so handle springs and discs with care']},
+{id:'hpdv',name:'HP discharge valve',sys:'Compression',at:[1.5,4.1,0.2],
+ fn:'Opens near top dead centre when HP cylinder pressure exceeds the delivery pressure, sending hot air to the aftercooler.',
+ pts:['Withstands the highest pressure and temperature in the machine','Carbon on the seat leads to leakage and overheating','Overhaul at the planned running hours']},
+{id:'unloader',name:'Unloader',sys:'Safety & control',at:[-1.5,4.95,0.38],
+ fn:'Holds the suction valve discs off their seats (or opens a bypass) so the compressor turns without building pressure. It is used for starting, stopping and capacity control, usually operated by oil or air pressure.',
+ pts:['Motor starts against almost no load','Releases automatically after a few seconds or once oil pressure builds','Sticking unloaders cause hard starts or no pressure']},
+{id:'filter',name:'Air suction filter',sys:'Air path',at:[-3.1,5.7,1.35],main:1,
+ fn:'Removes dust and salt from the intake air and quietens the intake. Dirty air wears rings and valves and sticks the valve discs.',
+ pts:['A clogged filter lowers capacity and raises discharge temperature','Take air from a clean, cool place away from oil or fuel vapour','Wash or renew the element at the planned interval']},
+{id:'intercooler',name:'Intercooler',sys:'Cooling',at:[0,3.55,-2.0],main:1,
+ fn:'A shell-and-tube cooler: air passes around the tubes, cooling water through them. It brings 150–180 °C air from the LP stage back to roughly 35–45 °C before the HP stage.',
+ pts:['Cooling at constant pressure shrinks the air, so the HP stage needs less work','Moisture condenses here and is drained','Fouled tubes give hot HP suction and a high final temperature']},
+{id:'aftercooler',name:'Aftercooler',sys:'Cooling',at:[3.4,3.85,-2.0],main:1,
+ fn:'Cools the HP discharge air to near water temperature before it enters the receiver, condensing most moisture and oil vapour so they can be drained off.',
+ pts:['Hot air in the receiver would raise pressure and stress the vessel','Check the outlet temperature each watch','Keep tubes clean: scale on the water side cuts performance']},
+{id:'separator',name:'Moisture separator & auto-drain',sys:'Air path',at:[4.6,2.7,-2.0],main:1,
+ fn:'A baffle separator knocks out condensed water and oil. A timer-operated solenoid auto-drain blows the condensate out periodically. The green lamp flashes while it drains.',
+ pts:['Drain by hand as well, especially after a long idle period','Water in starting-air lines corrodes valves and can freeze','Check that the auto-drain really opens']},
+{id:'receiver',name:'Air receiver (starting-air bottle)',sys:'Air path',at:[3.0,1.55,-3.9],main:1,
+ fn:'Pressure vessel that stores air at about 30 bar for starting the main and auxiliary engines. Class rules set the minimum capacity (a number of consecutive starts) and the time allowed to charge it.',
+ pts:['Fitted with safety valve, gauge, drain valve and inspection opening','Drain condensate frequently: water cuts capacity and corrodes the shell','Periodic internal inspection and safety-valve tests by class']},
+{id:'pswitch',name:'Pressure switch',sys:'Safety & control',at:[3.4,1.85,-3.9],
+ fn:'Starts and stops the compressor automatically between a cut-in and a cut-out pressure (for example roughly 25 and 30 bar).',
+ pts:['Cut-out must be set below the safety valve setting','Test the contacts and settings regularly','Also provides a manual start/stop override']},
+{id:'safety_ic',name:'Interstage safety valve',sys:'Safety & control',at:[-0.6,3.95,-2.0],
+ fn:'Spring-loaded relief valve on the intercooler. If a HP-stage valve leaks or cooling fails and interstage pressure climbs, it lifts to protect the LP side and cooler.',
+ pts:['Set a little above normal interstage pressure','A valve that keeps lifting is a symptom: find the cause, never gag it','Tested and sealed to class requirements']},
+{id:'safety_hp',name:'HP safety valve',sys:'Safety & control',at:[2.5,2.0,-3.9],
+ fn:'Protects the HP stage, aftercooler and receiver. It is set about 10% above working pressure (around 33 bar) and must lift fully if pressure rises.',
+ pts:['Never isolate, gag or change the setting','Test by hand lever and to a schedule','Discharge must be piped to a safe place']},
+{id:'gauges',name:'Pressure gauges',sys:'Safety & control',at:[0.6,3.95,-2.0],
+ fn:'Show interstage pressure, final delivery or receiver pressure, and lube-oil pressure. Reading them every watch is the quickest way to spot valve or ring trouble.',
+ pts:['Interstage high: suspect HP-stage valves or rings; low: suspect LP stage','Falling oil pressure: stop and investigate','Calibrate against a test gauge periodically']},
+{id:'lubepump',name:'Lube oil pump & filter',sys:'Lubrication',at:[2.3,1.55,1.35],
+ fn:'A crankshaft-driven pump draws oil through a strainer from the sump, passes it through a filter and feeds the main and big-end bearings along a gallery. Cylinders are lubricated by splash and oil mist.',
+ pts:['Oil pressure must build within seconds of starting','Change filter and oil at the planned intervals','A dirty strainer starves the bearings']},
+{id:'nrv',name:'Non-return & stop valves',sys:'Air path',at:[4.6,3.05,-3.0],
+ fn:'The non-return valve stops receiver air flowing back to the compressor when it stops. The stop valve isolates the compressor for maintenance.',
+ pts:['Never run the compressor against a closed delivery stop valve','A leaking non-return valve lets the receiver bleed back','Arrow marks the flow direction']},
+{id:'piping',name:'Air piping',sys:'Air path',at:[-0.2,4.45,-2.0],
+ fn:'Pipework joins the filter, LP head, intercooler, HP head, aftercooler, separator and receiver. The colour of the moving particles shows air temperature as it goes round.',
+ pts:['HP piping is thick-walled seamless steel','Find leaks with soapy water, not by hand','Avoid sharp bends: pulsation can fatigue the pipe']},
+{id:'cwpipes',name:'Cooling-water circuit',sys:'Cooling',at:[6.4,1.1,-2.75],
+ fn:'Water enters, passes through the aftercooler, then the intercooler, then the LP and HP cylinder jackets, and goes overboard. Typical rise is 5–10 °C.',
+ pts:['Check flow at the outlet or sight glass','Strainers and anodes need cleaning on seawater systems','Low flow means high air temperature and carbonised oil']},
+{id:'skid',name:'Baseplate & anti-vibration mounts',sys:'Drive',at:[4.6,-0.35,2.1],
+ fn:'Steel baseplate carrying the compressor, motor and coolers. Rubber mounts cut vibration passing into the ship’s structure.',
+ pts:['Check mounts for cracks and compression set','Holding-down bolts stay tight and chocked','Alignment is checked after any mount change']}
+];
+const PMAP={}; PARTS.forEach(p=>PMAP[p.id]=p);
+
+const OV={t:[2.0,2.5,-1.2],fw:14.5,az:0.78,el:0.36};
+const STEPS=[
+{title:'Meet the machine',sub:'Two-stage reciprocating air compressor',
+ body:'This is a ship’s starting-air compressor. Air is compressed in two steps, LP then HP, with a cooler between them, giving about 30 bar to start the main and auxiliary engines. Tap any part to see what it does.',
+ pts:['LP stage: about 1 to 5.5 bar. HP stage: about 5.5 to 30 bar (absolute)','Intercooler and aftercooler remove heat and moisture','Particle colour = air temperature: blue cool, red hot','The two cranks are 180° apart, so the stages work in alternation'],
+ vals:[['Final pressure','≈ 30 bar'],['Stages','2 (LP + HP)'],['Drive','Electric motor']],
+ tip:'Drag to orbit, pinch to zoom, two fingers to pan. Press Next to follow the air from filter to receiver.',
+ cam:OV,hl:[],flows:null,run:true,speed:0.5},
+{title:'Pre-start checks',sub:'Before the motor turns',
+ body:'Starting with low oil, no cooling water or liquid in a cylinder can wreck the machine. Walk round it first.',
+ pts:['Crankcase oil between the marks on the sight glass or dipstick, correct grade','Cooling-water inlet and overboard valves open, flow established','Manual drains on coolers, separator and receiver open; auto-drain working','Delivery stop valve and receiver valves in the right position; safety valves free','Turn the flywheel by hand a few turns: no resistance or knocking','Guards fitted; pressure switch settings correct'],
+ vals:[['Oil level','MIN–MAX'],['Cooling water','Flowing']],
+ tip:'In the Live data tab, drag “Turn by hand” to rotate the crankshaft while the motor is stopped.',
+ cam:{t:[0.4,1.6,0.4],fw:11,az:0.38,el:0.2},hl:['crankcase','lubepump','cwpipes','separator','receiver','flywheel'],flows:[],run:false,speed:0.5},
+{title:'Start and unload',sub:'Motor on, no pressure yet',
+ body:'The motor starts with the compressor unloaded: the unloader holds the suction valves open, so nothing is compressed. Oil pressure builds and cooling water flows. After a few seconds the unloader lets go and the compressor loads.',
+ pts:['Oil pressure must rise quickly after the start','The flywheel smooths torque as the motor speeds up','Watch the badge: UNLOADED changes to LOADED','Never start against a closed delivery valve'],
+ vals:[['Unloaded run','≈ 3–10 s'],['Oil pressure','Maker’s value']],
+ tip:'Both suction valves stay open while unloaded. Watch them close when the compressor loads.',
+ cam:{t:[1.3,2.6,0],fw:12.5,az:0.85,el:0.26},hl:['motor','coupling','flywheel','unloader','lubepump'],flows:['oil','water'],run:true,speed:0.55},
+{title:'LP suction stroke',sub:'Piston moving down',
+ body:'The crankshaft pulls the LP piston down. Cylinder pressure drops below atmospheric and the spring-loaded suction valve opens inward, so clean air is drawn through the filter into the cylinder.',
+ pts:['Air arrives at about 1 bar and near ambient temperature','The valve opens by pressure difference alone','The filter keeps abrasive dust out of the cylinder'],
+ vals:[['Pressure','≈ 1 bar'],['Temperature','≈ 30–45 °C']],
+ tip:'On the Live data tab, the LP loop runs along the bottom line during suction.',
+ cam:{t:[-1.9,3.5,0.4],fw:7.5,az:0.55,el:0.26},hl:['filter','lpsv','lphead','piston'],flows:['air_in'],run:true,speed:0.35},
+{title:'LP compression stroke',sub:'Piston moving up, valves closed',
+ body:'Both valves are shut and the piston rises. The trapped air is squeezed from about 1 bar to about 5.5 bar absolute and heats up sharply. The water jacket carries some of that heat away.',
+ pts:['Pressure rises as the volume falls (polytropic compression)','Air temperature reaches roughly 170–180 °C','Piston rings must seal or air leaks past'],
+ vals:[['Pressure','1 → 5.5 bar abs'],['Temperature','up to ≈ 175 °C']],
+ tip:'The glowing block in the cylinder is the air. Its colour tracks temperature: blue to red as it is compressed.',
+ cam:{t:[-1.5,3.0,0],fw:7,az:0.15,el:0.12},hl:['lpcyl','piston','lphead','conrod'],flows:[],run:true,speed:0.3},
+{title:'LP discharge to the intercooler',sub:'Near top dead centre',
+ body:'When cylinder pressure exceeds the intercooler pressure, the discharge valve lifts and the hot air is pushed out to the intercooler. There, cooling water in the tubes brings it back near ambient temperature at nearly constant pressure.',
+ pts:['Cooling shrinks the air, so the HP stage handles less volume and needs less power','Moisture condenses and is drained','The interstage safety valve protects against over-pressure'],
+ vals:[['Interstage','≈ 5.5 bar abs'],['Air out of cooler','≈ 35–45 °C']],
+ tip:'Orange-red particles cool to green as they pass through the intercooler.',
+ cam:{t:[-0.6,3.5,-1.3],fw:8.5,az:2.35,el:0.28},hl:['lpdv','intercooler','safety_ic','piping','gauges'],flows:['lp_ic'],run:true,speed:0.35},
+{title:'HP suction stroke',sub:'Cooled air enters the HP cylinder',
+ body:'The cranks are 180° apart, so just as the LP piston delivers, the HP piston is moving down and draws the cooled interstage air in through its suction valve. The HP cylinder is much smaller because the air is already denser.',
+ pts:['LP delivery and HP suction happen at the same time','HP suction pressure is the interstage pressure','Cooler air means a denser charge and a cooler final discharge'],
+ vals:[['Pressure','≈ 5.5 bar abs'],['Temperature','≈ 45 °C']],
+ tip:'Compare the two loops on the Live data tab: the HP loop starts where the LP loop ends.',
+ cam:{t:[1.0,3.5,-1.0],fw:8.5,az:2.45,el:0.3},hl:['hpsv','hphead','hpcyl','piston','intercooler'],flows:['ic_hp'],run:true,speed:0.35},
+{title:'HP compression stroke',sub:'5.5 to 30 bar',
+ body:'With both valves shut the HP piston rises and compresses the air a second time, up to the delivery pressure of about 30 bar. Temperature climbs again, so the HP cylinder and head are water-cooled too.',
+ pts:['Highest gas loads on rings, rod and bearings','Final temperature is typically up to about 200 °C','Hot compressed air plus oil vapour is a fire and explosion risk, so keep valves clean and cooling working'],
+ vals:[['Pressure','5.5 → 30 bar abs'],['Temperature','up to ≈ 200 °C']],
+ tip:'Watch the HP gas colour reach red near the top of the stroke.',
+ cam:{t:[1.5,3.0,0],fw:6.8,az:0.55,el:0.2},hl:['hpcyl','piston','hphead','gauges'],flows:[],run:true,speed:0.3},
+{title:'HP discharge, aftercooler, separator',sub:'Cool, dry, deliver',
+ body:'Near top dead centre the HP discharge valve lifts. Hot air passes to the aftercooler where it is cooled to near water temperature. Water and oil that condense are removed in the separator and blown out by the auto-drain.',
+ pts:['Cooling condenses most of the moisture in the air','The auto-drain solenoid opens periodically (lamp turns green)','Hot, wet air in the receiver would raise pressure and cause corrosion'],
+ vals:[['Into aftercooler','≈ 190 °C'],['Out of aftercooler','≈ 40–50 °C']],
+ tip:'Watch the water level in the separator rise, then drain.',
+ cam:{t:[3.2,2.8,-1.6],fw:9.5,az:2.25,el:0.3},hl:['hpdv','aftercooler','separator','piping'],flows:['hp_ac','ac_rec'],run:true,speed:0.4},
+{title:'Receiver and pressure control',sub:'Storing 30 bar air',
+ body:'A non-return valve lets air into the receiver and stops it flowing back. The pressure switch stops the motor at cut-out pressure and restarts it at cut-in. The safety valve protects the vessel if control fails.',
+ pts:['Typical working pressure about 30 bar; safety valve about 10% higher','Class rules set the minimum number of consecutive engine starts the receivers must hold','Drain the receiver regularly and test the safety valve'],
+ vals:[['Working pressure','≈ 30 bar'],['Safety valve','≈ 33 bar']],
+ tip:'Use the receiver slider on the Live data tab to see how pressure affects both stages.',
+ cam:{t:[3.8,1.4,-3.2],fw:10.5,az:2.4,el:0.3},hl:['receiver','nrv','safety_hp','pswitch'],flows:['ac_rec'],run:true,speed:0.45},
+{title:'Stop, drain and fault-finding',sub:'Leave it ready for the next start',
+ body:'At cut-out the motor stops and the unloader and drains vent the machine so the next start is light. Check for leaks and note running hours. Gauge readings tell you a lot about the condition of the valves.',
+ pts:['Interstage pressure high: suspect HP-stage valves or rings; low: suspect LP stage','High discharge temperature: fouled cooler, low water flow or leaking valves','A safety valve that keeps lifting needs a cause found, never gagging','Drain the receiver, separator and coolers; log the hours'],
+ vals:[['Next start','Unloaded'],['Drains','Open / checked']],
+ tip:'Try the quiz to test what you have learned.',
+ cam:{t:[2.2,2.4,-1.2],fw:14,az:0.95,el:0.34},hl:['unloader','separator','receiver','cwpipes','filter'],flows:[],run:false,speed:0.5}
+];
+
+const QUIZ=[
+{q:'Why is the air cooled between the LP and HP stages?',o:['To shrink the volume the HP stage must compress, saving work','To heat the air before the HP stage','To raise the compressor speed','To warm the lube oil'],a:0,e:'Cooling at constant pressure shrinks the air, so the HP stage compresses a smaller, cooler volume with less power and a lower final temperature.'},
+{q:'What opens the suction and discharge valves?',o:['A camshaft and push-rods','Solenoids from the panel','The pressure difference across them (self-acting, spring-loaded)','The unloader at all times'],a:2,e:'Compressor plate valves are self-acting: gas pressure lifts them against a spring, and the spring closes them as the pressure difference reverses.'},
+{q:'Why is the compressor started unloaded?',o:['To fill the receiver faster','So the motor starts with almost no gas load','To clean the filter','To heat the oil'],a:1,e:'With the suction valves held open nothing is compressed, so starting torque and current are low while oil pressure builds.'},
+{q:'What is a typical working pressure for a main starting-air receiver?',o:['3 bar','8 bar','30 bar','150 bar'],a:2,e:'Most ships store starting air at about 30 bar, with the safety valve around 10% higher.'},
+{q:'The two cranks are 180° apart. What does that give?',o:['The LP piston delivers while the HP piston draws in air','Fewer bearings are needed','The compressor can run backwards','Both pistons compress together'],a:0,e:'LP delivery into the intercooler coincides with HP suction from it, which balances load and keeps flow smooth.'},
+{q:'What does the moisture separator and auto-drain remove?',o:['Dust','Condensed water and oil','Carbon dioxide','Heat'],a:1,e:'Cooling condenses moisture and oil vapour. The separator collects it and the drain blows it out before it reaches the receiver.'},
+{q:'The interstage safety valve keeps lifting. What is the most likely cause?',o:['A clean air filter','Too much cooling water','A leaking HP-stage valve or rings raising interstage pressure','An empty receiver'],a:2,e:'Leakage in the HP stage pushes pressure back into the intercooler. Find and fix it rather than gagging the valve.'},
+{q:'Why must cylinders, valves and coolers stay clean and cool?',o:['Only for appearance','To make the air quieter','To shrink the receiver','Hot compressed air and oil carbon deposits can ignite or explode'],a:3,e:'Oil vapour and carbon in hot, compressed air can burn or explode in the delivery system, so cooling, clean valves and correct oil are essential.'}
+];
+
+/* ============================== THREE SETUP ============================== */
+const canvas=$('#gl');
+const renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+const PR=Math.min(window.devicePixelRatio||1,innerWidth<700?1.75:2);
+renderer.setPixelRatio(PR);
+renderer.setClearColor(0x000000,0);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(38,1,0.1,250);
+scene.add(new THREE.HemisphereLight(0xe2ecff,0x2d3646,1.0));
+const keyL=new THREE.DirectionalLight(0xffffff,0.95); keyL.position.set(7,14,10); scene.add(keyL);
+const rimL=new THREE.DirectionalLight(0x8cc0ff,0.55); rimL.position.set(-9,6,-9); scene.add(rimL);
+const fillL=new THREE.PointLight(0xffe0b8,0.55,60); fillL.position.set(-4,7,8); scene.add(fillL);
+
+const world=new THREE.Group(); scene.add(world);
+const gPipes=new THREE.Group(); world.add(gPipes);
+
+/* state */
+const S={run:false,w:0,theta:0,unload:true,unloadT:0,recP:20,speedMul:0.5,xray:true,labels:innerWidth>=900,
+  explode:0,explodeT:0,step:0,sel:null,time:0,tab:'learn',collapsed:false,sepLvl:0.2,draining:false,avgD:0,tipSeen:false};
+const stepHL=new Set();
+
+/* ---------- builders ---------- */
+const partMeshes={},pickables=[],shellMats=[];
+function mat(color,o){
+  o=o||{};
+  const m=new THREE.MeshStandardMaterial({color:color,roughness:o.r!==undefined?o.r:0.55,metalness:o.m!==undefined?o.m:0.3,
+    side:o.side||THREE.FrontSide});
+  if(o.op!==undefined){m.transparent=true;m.opacity=o.op;m.depthWrite=false;}
+  if(o.glass){m.transparent=true;m.opacity=o.glass;m.depthWrite=false;m.userData.glass=true;}
+  if(o.shell){m.userData.shell=true;shellMats.push(m);}
+  return m;
+}
+function reg(part,mesh){mesh.userData.part=part;(partMeshes[part]=partMeshes[part]||[]).push(mesh);pickables.push(mesh);return mesh;}
+function M(geo,color,part,parent,o){const m=new THREE.Mesh(geo,mat(color,o));reg(part,m);parent.add(m);return m;}
+function Bx(w,h,d,col,part,par,x,y,z,o){const m=M(new THREE.BoxGeometry(w,h,d),col,part,par,o);m.position.set(x||0,y||0,z||0);return m;}
+function Cy(r,h,col,part,par,x,y,z,ax,o,seg){
+  const m=M(new THREE.CylinderGeometry(r,r,h,seg||24),col,part,par,o);m.position.set(x||0,y||0,z||0);
+  if(ax==='x')m.rotation.z=Math.PI/2;else if(ax==='z')m.rotation.x=Math.PI/2;return m;}
+function Co(rt,rb,h,col,part,par,x,y,z,ax,o,seg){
+  const m=M(new THREE.CylinderGeometry(rt,rb,h,seg||24),col,part,par,o);m.position.set(x||0,y||0,z||0);
+  if(ax==='x')m.rotation.z=Math.PI/2;else if(ax==='z')m.rotation.x=Math.PI/2;else if(ax==='-z')m.rotation.x=-Math.PI/2;return m;}
+function To(R,t,col,part,par,x,y,z,ax,o){
+  const m=M(new THREE.TorusGeometry(R,t,8,40),col,part,par,o);m.position.set(x||0,y||0,z||0);
+  if(ax==='y')m.rotation.x=Math.PI/2;else if(ax==='x')m.rotation.y=Math.PI/2;return m;}
+function Sp(r,col,part,par,x,y,z,o,sx,sy,sz){
+  const m=M(new THREE.SphereGeometry(r,20,14),col,part,par,o);m.position.set(x||0,y||0,z||0);m.scale.set(sx||1,sy||1,sz||1);return m;}
+function spring(r,coils,tube,col,part,par,x,y,z){
+  const pts=[],n=coils*12;
+  for(let i=0;i<=n;i++){const t=i/n,a=t*coils*TAU;pts.push(V3(r*Math.cos(a),t,r*Math.sin(a)));}
+  const g=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),n*2,tube,5,false);
+  const m=M(g,col,part,par,{m:0.7,r:0.3});m.position.set(x,y,z);return m;
+}
+function pipe(pts,r,col,part,o){
+  for(let i=0;i<pts.length-1;i++){
+    const a=pts[i],b=pts[i+1],d=b.clone().sub(a),len=d.length();if(len<1e-4)continue;
+    const m=M(new THREE.CylinderGeometry(r,r,1,12),col,part,gPipes,Object.assign({glass:0.4,m:0.2,r:0.4},o||{}));
+    m.position.copy(a).add(b).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(V3(0,1,0),d.normalize());m.scale.y=len;
+  }
+  for(let i=1;i<pts.length-1;i++){
+    const s=M(new THREE.SphereGeometry(r*1.03,10,8),col,part,gPipes,Object.assign({glass:0.4,m:0.2,r:0.4},o||{}));
+    s.position.copy(pts[i]);
+  }
+}
+const gauges=[];
+function gauge(par,x,y,z,min,max,fn){
+  const g=new THREE.Group();g.position.set(x,y,z);par.add(g);
+  Cy(0.21,0.09,0x20252d,'gauges',g,0,0,0,'z',{r:0.5});
+  const face=M(new THREE.CircleGeometry(0.175,28),0xf3f5f7,'gauges',g,{m:0,r:0.6});face.position.z=0.047;
+  for(let i=0;i<=10;i++){
+    const a=(135-270*i/10)*Math.PI/180;
+    const t=Bx(0.012,0.03,0.004,i>=8?0xc62828:0x222831,'gauges',g,-Math.sin(a)*0.14,Math.cos(a)*0.14,0.05,{m:0,r:0.8});t.rotation.z=a;
+  }
+  const pivot=new THREE.Group();pivot.position.z=0.06;g.add(pivot);
+  Bx(0.016,0.15,0.006,0xd32f2f,'gauges',pivot,0,0.06,0,{m:0,r:0.6});
+  Cy(0.02,0.02,0x20252d,'gauges',pivot,0,0,0.005,'z');
+  gauges.push({pivot:pivot,min:min,max:max,fn:fn});
+}
+function safetyValve(par,x,y,z,part,s){
+  const g=new THREE.Group();g.position.set(x,y,z);par.add(g);
+  const red=0xd33a2c;
+  Cy(0.18*s,0.06,0x9aa3af,part,g,0,0.03,0);
+  Cy(0.13*s,0.32*s,red,part,g,0,0.22*s,0);
+  Cy(0.11*s,0.5*s,0xb02a20,part,g,0,0.63*s,0,null,{shell:true});
+  const sp=spring(0.07*s,6,0.012,0xe5e7eb,part,g,0,0.4*s,0);sp.scale.y=0.45*s;
+  Cy(0.08*s,0.1*s,0x6b7482,part,g,0,0.93*s,0);
+  Bx(0.04,0.04,0.36*s,0x9aa3af,part,g,0,1.02*s,0.1*s);
+  Cy(0.06*s,0.26*s,red,part,g,0.16*s,0.3*s,0,'x');
+}
+function handValve(par,x,y,z,part){
+  Sp(0.15,0x6b7482,part,par,x,y,z);
+  Cy(0.025,0.4,0x9aa3af,part,par,x+0.2,y,z,'x');
+  To(0.14,0.025,0xf2c200,part,par,x+0.4,y,z,'x',{m:0.1});
+}
+
+/* ---------- geometry constants ---------- */
+const AXY=1.4,CR=0.45,CL=1.5,LPX=-1.5,HPX=1.5,HEADY=3.9,CROWN=0.37;
+let gCrank,gFly,gCoup,gMotor,gMotorRot,gFilter;
+const CYL={};
+let sepLevelMesh,sepLamp,recFill,unlRods=[];
+
+function buildModel(){
+  /* ground */
+  const grid=new THREE.GridHelper(44,44,0x6b7a90,0x6b7a90);grid.position.y=-0.56;
+  grid.material.transparent=true;grid.material.opacity=0.16;scene.add(grid);
+  const sc=document.createElement('canvas');sc.width=sc.height=128;
+  const sx=sc.getContext('2d'),gr=sx.createRadialGradient(64,64,0,64,64,64);
+  gr.addColorStop(0,'rgba(0,0,0,.5)');gr.addColorStop(1,'rgba(0,0,0,0)');sx.fillStyle=gr;sx.fillRect(0,0,128,128);
+  const shd=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(sc),transparent:true,depthWrite:false}));
+  shd.rotation.x=-Math.PI/2;shd.position.set(1.8,-0.55,-1.0);shd.scale.set(19,12,1);scene.add(shd);
+
+  /* skid */
+  const gs=new THREE.Group();world.add(gs);
+  Bx(12.8,0.2,5.4,0x39424f,'skid',gs,1.1,-0.1,-0.5,{m:0.4});
+  for(const z of [-1.6,1.6])Bx(12.8,0.2,0.4,0x2c3440,'skid',gs,1.1,-0.3,z);
+  for(const x of [-4.8,-1.2,1.2,4.2,7.0])for(const z of [-1.6,1.6]){
+    Cy(0.2,0.15,0x15181d,'skid',gs,x,-0.48,z,null,{r:0.9,m:0},16);
+    Cy(0.12,0.04,0x6b7482,'skid',gs,x,-0.39,z,null,{},12);
+  }
+  Bx(5.8,0.08,2.0,0x2c3440,'skid',world,3.0,-0.51,-3.9);
+
+  /* crankcase */
+  const gc=new THREE.Group();world.add(gc);
+  Bx(5.2,1.4,2.2,0x2a5f93,'crankcase',gc,0,1.4,0,{shell:true});
+  Bx(4.8,0.7,2.0,0x244f7a,'crankcase',gc,0,0.35,0,{shell:true});
+  Bx(4.5,0.3,1.7,0xe0a21a,'crankcase',gc,0,0.3,0,{op:0.7,m:0.1,r:0.2});
+  Bx(5.2,0.1,2.2,0x1f4a74,'crankcase',gc,0,2.15,0,{shell:true});
+  Bx(2.4,0.9,0.08,0x3c76b0,'crankcase',gc,0,1.35,1.14);
+  for(let i=0;i<6;i++)for(const y of [0.97,1.73])Cy(0.035,0.06,0xb8c0cc,'crankcase',gc,-1.0+i*0.4,y,1.2,'z',{},10);
+  Cy(0.04,0.7,0x222831,'crankcase',gc,-2.2,2.5,0.7,null,{},8);
+  Cy(0.09,0.06,0xe0a21a,'crankcase',gc,-2.2,2.86,0.7,null,{},12);
+  Cy(0.12,0.3,0x4d5663,'crankcase',gc,2.2,2.35,-0.6,null,{},14);
+  Sp(0.12,0x4d5663,'crankcase',gc,2.2,2.5,-0.6,{},1,0.6,1);
+  Cy(0.16,0.06,0x9bd1f5,'crankcase',gc,-2.0,0.5,1.03,'z',{m:0.1,r:0.1},18);
+  To(0.17,0.03,0x20252d,'crankcase',gc,-2.0,0.5,1.06);
+  Cy(0.07,0.1,0x20252d,'crankcase',gc,2.0,0.0,0.4,null,{},10);
+  for(const x of [-2.75,2.75])Cy(0.38,0.3,0x8a93a0,'crankshaft',gc,x,AXY,0,'x',{m:0.5});
+  Bx(0.15,1.2,1.9,0x244f7a,'crankcase',gc,0,1.4,0);
+
+  /* crank assembly */
+  gCrank=new THREE.Group();gCrank.position.set(0,AXY,0);world.add(gCrank);
+  Cy(0.2,7.3,0xaeb6c2,'crankshaft',gCrank,0.05,0,0,'x',{m:0.6,r:0.35});
+  for(const t of [[LPX,-CR],[HPX,CR]]){
+    const cx=t[0],py=t[1];
+    Cy(0.17,0.5,0xc3cad4,'crankshaft',gCrank,cx,py,0,'x',{m:0.6,r:0.3});
+    for(const s of [-1,1]){
+      Cy(0.4,0.14,0x8c95a2,'crankshaft',gCrank,cx+s*0.32,0,0,'x',{m:0.5},28);
+      Bx(0.14,0.5,0.75,0x6f7886,'crankshaft',gCrank,cx+s*0.32,-Math.sign(py)*0.55,0,{m:0.5});
+    }
+  }
+  gFly=new THREE.Group();gFly.position.set(-3.35,0,0);gCrank.add(gFly);
+  Cy(0.34,0.5,0x59626f,'flywheel',gFly,0,0,0,'x',{m:0.5});
+  To(1.0,0.16,0x3d4650,'flywheel',gFly,0,0,0,'x',{m:0.5,r:0.45});
+  for(let k=0;k<6;k++){const sp=new THREE.Group();sp.rotation.x=k*Math.PI/3;gFly.add(sp);Bx(0.14,0.72,0.2,0x4a5460,'flywheel',sp,0,0.66,0,{m:0.5});}
+  Bx(0.22,0.1,0.28,0xffc533,'flywheel',gFly,0,1.06,0,{m:0,r:0.4});
+  gCoup=new THREE.Group();gCoup.position.set(3.2,0,0);gCrank.add(gCoup);
+  Cy(0.5,0.38,0x7a8493,'coupling',gCoup,0,0,0,'x',{m:0.5},28);
+  Cy(0.55,0.26,0x1e2229,'coupling',gCoup,0.31,0,0,'x',{r:0.9,m:0},28);
+  Cy(0.5,0.38,0x7a8493,'coupling',gCoup,0.62,0,0,'x',{m:0.5},28);
+  for(let k=0;k<8;k++){const a=k*Math.PI/4;Cy(0.04,0.8,0xcfd6e0,'coupling',gCoup,0.31,Math.sin(a)*0.43,Math.cos(a)*0.43,'x',{},8);}
+  gMotorRot=new THREE.Group();gCrank.add(gMotorRot);
+  Cy(0.17,0.7,0xaeb6c2,'motor',gMotorRot,4.0,0,0,'x',{m:0.6});
+  const fan=new THREE.Group();fan.position.x=6.85;gMotorRot.add(fan);
+  Cy(0.13,0.22,0x303844,'motor',fan,0,0,0,'x');
+  for(let k=0;k<8;k++){const b=new THREE.Group();b.rotation.x=k*Math.PI/4;fan.add(b);Bx(0.05,0.5,0.22,0x303844,'motor',b,0,0.38,0);}
+
+  /* motor */
+  gMotor=new THREE.Group();world.add(gMotor);
+  Cy(0.85,2.6,0x1f7a6d,'motor',gMotor,5.4,AXY,0,'x',{m:0.35},36);
+  Cy(0.9,0.14,0x16594f,'motor',gMotor,4.17,AXY,0,'x',{},36);
+  Cy(0.88,0.14,0x16594f,'motor',gMotor,6.63,AXY,0,'x',{},36);
+  for(let k=0;k<11;k++)To(0.86,0.03,0x19685d,'motor',gMotor,4.4+k*0.2,AXY,0,'x');
+  Cy(0.82,0.5,0x2a3038,'motor',gMotor,6.95,AXY,0,'x',{shell:true},32);
+  To(0.8,0.03,0x9aa3af,'motor',gMotor,7.2,AXY,0,'x');
+  Bx(0.7,0.4,0.6,0x15483f,'motor',gMotor,5.2,AXY+1.0,0);
+  Bx(0.5,0.25,0.03,0xd9dee6,'motor',gMotor,5.4,AXY,0.86,{m:0.1});
+  for(const z of [-0.7,0.7])Bx(2.0,0.6,0.35,0x16594f,'motor',gMotor,5.4,0.3,z);
+  To(0.1,0.03,0x9aa3af,'motor',gMotor,5.4,AXY+0.92,0,'z');
+
+  /* cylinders */
+  function makeCyl(cx,ro,part,sc){
+    const g=new THREE.Group();g.position.x=cx;world.add(g);
+    Cy(ro,1.7,0x7b8794,part,g,0,3.05,0,null,{shell:true,m:0.4},40);
+    Cy(ro-0.05,1.5,0x2f7fd0,part,g,0,3.0,0,null,{op:0.2,m:0,r:0.2},32);
+    for(let i=0;i<6;i++)To(ro,0.045,0x6c7886,part,g,0,2.45+i*0.25,0,'y');
+    Cy(ro+0.12,0.1,0x5f6a78,part,g,0,2.25,0,null,{},40);
+    Cy(ro+0.12,0.1,0x5f6a78,part,g,0,3.85,0,null,{},40);
+    const nb=Math.round(10*sc);
+    for(let k=0;k<nb;k++){const a=k*TAU/nb;for(const y of [2.25,3.85])Cy(0.04,0.14,0xcdd3dc,part,g,Math.cos(a)*(ro+0.06),y,Math.sin(a)*(ro+0.06),null,{},8);}
+    return g;
+  }
+  const gLPc=makeCyl(LPX,0.98,'lpcyl',1),gHPc=makeCyl(HPX,0.62,'hpcyl',0.6);
+  Cy(0.09,0.3,0x2fa45f,'lpcyl',gLPc,-1.1,2.4,0,'x',{},12);
+  Cy(0.09,0.3,0x2fa45f,'lpcyl',gLPc,1.05,3.7,0,'x',{},12);
+  Cy(0.09,0.3,0x2fa45f,'hpcyl',gHPc,-0.75,2.4,0,'x',{},12);
+  Cy(0.09,0.3,0x2fa45f,'hpcyl',gHPc,0.75,3.7,0,'x',{},12);
+
+  /* heads & valves */
+  const T=0.1;
+  function makeValves(g,sz,dz,sc,pS,pD){
+    const brass=0xc9a24a,steel=0xe3e8ef;
+    Cy(0.27*sc,0.07,brass,pS,g,0,3.95,sz,null,{m:0.6});
+    Cy(0.1*sc+0.03,0.14,0x9099a6,pS,g,0,4.05,sz,null,{},14);
+    const sG=new THREE.Group();g.add(sG);
+    Cy(0.25*sc,0.045,steel,pS,sG,0,3.895,sz,null,{m:0.7,r:0.3});
+    Cy(0.03,0.64,steel,pS,sG,0,4.19,sz,null,{},8);
+    Cy(0.1*sc+0.02,0.04,steel,pS,sG,0,4.45,sz,null,{},14);
+    const sSp=spring(0.1*sc+0.015,6,0.012,0xd9dee6,pS,g,0,4.12,sz);sSp.scale.y=0.31;
+    Cy(0.27*sc,0.07,brass,pD,g,0,3.95,dz,null,{m:0.6});
+    Cy(0.1*sc+0.03,0.14,0x9099a6,pD,g,0,4.45,dz,null,{},14);
+    const dG=new THREE.Group();g.add(dG);
+    Cy(0.25*sc,0.045,steel,pD,dG,0,4.0,dz,null,{m:0.7,r:0.3});
+    Cy(0.03,0.5,steel,pD,dG,0,4.25,dz,null,{},8);
+    const dSp=spring(0.1*sc+0.015,6,0.012,0xd9dee6,pD,g,0,4.0225,dz);dSp.scale.y=0.3575;
+    return {sG:sG,sSp:sSp,dG:dG,dSp:dSp};
+  }
+  function makeHead(cx,ro,part,sz,dz,sc,pS,pD,unlSc){
+    const g=new THREE.Group();g.position.x=cx;world.add(g);
+    Cy(ro,0.7,0x66717f,part,g,0,4.25,0,null,{shell:true,m:0.4},40);
+    Cy(ro*0.92,0.1,0x7d8794,part,g,0,4.65,0,null,{shell:true,m:0.4},40);
+    Cy(ro+0.1,0.1,0x5f6a78,part,g,0,3.95,0,null,{},40);
+    const nb=Math.round(12*sc+4);
+    for(let k=0;k<nb;k++){const a=k*TAU/nb;Cy(0.035,0.14,0xcdd3dc,part,g,Math.cos(a)*ro*0.82,4.73,Math.sin(a)*ro*0.82,null,{},8);}
+    const v=makeValves(g,sz,dz,sc,pS,pD);
+    /* unloader */
+    const ug=new THREE.Group();g.add(ug);
+    Cy(0.17*unlSc,0.35,0x2d6a9f,'unloader',g,0,4.88,sz,null,{},16);
+    Cy(0.06*unlSc,0.12,0x9aa3af,'unloader',g,0,5.1,sz,null,{},10);
+    const rod=new THREE.Group();g.add(rod);Cy(0.04,0.5,0xe3e8ef,'unloader',rod,0,4.75,sz,null,{},8);unlRods.push(rod);
+    v.g=g;return v;
+  }
+  const lpH=makeHead(LPX,0.98,'lphead',0.38,-0.38,1,'lpsv','lpdv',1);
+  Cy(0.2,0.14,0x8a93a0,'lphead',lpH.g,0,4.2,1.05,'z');
+  Cy(0.2,0.14,0x8a93a0,'lphead',lpH.g,0,4.2,-1.05,'z');
+  const hpH=makeHead(HPX,0.62,'hphead',-0.2,0.22,0.55,'hpsv','hpdv',0.7);
+  Cy(0.14,0.14,0x8a93a0,'hphead',hpH.g,0,4.2,-0.7,'z');
+  Cy(0.12,0.2,0x8a93a0,'hphead',hpH.g,0,4.78,0.22,null,{},14);
+
+  /* pistons & rods */
+  function makePiston(cx,rad,hBot,part){
+    const g=new THREE.Group();g.position.x=cx;world.add(g);
+    const H=CROWN+hBot;
+    Cy(rad,H,0xbfc6d0,part,g,0,(CROWN-hBot)/2,0,null,{m:0.55,r:0.35},36);
+    for(const y of [0.3,0.22,0.14])To(rad+0.005,0.022,0x2b3038,part,g,0,y,0,'y');
+    To(rad,0.03,0x1f2329,part,g,0,-0.12,0,'y');
+    Cy(0.1,rad*1.9,0x9aa3af,part,g,0,0,0,'x',{m:0.7},14);
+    return g;
+  }
+  function makeRod(cx,sc){
+    const g=new THREE.Group();g.position.x=cx;world.add(g);
+    Cy(0.26*sc,0.42,0xb08d57,'conrod',g,0,0,0,'x',{m:0.5},24);
+    Co(0.07*sc,0.12*sc,CL-0.45,0x8a929e,'conrod',g,0,CL/2,0,null,{m:0.5},12);
+    Cy(0.15*sc,0.36*sc+0.1,0xb08d57,'conrod',g,0,CL,0,'x',{m:0.5},18);
+    Cy(0.03,0.5,0xcfd6e0,'conrod',g,0.0,0.0,0.3*sc,'x',{},8);
+    return g;
+  }
+  const gasLP=new THREE.Mesh(new THREE.CylinderGeometry(0.82,0.82,1,28),new THREE.MeshBasicMaterial({color:0x38bdf8,transparent:true,opacity:0.5,depthWrite:false}));
+  const gasHP=new THREE.Mesh(new THREE.CylinderGeometry(0.48,0.48,1,24),new THREE.MeshBasicMaterial({color:0x38bdf8,transparent:true,opacity:0.5,depthWrite:false}));
+  world.add(gasLP);world.add(gasHP);
+  CYL.LP={x:LPX,ph:0,cl:0.07,n:1.3,T1:30,p1:1.013,p2:5.6,piston:makePiston(LPX,0.8,0.43,'piston'),rod:makeRod(LPX,1),valves:lpH,gas:gasLP,cyl:gLPc,head:lpH.g,
+    sO:0,dO:0,phase:'',p:1,T:30,vN:1,tr:new Float32Array(240),trSeen:new Uint8Array(120),color:'#0ea5e9',pOff:0.5,hOff:2.2,cOff:1.0};
+  CYL.HP={x:HPX,ph:Math.PI,cl:0.09,n:1.3,T1:45,p1:5.6,p2:31,piston:makePiston(HPX,0.46,0.3,'piston'),rod:makeRod(HPX,0.82),valves:hpH,gas:gasHP,cyl:gHPc,head:hpH.g,
+    sO:0,dO:0,phase:'',p:1,T:30,vN:1,tr:new Float32Array(240),trSeen:new Uint8Array(120),color:'#f97316',pOff:0.5,hOff:2.2,cOff:1.0};
+
+  /* filter */
+  gFilter=new THREE.Group();gFilter.position.set(-3.1,0,1.35);world.add(gFilter);
+  Cy(0.5,1.0,0x5b6674,'filter',gFilter,0,4.9,0,null,{shell:true,m:0.4},32);
+  Cy(0.55,0.08,0x434c58,'filter',gFilter,0,4.4,0,null,{},32);
+  Cy(0.52,0.06,0x434c58,'filter',gFilter,0,5.4,0,null,{},32);
+  Co(0.5,0.28,0.25,0x434c58,'filter',gFilter,0,5.56,0,null,{side:THREE.DoubleSide},28);
+  Cy(0.36,0.8,0xe9e3c8,'filter',gFilter,0,4.9,0,null,{op:0.9,r:0.9,m:0},24);
+  for(let k=0;k<12;k++){const a=k*TAU/12;const b=Bx(0.02,0.78,0.09,0xcfc7a3,'filter',gFilter,Math.cos(a)*0.38,4.9,Math.sin(a)*0.38,{r:0.9,m:0});b.rotation.y=-a;}
+  Cy(0.2,0.3,0x5b6674,'filter',gFilter,0,4.3,0,null,{},16);
+  Cy(0.07,4.2,0x4d5663,'filter',gFilter,0,2.1,0.0,null,{},10);
+  Bx(0.6,0.05,0.6,0x4d5663,'filter',gFilter,0,0.02,0);
+  Bx(0.25,0.08,0.25,0x4d5663,'filter',gFilter,0,4.22,0);
+
+  /* intercooler */
+  const gi=new THREE.Group();gi.position.set(0,3.0,-2.0);world.add(gi);
+  const cu=0xb4733c;
+  Cy(0.42,3.4,cu,'intercooler',gi,0,0,0,'x',{shell:true,m:0.5,r:0.45},36);
+  for(const s of [-1,1]){
+    Cy(0.47,0.28,0x8f5a2a,'intercooler',gi,s*1.84,0,0,'x',{shell:true,m:0.4},32);
+    Cy(0.5,0.05,0x6e4620,'intercooler',gi,s*1.72,0,0,'x',{},32);
+    Cy(0.1,0.4,cu,'intercooler',gi,s*2.18,0,0,'x',{},12);
+    Cy(0.17,0.4,cu,'intercooler',gi,s*1.5,0.55,0,null,{},16);
+    Cy(0.22,0.05,0x6e4620,'intercooler',gi,s*1.5,0.76,0,null,{},16);
+  }
+  [[0,0],[0.18,0],[-0.18,0],[0,0.18],[0,-0.18],[0.13,0.13],[-0.13,0.13],[0.13,-0.13],[-0.13,-0.13]].forEach(function(p){
+    Cy(0.035,3.4,0x3b8de0,'intercooler',gi,0,p[0],p[1],'x',{m:0.2,r:0.3},8);});
+  [-0.9,0,0.9].forEach(function(x,i){
+    const b=M(new THREE.CylinderGeometry(0.4,0.4,0.04,22,1,false,0,Math.PI),0x9aa3af,'intercooler',gi,{m:0.4});
+    b.position.x=x;b.rotation.set(i%2?Math.PI:0,0,Math.PI/2);});
+  for(const x of [-1.0,1.0]){Bx(0.2,2.58,0.2,0x4d5663,'intercooler',world,x,1.29,-2.0);Bx(0.7,0.08,0.5,0x4d5663,'intercooler',world,x,2.62,-2.0);Bx(0.6,0.05,0.6,0x4d5663,'intercooler',world,x,0.02,-2.0);}
+  Cy(0.05,0.25,0x8a93a0,'intercooler',gi,0.5,-0.5,0,null,{},8);
+  safetyValve(gi,-0.6,0.4,0,'safety_ic',0.85);
+  Cy(0.04,0.35,0x8a93a0,'gauges',gi,0.6,0.55,0,null,{},8);
+  gauge(gi,0.6,0.9,0,0,10,function(){return S.w>0.05&&!S.unload?CYL.LP.p2-1.013:0;});
+
+  /* aftercooler */
+  const ga=new THREE.Group();ga.position.set(3.4,0,-2.0);world.add(ga);
+  Cy(0.36,2.2,cu,'aftercooler',ga,0,2.4,0,null,{shell:true,m:0.5,r:0.45},32);
+  Cy(0.4,0.2,0x8f5a2a,'aftercooler',ga,0,3.6,0,null,{shell:true},28);
+  Cy(0.4,0.2,0x8f5a2a,'aftercooler',ga,0,1.2,0,null,{shell:true},28);
+  [[-0.1,0],[0,0.15],[0,-0.15],[-0.2,0.1],[-0.2,-0.1],[0.1,0.1],[0.1,-0.1]].forEach(function(p){
+    Cy(0.032,2.2,0x3b8de0,'aftercooler',ga,p[0],2.4,p[1],null,{m:0.2,r:0.3},8);});
+  [1.8,2.4,3.0].forEach(function(y,i){
+    const b=M(new THREE.CylinderGeometry(0.34,0.34,0.03,20,1,false,0,Math.PI),0x9aa3af,'aftercooler',ga,{m:0.4});
+    b.position.y=y;b.rotation.y=i%2?Math.PI:0;});
+  Cy(0.09,0.3,cu,'aftercooler',ga,0.5,3.3,0,'x',{},12);
+  Cy(0.09,0.3,cu,'aftercooler',ga,0.5,1.65,0,'x',{},12);
+  Cy(0.09,0.3,cu,'aftercooler',ga,-0.55,3.6,0,'x',{},12);
+  for(const x of [-0.28,0.28])for(const z of [-0.28,0.28])Bx(0.08,1.1,0.08,0x4d5663,'aftercooler',ga,x,0.55,z);
+  Cy(0.035,0.25,0x8a93a0,'gauges',ga,0,2.7,0.48,'z',{},8);
+  gauge(ga,0,2.7,0.62,0,40,function(){return S.w>0.05&&!S.unload?CYL.HP.p2-1.013:S.recP;});
+
+  /* separator */
+  const gp=new THREE.Group();gp.position.set(4.6,0,-2.0);world.add(gp);
+  Cy(0.32,1.2,0xa05a2c,'separator',gp,0,1.9,0,null,{shell:true,m:0.5},28);
+  M(new THREE.SphereGeometry(0.32,24,10,0,TAU,0,Math.PI/2),0xa05a2c,'separator',gp,{shell:true,m:0.5}).position.y=2.5;
+  const bd=M(new THREE.SphereGeometry(0.32,24,10,0,TAU,Math.PI/2,Math.PI/2),0xa05a2c,'separator',gp,{shell:true,m:0.5});bd.position.y=1.3;bd.scale.y=0.55;
+  Cy(0.27,0.2,0xcfd6df,'separator',gp,0,2.15,0,null,{op:0.55,m:0,r:0.9},20);
+  Co(0.05,0.28,0.35,0x9aa3af,'separator',gp,0,1.8,0,null,{},18);
+  sepLevelMesh=M(new THREE.CylinderGeometry(0.29,0.29,1,20),0x3b8de0,'separator',gp,{op:0.65,m:0,r:0.2});
+  Cy(0.06,0.25,0x6b7482,'separator',gp,0,1.0,0,null,{},10);
+  Bx(0.24,0.2,0.24,0x2f4a66,'separator',gp,0,0.85,0);
+  Cy(0.1,0.22,0x15181d,'separator',gp,0.0,0.85,0.17,'z',{},12);
+  sepLamp=new THREE.Mesh(new THREE.SphereGeometry(0.055,12,10),new THREE.MeshBasicMaterial({color:0x6b7280}));sepLamp.position.set(0,1.05,0.15);gp.add(sepLamp);
+  Cy(0.09,0.3,0xa05a2c,'separator',gp,-0.45,1.65,0,'x',{},12);
+  Cy(0.09,0.3,0xa05a2c,'separator',gp,0,2.65,0,null,{},12);
+  for(const x of [-0.22,0.22])Bx(0.07,0.8,0.07,0x4d5663,'separator',gp,x,0.9,0.0);
+
+  /* receiver */
+  const gr2=new THREE.Group();gr2.position.set(3.0,0.6,-3.9);world.add(gr2);
+  const rc=0xc0463a;
+  Cy(0.75,5.2,rc,'receiver',gr2,0,0,0,'x',{shell:true,m:0.35,r:0.5},40);
+  for(const s of [-1,1]){Sp(0.75,rc,'receiver',gr2,s*2.6,0,0,{shell:true,m:0.35,r:0.5},0.38,1,1);To(0.755,0.03,0x8e2a22,'receiver',gr2,s*2.0,0,0,'x');}
+  recFill=new THREE.Mesh(new THREE.CylinderGeometry(0.7,0.7,5.0,28),new THREE.MeshBasicMaterial({color:0x38bdf8,transparent:true,opacity:0.2,depthWrite:false}));
+  recFill.rotation.z=Math.PI/2;gr2.add(recFill);
+  for(const x of [-1.7,1.7])Bx(0.6,0.4,1.4,0x3b4350,'receiver',gr2,x,-0.95,0);
+  Bx(0.5,0.3,0.02,0xe5e7eb,'receiver',gr2,-1.2,0.1,0.76,{m:0.1});
+  Cy(0.22,0.08,0x8e2a22,'receiver',gr2,2.9,0.0,0,'x',{},20);
+  Cy(0.1,0.3,rc,'receiver',gr2,1.6,0.85,0,null,{},12);
+  Cy(0.1,0.35,0x6b7482,'receiver',gr2,-1.8,-0.9,0,null,{},10);
+  To(0.1,0.02,0xf2c200,'receiver',gr2,-1.8,-1.12,0,'y');
+  Cy(0.04,0.35,0x8a93a0,'gauges',gr2,-1.4,0.9,0,null,{},8);
+  gauge(gr2,-1.4,1.25,0,0,40,function(){return S.recP;});
+  safetyValve(gr2,-0.5,0.7,0,'safety_hp',1);
+  Bx(0.38,0.3,0.3,0x2a3441,'pswitch',gr2,0.4,1.05,0);
+  Cy(0.12,0.1,0x9aa3af,'pswitch',gr2,0.4,0.82,0,null,{},12);
+  Cy(0.1,0.1,0x15181d,'pswitch',gr2,0.4,1.24,0,null,{},12);
+  Cy(0.1,0.7,rc,'receiver',gr2,3.25,0,0,'x',{},12);
+  handValve(gr2,3.45,0,0,'receiver');
+
+  /* nrv + stop valve */
+  Cy(0.14,0.5,0x6b7482,'nrv',world,4.6,2.8,-2.9,'z',{},16);
+  Co(0,0.08,0.22,0xf2c200,'nrv',world,4.6,3.0,-2.9,'-z',{m:0.1},12);
+  Sp(0.16,0x6b7482,'nrv',world,4.6,2.0,-3.9);
+  Cy(0.025,0.4,0x9aa3af,'nrv',world,4.8,2.0,-3.9,'x',{},8);
+  To(0.14,0.025,0xf2c200,'nrv',world,5.0,2.0,-3.9,'x',{m:0.1});
+
+  /* lube oil */
+  Bx(0.5,0.35,0.4,0xe8830c,'lubepump',world,1.9,0.5,0.6);
+  Cy(0.12,0.2,0x9aa3af,'lubepump',world,1.6,0.4,0.6,'x',{},12);
+  Cy(0.2,0.7,0xe8830c,'lubepump',world,2.3,0.95,1.35,null,{},20);
+  Bx(0.45,0.2,0.4,0x9a5208,'lubepump',world,2.3,1.4,1.35);
+  Cy(0.05,4.7,0xb87a2a,'lubepump',world,0.0,1.95,0.75,'x',{glass:0.8},8);
+  for(const x of [-2.4,-1.5,0,1.5,2.4])Cy(0.03,0.3,0xb87a2a,'lubepump',world,x,1.8,0.75,null,{},6);
+  gauge(world,-2.0,1.75,1.3,0,6,function(){return S.w>0.1?2.4*Math.min(1,S.w*1.3):0;});
+  Cy(0.035,0.2,0x8a93a0,'gauges',world,-2.0,1.75,1.19,'z',{},8);
+
+  /* piping */
+  const R=function(a){return a.map(function(p){return V3(p[0],p[1],p[2]);});};
+  pipe(R(P.airIn),0.12,0x7fb2dd,'piping');
+  pipe(R(P.lpd),0.11,0x7fb2dd,'piping');
+  pipe(R(P.hps),0.1,0x7fb2dd,'piping');
+  pipe(R(P.hpd),0.08,0x7fb2dd,'piping');
+  pipe(R(P.ac),0.08,0x7fb2dd,'piping');
+  pipe(R(P.sep),0.08,0x7fb2dd,'piping');
+  pipe(R(P.w1),0.09,0x3fae6a,'cwpipes');pipe(R(P.w2),0.09,0x3fae6a,'cwpipes');pipe(R(P.w3),0.09,0x3fae6a,'cwpipes');
+  pipe(R(P.w4),0.09,0x3fae6a,'cwpipes');pipe(R(P.w5),0.09,0x3fae6a,'cwpipes');
+  pipe(R(P.o1),0.05,0xb87a2a,'lubepump');pipe(R(P.o2),0.05,0xb87a2a,'lubepump');
+}
+
+/* ---------- pipe & flow coordinates ---------- */
+const P={
+ airIn:[[-3.1,4.2,1.35],[-1.5,4.2,1.35],[-1.5,4.2,1.1]],
+ lpd:[[-1.5,4.2,-1.1],[-1.5,4.2,-2.0],[-1.5,3.62,-2.0]],
+ hps:[[1.5,3.62,-2.0],[1.5,4.2,-2.0],[1.5,4.2,-0.72]],
+ hpd:[[1.5,4.75,0.22],[1.5,5.1,0.22],[4.0,5.1,0.22],[4.0,5.1,-2.0],[4.0,3.3,-2.0],[3.76,3.3,-2.0]],
+ ac:[[3.76,1.65,-2.0],[4.28,1.65,-2.0]],
+ sep:[[4.6,2.5,-2.0],[4.6,2.8,-2.0],[4.6,2.8,-3.9],[4.6,1.35,-3.9]],
+ w1:[[6.4,0.55,-3.2],[6.4,0.55,-2.75],[3.4,0.55,-2.75],[3.4,0.55,-2.0],[3.4,1.1,-2.0]],
+ w2:[[2.7,3.6,-2.0],[2.6,3.6,-2.0],[2.6,3.0,-2.0],[2.38,3.0,-2.0]],
+ w3:[[-2.4,3.0,-2.0],[-2.7,3.0,-2.0],[-2.7,2.4,-2.0],[-2.7,2.4,0.0]],
+ w4:[[-0.3,3.7,0.0],[0.0,3.7,0.0],[0.0,2.4,0.0],[0.65,2.4,0.0]],
+ w5:[[2.4,3.7,0.0],[2.4,3.7,-2.75],[6.4,3.7,-2.75],[6.4,3.7,-3.2]],
+ o1:[[2.3,0.55,1.05],[2.3,0.55,1.35],[2.3,0.62,1.35]],
+ o2:[[2.3,1.3,1.35],[2.3,1.95,1.35],[2.3,1.95,1.05]]
+};
+
+/* ---------- flows (particles) ---------- */
+const FL=[],FM={};let FN=0;
+const TSTOPS=[[30,[0.22,0.74,0.97]],[60,[0.29,0.87,0.5]],[100,[0.98,0.8,0.08]],[140,[0.98,0.57,0.24]],[200,[0.94,0.27,0.27]]];
+function tempRGB(T,out){
+  T=clamp(T,30,200);
+  for(let i=0;i<TSTOPS.length-1;i++){
+    const a=TSTOPS[i],b=TSTOPS[i+1];
+    if(T<=b[0]){const t=(T-a[0])/(b[0]-a[0]);out[0]=lerp(a[1][0],b[1][0],t);out[1]=lerp(a[1][1],b[1][1],t);out[2]=lerp(a[1][2],b[1][2],t);return out;}
+  }
+  const c=TSTOPS[TSTOPS.length-1][1];out[0]=c[0];out[1]=c[1];out[2]=c[2];return out;
+}
+function spiral(cx,r,y0,y1,th0,turns,n){
+  const a=[];
+  for(let i=0;i<=n;i++){const t=i/n,th=th0+turns*TAU*t;a.push([cx+r*Math.cos(th),lerp(y0,y1,t),r*Math.sin(th)]);}
+  return a;
+}
+function addFlow(id,arr,o){
+  const pts=arr.map(function(p){return V3(p[0],p[1],p[2]);});
+  const cum=[0];
+  for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+pts[i].distanceTo(pts[i-1]));
+  const len=cum[cum.length-1];
+  const n=Math.max(16,Math.round(len*o.density));
+  const f={id:id,pts:pts,cum:cum,len:len,n:n,start:FN,speed:o.speed||2.4,stops:o.stops||null,rgb:o.rgb||null,size:o.size||0.17,
+    act:0,emph:1,tgtEmph:1,t:0,phase:new Float32Array(n)};
+  for(let i=0;i<n;i++)f.phase[i]=i/n;
+  FN+=n;FL.push(f);FM[id]=f;return f;
+}
+function buildFlows(){
+  const cat=function(){const r=[];for(let i=0;i<arguments.length;i++)for(let j=0;j<arguments[i].length;j++)r.push(arguments[i][j]);return r;};
+  addFlow('air_in',cat([[-3.1,6.2,1.35],[-3.1,4.2,1.35]],P.airIn.slice(1),[[-1.5,4.2,0.38],[-1.5,3.93,0.38]]),{density:4,stops:[[0,30],[1,30]]});
+  addFlow('lp_ic',cat([[-1.5,4.06,-0.38],[-1.5,4.2,-0.38],[-1.5,4.2,-1.1]],P.lpd.slice(1),[[-1.5,3.22,-2.0],[0,3.22,-2.0]]),
+    {density:5,stops:[[0,175],[0.55,172],[0.8,110],[1,60]]});
+  addFlow('ic_hp',cat([[0,3.22,-2.0],[1.5,3.22,-2.0]],P.hps,[[1.5,4.2,-0.2],[1.5,3.93,-0.2]]),
+    {density:5,stops:[[0,60],[0.3,48],[1,45]],size:0.15});
+  addFlow('hp_ac',cat([[1.5,4.06,0.2]],P.hpd,[[3.55,3.3,-2.0],[3.55,1.65,-2.0],[3.76,1.65,-2.0],[4.28,1.65,-2.0]]),
+    {density:4,stops:[[0,195],[0.72,190],[0.88,70],[1,48]],size:0.14});
+  addFlow('ac_rec',[[4.28,1.65,-2.0],[4.6,1.65,-2.0],[4.6,2.5,-2.0],[4.6,2.8,-2.0],[4.6,2.8,-3.9],[4.6,1.35,-3.9],[4.6,0.95,-3.9]],
+    {density:5,stops:[[0,45],[1,42]],size:0.14});
+  const water=cat([[6.4,0.55,-3.2],[6.4,0.55,-2.75],[3.4,0.55,-2.75],[3.4,0.55,-2.0],[3.4,1.2,-2.0],[3.3,1.25,-2.0],[3.3,3.6,-2.0]],
+    P.w2,[[-2.4,3.0,-2.0]],P.w3.slice(1),[[-2.48,2.4,0.0]],
+    spiral(LPX,0.94,2.4,3.7,Math.PI,2.5,60),[[-0.3,3.7,0.0],[0.0,3.7,0.0],[0.0,2.4,0.0],[0.96,2.4,0.0]],
+    spiral(HPX,0.54,2.4,3.7,Math.PI,2.5,48),[[2.4,3.7,0.0],[2.4,3.7,-2.75],[6.4,3.7,-2.75],[6.4,3.7,-3.2]]);
+  addFlow('water',water,{density:2.6,rgb:[0.2,0.55,0.98],speed:2.8,size:0.15});
+  addFlow('oil',[[1.7,0.4,0.6],[1.9,0.5,0.6],[2.3,0.55,0.6],[2.3,0.55,1.35],[2.3,0.7,1.35],[2.3,1.3,1.35],[2.3,1.95,1.35],[2.3,1.95,0.75],[-2.4,1.95,0.75]],
+    {density:4,rgb:[0.93,0.62,0.1],speed:1.6,size:0.1});
+  const g=new THREE.BufferGeometry();
+  const pos=new Float32Array(FN*3);
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3).setUsage(THREE.DynamicDrawUsage));
+  g.setAttribute('aCol',new THREE.BufferAttribute(new Float32Array(FN*3),3).setUsage(THREE.DynamicDrawUsage));
+  g.setAttribute('aAlpha',new THREE.BufferAttribute(new Float32Array(FN),1).setUsage(THREE.DynamicDrawUsage));
+  g.setAttribute('aSize',new THREE.BufferAttribute(new Float32Array(FN),1).setUsage(THREE.DynamicDrawUsage));
+  const mt=new THREE.ShaderMaterial({
+    uniforms:{uScale:{value:800}},
+    vertexShader:'attribute vec3 aCol;attribute float aAlpha;attribute float aSize;varying vec3 vC;varying float vA;uniform float uScale;void main(){vC=aCol;vA=aAlpha;vec4 mv=modelViewMatrix*vec4(position,1.0);gl_PointSize=aSize*uScale/max(0.1,-mv.z);gl_Position=projectionMatrix*mv;}',
+    fragmentShader:'varying vec3 vC;varying float vA;void main(){float d=length(gl_PointCoord-0.5);if(d>0.5)discard;gl_FragColor=vec4(vC,smoothstep(0.5,0.12,d)*vA);}',
+    transparent:true,depthWrite:false
+  });
+  FM.points=new THREE.Points(g,mt);FM.points.frustumCulled=false;world.add(FM.points);
+}
+const tmpC=[0,0,0];
+function updateFlows(dt){
+  const g=FM.points.geometry,pa=g.attributes.position.array,ca=g.attributes.aCol.array,aa=g.attributes.aAlpha.array,sa=g.attributes.aSize.array;
+  for(const f of FL){
+    f.emph=ease(f.emph,f.tgtEmph,dt,4);
+    const a=clamp(f.act,0,1);
+    if(a>0.02)f.t+=dt*f.speed*(0.35+0.65*a)*(0.6+0.5*S.speedMul);
+    const base=a*(0.25+0.75*f.emph);
+    for(let i=0;i<f.n;i++){
+      const idx=f.start+i;
+      if(base<0.015){aa[idx]=0;continue;}
+      const u=(f.phase[i]+f.t/f.len)%1,d=u*f.len;
+      let s=1;while(s<f.cum.length-1&&f.cum[s]<d)s++;
+      const k=(d-f.cum[s-1])/Math.max(1e-6,f.cum[s]-f.cum[s-1]),A=f.pts[s-1],B=f.pts[s];
+      pa[idx*3]=A.x+(B.x-A.x)*k;pa[idx*3+1]=A.y+(B.y-A.y)*k;pa[idx*3+2]=A.z+(B.z-A.z)*k;
+      if(f.rgb){ca[idx*3]=f.rgb[0];ca[idx*3+1]=f.rgb[1];ca[idx*3+2]=f.rgb[2];}
+      else{
+        let T=f.stops[f.stops.length-1][1];
+        for(let q=1;q<f.stops.length;q++){if(u<=f.stops[q][0]){const a0=f.stops[q-1],a1=f.stops[q];T=lerp(a0[1],a1[1],(u-a0[0])/Math.max(1e-6,a1[0]-a0[0]));break;}}
+        tempRGB(T,tmpC);ca[idx*3]=tmpC[0];ca[idx*3+1]=tmpC[1];ca[idx*3+2]=tmpC[2];
+      }
+      aa[idx]=base*Math.min(1,u/0.04,(1-u)/0.04)*0.95;
+      sa[idx]=f.size*(0.8+0.4*f.emph);
+    }
+  }
+  g.attributes.position.needsUpdate=true;g.attributes.aCol.needsUpdate=true;g.attributes.aAlpha.needsUpdate=true;g.attributes.aSize.needsUpdate=true;
+}
+
+/* ============================== MECHANISM / THERMO ============================== */
+function pinRel(phi){const pz=CR*Math.sin(phi),py=-CR*Math.cos(phi);return py+Math.sqrt(CL*CL-pz*pz);}
+const CROWN_BDC=AXY+(CL-CR)+CROWN,CROWN_TDC=AXY+(CL+CR)+CROWN;
+function recAbs(){return S.recP+1.013;}
+function updateMech(dt){
+  const e=S.explode;
+  gCrank.rotation.x=-S.theta;
+  gFly.position.x=-3.35-e*1.0;gCoup.position.x=3.2+e*0.8;gMotorRot.position.x=e*1.6;gMotor.position.x=e*1.6;gFilter.position.y=e*1.3;
+  const showPipes=e<0.05;
+  gPipes.visible=showPipes;FM.points.visible=showPipes;
+  /* pressures */
+  const p2hp=clamp(recAbs()+0.7,4,31.7),pint=Math.sqrt(p2hp*1.013);
+  CYL.LP.p1=1.013;CYL.LP.p2=pint;CYL.HP.p1=pint;CYL.HP.p2=p2hp;
+  const stopped=S.w<0.02;
+  for(const key of ['LP','HP']){
+    const c=CYL[key],phi=S.theta+c.ph,ph=((phi%TAU)+TAU)%TAU;
+    const py=-CR*Math.cos(phi),pz=CR*Math.sin(phi);
+    const pinY=AXY+pinRel(phi);
+    const pistonY=pinY+e*c.pOff;
+    c.piston.position.y=pistonY;
+    c.rod.position.set(c.x,AXY+py,pz);
+    c.rod.rotation.x=Math.atan2(-pz,pistonY-(AXY+py));
+    c.cyl.position.y=e*c.cOff;c.head.position.y=e*c.hOff;
+    const crown=pinY+CROWN,x=clamp((crown-CROWN_BDC)/(CROWN_TDC-CROWN_BDC),0,1);
+    const v=c.cl+(1-x),up=ph<Math.PI;
+    let p,phase;
+    if(S.unload){p=c.p1;phase=stopped?'STOPPED':'UNLOADED';}
+    else if(up){p=c.p1*Math.pow((c.cl+1)/v,c.n);if(p>=c.p2){p=c.p2;phase='DISCHARGE';}else phase='COMPRESSION';}
+    else{p=c.p2*Math.pow(c.cl/v,c.n);if(p<=c.p1){p=c.p1;phase='SUCTION';}else phase='RE-EXPANSION';}
+    c.p=p;c.phase=phase;c.vN=v/(c.cl+1);
+    c.T=(c.T1+273.15)*Math.pow(p/c.p1,(c.n-1)/c.n)-273.15;
+    const sT=(phase==='SUCTION'||phase==='UNLOADED'||phase==='STOPPED')?1:0,dT=phase==='DISCHARGE'?1:0;
+    c.sO=ease(c.sO,sT,dt,18);c.dO=ease(c.dO,dT,dt,18);
+    const vv=c.valves;
+    vv.sG.position.y=-c.sO*T_TRAVEL;vv.sSp.scale.y=0.31-c.sO*T_TRAVEL;
+    vv.dG.position.y=c.dO*T_TRAVEL;vv.dSp.position.y=4.0225+c.dO*T_TRAVEL;vv.dSp.scale.y=0.3575-c.dO*T_TRAVEL;
+    c.gas.visible=e<0.05;
+    const head=HEADY,h=Math.max(0.05,head-crown);
+    c.gas.position.set(c.x,crown+h/2,0);c.gas.scale.y=h;
+    tempRGB(c.T,tmpC);c.gas.material.color.setRGB(tmpC[0],tmpC[1],tmpC[2]);
+    c.gas.material.opacity=0.35+0.3*clamp((p-1)/30,0,1);
+    const bin=Math.floor(ph/TAU*120)%120;c.tr[bin*2]=c.vN;c.tr[bin*2+1]=p;c.trSeen[bin]=1;
+  }
+  for(let i=0;i<unlRods.length;i++){
+    const c=i===0?CYL.LP:CYL.HP;
+    unlRods[i].position.y=-(S.unload&&S.w>0.02?c.sO:0)*T_TRAVEL;
+  }
+  /* flows */
+  const ld=S.unload?0.2:1;
+  FM.air_in.act=CYL.LP.sO*ld*(stopped?0:1);
+  FM.lp_ic.act=S.unload?0:CYL.LP.dO;
+  FM.ic_hp.act=S.unload?0:CYL.HP.sO;
+  FM.hp_ac.act=S.unload?0:CYL.HP.dO;
+  S.avgD=ease(S.avgD,(S.unload?0:CYL.HP.dO)*S.w,dt,3);
+  FM.ac_rec.act=clamp(S.avgD*2.6,0,1);
+  FM.water.act=S.w;FM.oil.act=S.w;
+  /* separator */
+  if(S.run&&!S.unload)S.sepLvl+=dt*0.03*S.w*(0.5+S.speedMul);
+  if(S.draining){S.sepLvl-=dt*0.45;if(S.sepLvl<=0.08){S.draining=false;S.sepLvl=0.08;}}
+  else if(S.sepLvl>=1){S.draining=true;}
+  const lh=0.05+0.35*clamp(S.sepLvl,0,1);
+  sepLevelMesh.scale.y=lh;sepLevelMesh.position.y=1.3+lh/2;
+  sepLamp.material.color.setHex(S.draining?0x22c55e:0x6b7280);
+  /* receiver fill */
+  const rf=clamp(S.recP/30,0,1);
+  recFill.material.opacity=0.12+0.4*rf;
+  recFill.material.color.setRGB(lerp(0.22,0.94,rf),lerp(0.74,0.3,rf),lerp(0.97,0.27,rf));
+}
+const T_TRAVEL=0.1;
+
+function updateGauges(){
+  for(const g of gauges){
+    const f=clamp((g.fn()-g.min)/(g.max-g.min),0,1);
+    g.pivot.rotation.z=(135-270*f)*Math.PI/180;
+  }
+}
+
+/* ============================== CAMERA ============================== */
+const cam={az:0.78,el:0.36,dist:30,tx:2,ty:2.5,tz:-1.2};
+const camT={az:0.78,el:0.36,dist:30,tx:2,ty:2.5,tz:-1.2};
+const VIEW={w:innerWidth,h:innerHeight,ox:0,oy:0,tox:0,toy:0};
+function applyCam(){
+  const ce=Math.cos(cam.el);
+  camera.position.set(cam.tx+cam.dist*Math.sin(cam.az)*ce,cam.ty+cam.dist*Math.sin(cam.el),cam.tz+cam.dist*Math.cos(cam.az)*ce);
+  camera.lookAt(cam.tx,cam.ty,cam.tz);
+}
+function distFor(fw){
+  const t=Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*2;
+  return Math.max(fw*innerHeight/(VIEW.w*t),fw*0.7*innerHeight/(VIEW.h*t));
+}
+function flyTo(c){
+  camT.tx=c.t[0];camT.ty=c.t[1];camT.tz=c.t[2];camT.dist=distFor(c.fw);camT.el=c.el;
+  const k=Math.round((cam.az-c.az)/TAU);camT.az=c.az+k*TAU;
+}
+function updateCamera(dt){
+  const k=1-Math.exp(-dt*5);
+  cam.az=lerp(cam.az,camT.az,k);cam.el=lerp(cam.el,camT.el,k);cam.dist=lerp(cam.dist,camT.dist,k);
+  cam.tx=lerp(cam.tx,camT.tx,k);cam.ty=lerp(cam.ty,camT.ty,k);cam.tz=lerp(cam.tz,camT.tz,k);
+  const o=1-Math.exp(-dt*6);
+  const nox=lerp(VIEW.ox,VIEW.tox,o),noy=lerp(VIEW.oy,VIEW.toy,o);
+  if(Math.abs(nox-VIEW.ox)>0.01||Math.abs(noy-VIEW.oy)>0.01||!VIEW.set){
+    VIEW.ox=nox;VIEW.oy=noy;VIEW.set=true;
+    camera.setViewOffset(innerWidth,innerHeight,VIEW.ox,VIEW.oy,innerWidth,innerHeight);
+  }
+  applyCam();
+}
+function layout(){
+  const W=innerWidth,H=innerHeight;
+  renderer.setSize(W,H,false);
+  camera.aspect=W/H;
+  const sh=$('#sheet'),hd=$('#top').offsetHeight;
+  if(W>=900){
+    const sw=sh.offsetWidth;VIEW.w=W-sw;VIEW.h=H-hd;VIEW.tox=sw/2;VIEW.toy=hd/2*-1+0;
+    VIEW.toy=-hd/2;
+  }else{
+    const vis=S.collapsed?132:sh.offsetHeight;
+    VIEW.w=W;VIEW.h=Math.max(120,H-vis-hd);VIEW.tox=0;VIEW.toy=(vis-hd)/2;
+  }
+  VIEW.toy=VIEW.toy;
+  camera.updateProjectionMatrix();
+  FM.points.material.uniforms.uScale.value=H*PR/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)));
+  VIEW.set=false;
+}
+
+/* pointer controls */
+const ptrs=new Map();let pinch=null,tapInfo=null;
+canvas.addEventListener('contextmenu',function(e){e.preventDefault();});
+canvas.addEventListener('pointerdown',function(e){
+  canvas.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===1)tapInfo={x:e.clientX,y:e.clientY,t:performance.now(),moved:false};
+  else{tapInfo=null;const a=Array.from(ptrs.values());pinch={d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),cx:(a[0].x+a[1].x)/2,cy:(a[0].y+a[1].y)/2};}
+});
+canvas.addEventListener('pointermove',function(e){
+  const p=ptrs.get(e.pointerId);if(!p)return;
+  const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+  if(tapInfo&&Math.hypot(e.clientX-tapInfo.x,e.clientY-tapInfo.y)>6)tapInfo.moved=true;
+  if(ptrs.size===1){
+    if(e.buttons&2||e.shiftKey)panBy(dx,dy);
+    else{camT.az-=dx*0.0075;camT.el=clamp(camT.el+dy*0.0075,-0.15,1.45);}
+  }else if(ptrs.size>=2&&pinch){
+    const a=Array.from(ptrs.values()),d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),cx=(a[0].x+a[1].x)/2,cy=(a[0].y+a[1].y)/2;
+    camT.dist=clamp(camT.dist*pinch.d/Math.max(10,d),3,90);
+    panBy(cx-pinch.cx,cy-pinch.cy);
+    pinch.d=d;pinch.cx=cx;pinch.cy=cy;
+  }
+});
+function endPtr(e){
+  const had=ptrs.has(e.pointerId);ptrs.delete(e.pointerId);
+  if(ptrs.size<2)pinch=null;
+  if(had&&tapInfo&&!tapInfo.moved&&performance.now()-tapInfo.t<500&&e.type==='pointerup')pick(e.clientX,e.clientY);
+  if(ptrs.size===0)tapInfo=null;
+}
+canvas.addEventListener('pointerup',endPtr);
+canvas.addEventListener('pointercancel',endPtr);
+canvas.addEventListener('wheel',function(e){e.preventDefault();camT.dist=clamp(camT.dist*Math.exp(e.deltaY*0.0012),3,90);},{passive:false});
+function panBy(dx,dy){
+  const s=camT.dist*0.0018;
+  camT.tx-=Math.cos(camT.az)*dx*s;
+  camT.tz+=(Math.sin(camT.az)*dx)*s;
+  camT.ty+=dy*s;
+  camT.tx=clamp(camT.tx,-8,12);camT.ty=clamp(camT.ty,-2,8);camT.tz=clamp(camT.tz,-8,6);
+}
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
+function pick(cx,cy){
+  ndc.set(cx/innerWidth*2-1,-(cy/innerHeight)*2+1);
+  ray.setFromCamera(ndc,camera);
+  const hits=ray.intersectObjects(pickables.filter(function(m){return m.visible&&m.parent&&isVis(m);}),false);
+  if(!hits.length)return;
+  let h=null;
+  for(const x of hits){const u=x.object.material.userData;if(!(u.shell||u.glass)){h=x;break;}}
+  if(!h)h=hits[0];
+  selectPart(h.object.userData.part,{open:true});
+}
+function isVis(o){while(o){if(!o.visible)return false;o=o.parent;}return true;}
+
+/* ============================== HIGHLIGHT / XRAY ============================== */
+const partGlow={};
+function setXray(on){
+  S.xray=on;
+  shellMats.forEach(function(m){
+    if(on){m.transparent=true;m.opacity=0.17;m.depthWrite=false;}
+    else{m.transparent=false;m.opacity=1;m.depthWrite=true;}
+    m.needsUpdate=true;
+  });
+  for(const id in partGlow)partGlow[id]=-1;
+}
+function updateGlow(time){
+  const pulse=0.5+0.5*Math.sin(time*4.2);
+  for(const id in partMeshes){
+    const mode=S.sel===id?2:(stepHL.has(id)?1:0);
+    if(mode===0&&!partGlow[id])continue;
+    const ms=partMeshes[id];
+    if(mode===0){
+      for(const m of ms){const mt=m.material;mt.emissive.setHex(0);mt.emissiveIntensity=1;
+        if(mt.userData.shell){if(S.xray){mt.opacity=0.17;}else{mt.opacity=1;}}}
+      partGlow[id]=0;continue;
+    }
+    const col=mode===2?0xff8a2a:0x2a9dff,k=mode===2?0.45+0.35*pulse:0.3+0.22*pulse;
+    for(const m of ms){const mt=m.material;mt.emissive.setHex(col);mt.emissiveIntensity=k;
+      if(mt.userData.shell&&S.xray)mt.opacity=0.42;}
+    partGlow[id]=mode;
+  }
+}
+
+/* ============================== LABELS ============================== */
+const PINS=[
+ {txt:'Air in',at:[-3.1,6.5,1.35]},{txt:'Cooling water in',at:[6.4,0.35,-3.3]},{txt:'Cooling water out',at:[6.4,3.9,-3.3]},{txt:'To engines · 30 bar',at:[6.9,1.0,-3.9]}
+];
+const labelEls=[];
+function buildLabels(){
+  const host=$('#labels');
+  PARTS.forEach(function(p){
+    const b=document.createElement('button');b.className='lbl';b.textContent=p.name.split(' & ')[0].replace('Electric drive motor','Motor').replace('Air receiver (starting-air bottle)','Air receiver').replace('LP cylinder','LP cylinder').replace(' (starting-air bottle)','');
+    b.dataset.id=p.id;b.tabIndex=-1;b.addEventListener('click',function(){selectPart(p.id,{open:true});});
+    host.appendChild(b);labelEls.push({el:b,pos:V3(p.at[0],p.at[1],p.at[2]),id:p.id,main:!!p.main,on:false,cls:''});
+  });
+  PINS.forEach(function(p){
+    const b=document.createElement('div');b.className='lbl pin';b.textContent=p.txt;host.appendChild(b);
+    labelEls.push({el:b,pos:V3(p.at[0],p.at[1],p.at[2]),id:null,main:false,pin:true,on:false,cls:''});
+  });
+}
+const lv=new THREE.Vector3();
+function updateLabels(){
+  const W=innerWidth,H=innerHeight,ex=S.explode>0.05;
+  for(const L of labelEls){
+    let show;
+    if(L.pin)show=S.labels&&!ex;
+    else show=!ex&&((S.labels&&L.main)||stepHL.has(L.id)||S.sel===L.id);
+    lv.copy(L.pos).project(camera);
+    if(lv.z>1||lv.z<-1)show=false;
+    if(show!==L.on){L.on=show;L.el.classList.toggle('on',show);}
+    if(!show)continue;
+    const x=(lv.x*0.5+0.5)*W,y=(-lv.y*0.5+0.5)*H;
+    L.el.style.transform='translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px) translate(-50%,-110%)';
+    if(!L.pin){
+      const cls=S.sel===L.id?'sel':(stepHL.has(L.id)?'hl':'');
+      if(cls!==L.cls){L.el.classList.remove('sel','hl');if(cls)L.el.classList.add(cls);L.cls=cls;}
+    }
+  }
+}
+
+/* ============================== UI ============================== */
+function toast(msg,ms){
+  const t=$('#toast');t.textContent=msg;t.classList.add('on');
+  clearTimeout(toast.h);toast.h=setTimeout(function(){t.classList.remove('on');},ms||2800);
+}
+function showTab(name){
+  S.tab=name;
+  $$('.tab').forEach(function(b){b.setAttribute('aria-selected',String(b.dataset.tab===name));});
+  $$('.panel').forEach(function(p){p.classList.toggle('on',p.id==='p-'+name);});
+  if(name==='live')drawPV();
+}
+function setCollapsed(c){S.collapsed=c;$('#sheet').classList.toggle('collapsed',c);layout();}
+function updateRunBtn(){const b=$('#bRun');b.textContent=S.run?'Stop motor':'Start motor';b.classList.toggle('primary',!S.run);}
+function setRun(on){
+  if(S.run===on)return;
+  S.run=on;
+  if(on){S.unload=true;S.unloadT=0;}
+  updateRunBtn();
+}
+function setSpeed(v){S.speedMul=v;$('#sSpeed').value=v;$('#spdTxt').textContent=v.toFixed(2).replace(/0$/,'')+'×';}
+
+function buildDots(){
+  const d=$('#dots');d.innerHTML='';
+  STEPS.forEach(function(s,i){
+    const b=document.createElement('button');b.setAttribute('aria-label','Go to step '+(i+1)+': '+s.title);
+    b.addEventListener('click',function(){goStep(i);});d.appendChild(b);
+  });
+}
+function renderStep(){
+  const st=STEPS[S.step];
+  $$('#dots button').forEach(function(b,i){b.className=i<S.step?'done':(i===S.step?'cur':'');});
+  $('#stepNo').textContent=(S.step+1)+' / '+STEPS.length;
+  $('#stTitle').textContent=st.title;$('#stSub').textContent=st.sub;$('#stBody').textContent=st.body;
+  $('#stPts').innerHTML=st.pts.map(function(t){return '<li>'+t+'</li>';}).join('');
+  $('#stVals').innerHTML=st.vals.map(function(v){return '<div class="val"><b>'+v[1]+'</b><span>'+v[0]+'</span></div>';}).join('');
+  $('#stTip').textContent=st.tip;
+  $('#bPrev').disabled=S.step===0;$('#bNext').disabled=S.step===STEPS.length-1;
+  $('#p-learn').scrollTop=0;
+}
+function goStep(i){
+  S.step=clamp(i,0,STEPS.length-1);
+  const st=STEPS[S.step];
+  stepHL.clear();st.hl.forEach(function(id){stepHL.add(id);});
+  for(const f of FL)f.tgtEmph=(st.flows===null||st.flows.indexOf(f.id)>=0)?1:0.2;
+  if(st.run!==undefined)setRun(st.run);
+  if(st.speed!==undefined)setSpeed(st.speed);
+  flyTo(st.cam);
+  renderStep();
+  if(S.tab!=='learn')showTab('learn');
+}
+function selectPart(id,o){
+  o=o||{};
+  S.sel=id;
+  const p=PMAP[id];if(!p)return;
+  renderDetail(p);
+  $$('.pcard').forEach(function(c){c.classList.toggle('sel',c.dataset.id===id);});
+  const ms=partMeshes[id]||[],box=new THREE.Box3();
+  ms.forEach(function(m){if(isVis(m))box.expandByObject(m);});
+  if(!box.isEmpty()){
+    const c=box.getCenter(new THREE.Vector3()),s=box.getSize(new THREE.Vector3());
+    const fw=clamp(Math.max(s.x,s.y,s.z)*1.5+3.5,6,16);
+    camT.tx=c.x;camT.ty=c.y;camT.tz=c.z;camT.dist=distFor(fw);
+  }
+  if(o.open){showTab('parts');if(S.collapsed)setCollapsed(false);$('#p-parts').scrollTop=0;}
+}
+function renderDetail(p){
+  $('#partDetail').innerHTML='<div class="detail"><h3>'+p.name+'</h3><span class="sys">'+p.sys+'</span><p>'+p.fn+'</p><ul class="pts">'+
+    p.pts.map(function(t){return '<li>'+t+'</li>';}).join('')+'</ul></div>';
+}
+let sysFilter='All';
+function buildParts(){
+  const systems=['All'];PARTS.forEach(function(p){if(systems.indexOf(p.sys)<0)systems.push(p.sys);});
+  const ch=$('#sysChips');ch.innerHTML='';
+  systems.forEach(function(s){
+    const b=document.createElement('button');b.className='chip';b.textContent=s;b.setAttribute('aria-pressed',String(s===sysFilter));
+    b.addEventListener('click',function(){sysFilter=s;buildParts();});ch.appendChild(b);
+  });
+  const l=$('#partList');l.innerHTML='';
+  PARTS.filter(function(p){return sysFilter==='All'||p.sys===sysFilter;}).forEach(function(p){
+    const b=document.createElement('button');b.className='pcard'+(S.sel===p.id?' sel':'');b.dataset.id=p.id;
+    b.innerHTML='<b>'+p.name+'</b><span>'+p.sys+'</span>';
+    b.addEventListener('click',function(){selectPart(p.id,{});});l.appendChild(b);
+  });
+}
+/* quiz */
+const Q={i:0,score:0,done:false,ans:null};
+function renderQuiz(){
+  const el=$('#p-quiz');
+  if(Q.i>=QUIZ.length){
+    el.innerHTML='<h2>Score: '+Q.score+' / '+QUIZ.length+'</h2><p>'+(Q.score>=QUIZ.length-1?'Excellent. You can follow the air from filter to receiver.':Q.score>=5?'Good. Revisit the steps you missed and try again.':'Step back through the lesson, then try again.')+'</p><button class="btn primary" id="qAgain">Try again</button>';
+    $('#qAgain').addEventListener('click',function(){Q.i=0;Q.score=0;Q.ans=null;renderQuiz();});
+    return;
+  }
+  const q=QUIZ[Q.i];
+  let h='<div class="stepbar"><div class="dots">'+QUIZ.map(function(_,i){return '<button style="pointer-events:none" class="'+(i<Q.i?'done':(i===Q.i?'cur':''))+'"></button>';}).join('')+'</div><span class="qno">'+(Q.i+1)+' / '+QUIZ.length+'</span></div>';
+  h+='<div class="qtxt">'+q.q+'</div>';
+  q.o.forEach(function(o,i){
+    let c='opt';if(Q.ans!==null){if(i===q.a)c+=' right';else if(i===Q.ans)c+=' wrong';}
+    h+='<button class="'+c+'" data-i="'+i+'"'+(Q.ans!==null?' disabled':'')+'>'+o+'</button>';
+  });
+  if(Q.ans!==null){h+='<div class="expl">'+q.e+'</div><button class="btn primary" id="qNext">'+(Q.i===QUIZ.length-1?'See score':'Next question')+'</button>';}
+  el.innerHTML=h;
+  $$('.opt',el).forEach(function(b){b.addEventListener('click',function(){
+    Q.ans=+b.dataset.i;if(Q.ans===q.a)Q.score++;renderQuiz();});});
+  const n=$('#qNext');if(n)n.addEventListener('click',function(){Q.i++;Q.ans=null;renderQuiz();});
+}
+
+/* live data */
+const pvc=$('#pv');
+function drawPV(){
+  if(S.tab!=='live')return;
+  const dpr=Math.min(2,window.devicePixelRatio||1),w=pvc.clientWidth,h=pvc.clientHeight;
+  if(!w||!h)return;
+  if(pvc.width!==Math.round(w*dpr)||pvc.height!==Math.round(h*dpr)){pvc.width=Math.round(w*dpr);pvc.height=Math.round(h*dpr);}
+  const ctx=pvc.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+  const l=36,r=10,t=10,b=24,lw=Math.log(36);
+  const X=function(v){return l+clamp(v,0,1.05)/1.05*(w-l-r);},Y=function(p){return t+(1-Math.log(clamp(p,1,36))/lw)*(h-t-b);};
+  ctx.font='10px "IBM Plex Mono",monospace';ctx.textBaseline='middle';ctx.lineWidth=1;
+  [1,2,5,10,20,30].forEach(function(p){
+    ctx.strokeStyle='rgba(128,140,160,.28)';ctx.beginPath();ctx.moveTo(l,Y(p));ctx.lineTo(w-r,Y(p));ctx.stroke();
+    ctx.fillStyle='rgba(128,140,160,.95)';ctx.textAlign='right';ctx.fillText(String(p),l-5,Y(p));
+  });
+  ctx.textAlign='center';ctx.fillStyle='rgba(128,140,160,.95)';ctx.fillText('Cylinder volume (each stage, 0–100%)',(l+w-r)/2,h-8);
+  ctx.save();ctx.translate(9,(t+h-b)/2);ctx.rotate(-Math.PI/2);ctx.fillText('bar abs (log)',0,0);ctx.restore();
+  for(const key of ['LP','HP']){
+    const c=CYL[key];ctx.strokeStyle=c.color;ctx.lineWidth=2;ctx.beginPath();
+    let first=true;
+    for(let i=0;i<=120;i++){const k=i%120;if(!c.trSeen[k])continue;
+      const x=X(c.tr[k*2]),y=Y(c.tr[k*2+1]);if(first){ctx.moveTo(x,y);first=false;}else ctx.lineTo(x,y);}
+    ctx.stroke();
+    ctx.fillStyle=c.color;ctx.beginPath();ctx.arc(X(c.vN),Y(c.p),4.5,0,TAU);ctx.fill();
+  }
+}
+function barg(p){return Math.max(0,p-1.013);}
+let hudT=0;
+const PCOL={SUCTION:'#38bdf8',COMPRESSION:'#fb923c','RE-EXPANSION':'#facc15',DISCHARGE:'#ef4444',UNLOADED:'#94a3b8',STOPPED:'#94a3b8'};
+function updateHud(){
+  const L=CYL.LP,H=CYL.HP;
+  $('#hLP').textContent='LP · '+L.phase.toLowerCase()+' · '+L.p.toFixed(1)+' bar abs';
+  $('#hHP').textContent='HP · '+H.phase.toLowerCase()+' · '+H.p.toFixed(1)+' bar abs';
+  $('#dLP').style.background=PCOL[L.phase]||'#94a3b8';$('#dHP').style.background=PCOL[H.phase]||'#94a3b8';
+  $('#hRec').textContent='Receiver · '+S.recP.toFixed(1)+' bar g';
+  if(S.tab==='live'){
+    $('#kLP').textContent=L.phase.toLowerCase()+' · '+L.p.toFixed(1)+' bar · '+Math.round(L.T)+'°C';
+    $('#kHP').textContent=H.phase.toLowerCase()+' · '+H.p.toFixed(1)+' bar · '+Math.round(H.T)+'°C';
+    $('#kInt').textContent=barg(L.p2).toFixed(1)+' bar g';
+    $('#kRec').textContent=S.recP.toFixed(1)+' bar g';
+    $('#kAng').textContent=Math.round(((S.theta%TAU)+TAU)%TAU/TAU*360)+'°';
+    $('#kMode').textContent=S.w<0.02?'Stopped':(S.unload?'Unloaded':'Loaded');
+    $('#recTxt').textContent=S.recP.toFixed(1)+' bar g';
+    if(document.activeElement!==$('#sCrank'))$('#sCrank').value=Math.round(((S.theta%TAU)+TAU)%TAU/TAU*360)%360;
+    if(document.activeElement!==$('#sRec'))$('#sRec').value=S.recP;
+  }
+}
+
+/* ============================== LOOP ============================== */
+function updateState(dt){
+  if(S.run){
+    S.w=ease(S.w,1,dt,1.8);
+    if(S.w>0.5)S.unloadT+=dt;
+    if(S.unloadT>3.6)S.unload=false;
+  }else{
+    S.w=ease(S.w,0,dt,2.2);S.unload=true;S.unloadT=0;
+    if(S.w<0.004)S.w=0;
+  }
+  S.theta+=S.w*0.55*S.speedMul*TAU*dt;
+  if(S.run&&!S.unload&&S.w>0.5)S.recP=Math.min(30,S.recP+dt*0.3*S.w*S.speedMul);
+  S.explode=ease(S.explode,S.explodeT,dt,4);
+  if(Math.abs(S.explode-S.explodeT)<0.002)S.explode=S.explodeT;
+}
+let last=performance.now();
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=Math.min(0.05,(now-last)/1000);last=now;S.time+=dt;
+  updateState(dt);updateCamera(dt);updateMech(dt);updateFlows(dt);updateGauges();updateGlow(S.time);updateLabels();
+  renderer.render(scene,camera);
+  hudT+=dt;
+  if(hudT>0.12){hudT=0;updateHud();}
+  if(S.tab==='live')drawPV();
+}
+
+/* ============================== INIT ============================== */
+buildModel();
+buildFlows();
+buildLabels();
+setXray(true);
+buildDots();buildParts();renderQuiz();
+$$('.tab').forEach(function(b){b.addEventListener('click',function(){showTab(b.dataset.tab);if(S.collapsed)setCollapsed(false);});});
+$('#handle').addEventListener('click',function(){setCollapsed(!S.collapsed);});
+$('#bPrev').addEventListener('click',function(){goStep(S.step-1);});
+$('#bNext').addEventListener('click',function(){goStep(S.step+1);});
+$('#bRun').addEventListener('click',function(){
+  if(!S.run&&S.recP>=30)S.recP=24;
+  setRun(!S.run);
+  if(S.run)toast('Motor started: unloaded for a few seconds');
+});
+$('#sSpeed').addEventListener('input',function(e){setSpeed(parseFloat(e.target.value));});
+$('#bX').addEventListener('click',function(e){const on=e.currentTarget.getAttribute('aria-pressed')!=='true';e.currentTarget.setAttribute('aria-pressed',String(on));setXray(on);});
+$('#bL').addEventListener('click',function(e){const on=e.currentTarget.getAttribute('aria-pressed')!=='true';e.currentTarget.setAttribute('aria-pressed',String(on));S.labels=on;});
+$('#bE').addEventListener('click',function(e){const on=e.currentTarget.getAttribute('aria-pressed')!=='true';e.currentTarget.setAttribute('aria-pressed',String(on));S.explodeT=on?1:0;
+  if(on){camT.dist=distFor(15);camT.ty=3.0;camT.tx=1.5;camT.tz=0;camT.el=0.22;camT.az=0.5;}else flyTo(STEPS[S.step].cam);});
+$('#bR').addEventListener('click',function(){S.sel=null;$$('.pcard').forEach(function(c){c.classList.remove('sel');});flyTo(STEPS[S.step].cam);});
+$('#sCrank').addEventListener('input',function(e){
+  if(S.run){toast('Stop the motor to turn the crank by hand');return;}
+  S.theta=parseFloat(e.target.value)/360*TAU;
+});
+$('#sRec').addEventListener('input',function(e){S.recP=parseFloat(e.target.value);});
+$$('[data-rec]').forEach(function(b){b.addEventListener('click',function(){S.recP=parseFloat(b.dataset.rec);});});
+$('#bL').setAttribute('aria-pressed',String(S.labels));
+window.addEventListener('resize',layout);
+if(window.ResizeObserver)new ResizeObserver(function(){layout();}).observe($('#sheet'));
+$('#sheet').addEventListener('transitionend',layout);
+layout();
+setSpeed(0.5);
+applyCam();
+goStep(0);
+/* start camera pulled back, then ease in */
+cam.dist=camT.dist*1.35;cam.az=camT.az-0.5;
+setTimeout(function(){toast('Drag to orbit · pinch to zoom · tap a part to learn about it',4200);},900);
+requestAnimationFrame(function(t){last=t;frame(t);});
+})();
+</script>
+</body>
+</html>
