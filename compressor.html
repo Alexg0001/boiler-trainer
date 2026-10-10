@@ -135,6 +135,13 @@ ul.pts li::before{content:"";position:absolute;left:2px;top:.55em;width:6px;heig
 .opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 16%,transparent)}
 .expl{font-size:13px;line-height:1.45;margin:4px 0 10px;padding:8px 10px;border-radius:8px;background:var(--chip)}
 
+@media (orientation:landscape) and (min-width:560px){
+  #sheet{left:auto;top:0;right:0;bottom:0;width:min(44vw,440px);height:auto;max-height:none;border-radius:0;border-top:0;border-left:1px solid var(--line)}
+  #sheet.collapsed{transform:none}
+  .handle{display:none}
+  #top{right:min(44vw,440px)}
+  #toast{left:calc(50% - min(22vw,220px))}
+}
 @media (prefers-reduced-motion:reduce){ #sheet,#toast,.lbl{transition:none} }
 </style>
 </head>
@@ -1012,7 +1019,7 @@ function layout(){
   renderer.setSize(W,H,false);
   camera.aspect=W/H;
   const sh=$('#sheet'),hd=$('#top').offsetHeight;
-  if(W>=900){
+  if(W>H&&W>=560){
     const sw=sh.offsetWidth;VIEW.w=W-sw;VIEW.h=H-hd;VIEW.tox=sw/2;VIEW.toy=hd/2*-1+0;
     VIEW.toy=-hd/2;
   }else{
