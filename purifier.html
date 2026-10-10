@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Oil purifier trainer</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#245676">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script>
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#14232c; --ink-2:#4a5d68; --paper:#f2f4f3; --paper-2:#e3e9e8; --line:#c5d0d3;
+  --accent:#e3a008; --accent-ink:#2b1d00;
+  --stage-top:#e3eaee; --stage-bot:#b4c3cc; --bar:rgba(242,244,243,.86);
+  --ok:#23804e; --bad:#c0392b;
+  --oil:#8a5a2b; --clean:#e0a526; --water:#3b8fd1; --sludge:#4b3a30; --hot:#d96b3b; --steam:#9aa7ad;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#e6eef1; --ink-2:#9db0b9; --paper:#162229; --paper-2:#1f2e36; --line:#2e424c;
+    --accent:#f0b429; --accent-ink:#2b1d00;
+    --stage-top:#22333d; --stage-bot:#0d161b; --bar:rgba(22,34,41,.86);
+    --ok:#4cc38a; --bad:#ff7a6b; --oil:#b98446; --sludge:#8a7060;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e6eef1; --ink-2:#9db0b9; --paper:#162229; --paper-2:#1f2e36; --line:#2e424c;
+  --accent:#f0b429; --accent-ink:#2b1d00;
+  --stage-top:#22333d; --stage-bot:#0d161b; --bar:rgba(22,34,41,.86);
+  --ok:#4cc38a; --bad:#ff7a6b; --oil:#b98446; --sludge:#8a7060;
+}
+:root{--sw:min(46vw,420px);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--stage-top);color:var(--ink);
+  font-family:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-text-size-adjust:100%;overscroll-behavior:none}
+button{font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#app{position:relative;height:100%;overflow:hidden;background:linear-gradient(var(--stage-top),var(--stage-bot))}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+
+#top{position:absolute;left:0;right:0;top:0;padding:10px 12px 0;display:flex;flex-direction:column;gap:8px;pointer-events:none;z-index:6}
+#top>*{pointer-events:auto}
+.brand{font:700 21px/1 'Barlow Condensed',system-ui,sans-serif;letter-spacing:.01em;padding-left:2px}
+.brand small{font:500 14.5px 'Barlow',sans-serif;color:var(--ink-2);margin-left:8px;letter-spacing:0}
+#tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;padding:3px;background:var(--bar);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:12px}
+#tabs button{min-height:42px;border:0;border-radius:9px;background:transparent;color:var(--ink-2);font:600 16.5px 'Barlow Condensed',sans-serif;padding:0 2px;letter-spacing:0}
+#tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+
+#hud{position:absolute;left:12px;right:12px;top:98px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;z-index:5;pointer-events:none}
+#hud[hidden]{display:none}
+#hud div{background:var(--bar);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:10px;padding:5px 8px 6px;min-height:52px}
+#hud span{display:block;font-size:12.5px;color:var(--ink-2);line-height:1.1}
+#hud b{font:700 21px/1.1 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums}
+#hud small{font-size:12.5px;color:var(--ink-2);margin-left:3px}
+#hud #hSt{font-size:15px;line-height:1.05;display:block;margin-top:2px}
+
+#pins{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:4}
+.pin{position:absolute;left:0;top:0;width:26px;height:26px;margin:-13px 0 0 -13px;padding:0;border-radius:50%;
+  border:2px solid var(--paper);background:var(--ink);color:var(--paper);font:600 13px/22px 'Barlow Condensed',sans-serif;text-align:center;pointer-events:auto;will-change:transform}
+.pin::after{content:'';position:absolute;inset:-9px}
+.pin.on{background:var(--accent);color:var(--accent-ink)}
+
+#fab{position:absolute;right:12px;bottom:200px;width:46px;height:46px;border-radius:12px;border:1px solid var(--line);
+  background:var(--bar);color:var(--ink);display:grid;place-items:center;z-index:7;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#fab svg{width:22px;height:22px}
+#veil{position:absolute;inset:0;background:var(--stage-top);opacity:0;pointer-events:none;transition:opacity .35s;z-index:8}
+#veil.on{opacity:1;transition:none}
+
+#sheet{position:absolute;left:0;right:0;bottom:0;height:46%;z-index:10;display:flex;flex-direction:column;
+  background:var(--paper);border-top:1px solid var(--line);border-radius:18px 18px 0 0;box-shadow:0 -8px 28px rgba(0,0,0,.2);transition:height .28s ease}
+#sheet.peek{height:92px}
+#sheet.half{height:46%}
+#sheet.full{height:86%}
+#sheet.drag{transition:none}
+#grab{flex:0 0 auto;display:flex;justify-content:center;padding:9px 0 6px;touch-action:none;cursor:grab}
+#grab i{width:44px;height:5px;border-radius:3px;background:var(--line)}
+#body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:2px 16px 28px;overscroll-behavior:contain}
+
+.h{font:700 30px/1.05 'Barlow Condensed',sans-serif;margin:2px 0 6px}
+.lede{color:var(--ink-2);font-size:17px;line-height:1.5;margin:0 0 12px;max-width:62ch}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;padding:3px;background:var(--paper-2);border-radius:12px;margin:8px 0}
+.seg button{min-height:46px;border:0;border-radius:9px;background:transparent;color:var(--ink-2);font:600 18px 'Barlow Condensed',sans-serif}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.row{display:flex;gap:8px;margin:8px 0}
+.row .btn{flex:1}
+.btn{min-height:50px;border-radius:12px;border:0;background:var(--ink);color:var(--paper);font:600 20px 'Barlow Condensed',sans-serif;padding:0 18px}
+.btn.alt{background:var(--paper-2);color:var(--ink);border:1px solid var(--line)}
+.btn[disabled]{opacity:.35}
+.ex{display:block;margin:10px 0 4px;font-size:15.5px;color:var(--ink-2)}
+.ex output{float:right;font-variant-numeric:tabular-nums}
+.ex input{width:100%;height:34px;accent-color:var(--accent);margin:2px 0 0}
+.card{border:1px solid var(--line);border-radius:12px;background:var(--paper-2);padding:12px 14px;margin:10px 0}
+.card h3{font:700 26px/1.1 'Barlow Condensed',sans-serif;margin:0 0 6px}
+.tag{display:inline-block;font:500 13.5px 'Barlow',sans-serif;color:var(--ink-2);border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin-left:6px;vertical-align:middle}
+.card p{margin:4px 0 8px;font-size:16.5px;line-height:1.5}
+.k{font-weight:600;font-size:15px;color:var(--ink-2);margin:8px 0 0}
+.grp{font:700 18px 'Barlow Condensed',sans-serif;color:var(--ink-2);margin:16px 0 6px}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:6px}
+.chip{display:flex;align-items:center;gap:8px;min-height:44px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;
+  background:transparent;color:var(--ink);font:500 15.5px/1.2 'Barlow',sans-serif;text-align:left}
+.chip b{flex:0 0 24px;height:24px;border-radius:50%;background:var(--ink);color:var(--paper);font:600 13px/24px 'Barlow Condensed',sans-serif;text-align:center}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip[aria-pressed="true"] b{background:var(--accent-ink);color:var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:4px 0 8px;font-size:15px;color:var(--ink-2)}
+.legend i{display:inline-block;width:18px;height:6px;border-radius:3px;margin-right:6px;vertical-align:middle}
+.ticks{display:flex;gap:3px;margin:2px 0 10px}
+.ticks button{flex:1;height:22px;padding:0;border:0;background:transparent;position:relative}
+.ticks button::before{content:'';position:absolute;left:0;right:0;top:8px;height:6px;border-radius:3px;background:var(--line)}
+.ticks button.done::before{background:var(--ink)}
+.ticks button.cur::before{background:var(--accent)}
+.stepno{font:600 15.5px 'Barlow',sans-serif;color:var(--ink-2)}
+.do{margin:8px 0;padding-left:20px}
+.do li{margin:6px 0;line-height:1.45;font-size:16.5px}
+.watch{border-left:4px solid var(--accent);background:var(--paper-2);border-radius:0 10px 10px 0;padding:9px 13px;margin:10px 0;font-size:16.5px;line-height:1.45}
+.why{font-size:15.5px;color:var(--ink-2);line-height:1.45;margin:8px 0}
+.nav{display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-top:14px}
+.opt{display:block;width:100%;min-height:48px;margin:7px 0;padding:10px 12px;text-align:left;border:1px solid var(--line);border-radius:10px;
+  background:transparent;color:var(--ink);font:500 16.5px/1.35 'Barlow',sans-serif}
+.opt.right{border-color:var(--ok);box-shadow:inset 5px 0 0 var(--ok)}
+.opt.wrong{border-color:var(--bad);box-shadow:inset 5px 0 0 var(--bad)}
+.note{font-size:14px;color:var(--ink-2);margin:16px 0 0;line-height:1.4}
+.toast{position:absolute;left:50%;transform:translateX(-50%);top:150px;z-index:9;background:var(--ink);color:var(--paper);
+  border-radius:10px;padding:8px 14px;font-size:15.5px;opacity:0;transition:opacity .4s;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:.94}
+@media (orientation:landscape) and (min-width:560px){
+  #sheet{left:auto;right:12px;bottom:12px;width:var(--sw);height:calc(100% - 24px)!important;border-radius:18px;border:1px solid var(--line)}
+  #grab{position:absolute;left:-15px;top:0;bottom:0;width:30px;padding:0;align-items:center;cursor:ew-resize;z-index:2}
+  #grab i{width:5px;height:48px}
+  #fab{bottom:24px;right:calc(var(--sw) + 36px)}
+  #hud{right:calc(var(--sw) + 24px)}
+  #top{right:calc(var(--sw) + 24px)}
+  .toast{left:calc((100% - var(--sw) - 24px)/2)}
+}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="gl" aria-label="Interactive 3D model of a marine fuel oil purifier"></canvas>
+  <div id="pins"></div>
+  <div id="top">
+    <div class="brand">Oil purifier trainer<small>marine centrifugal separator</small></div>
+    <div id="tabs" role="tablist">
+      <button role="tab" data-mode="plant">System</button>
+      <button role="tab" data-mode="purifier">Purifier</button>
+      <button role="tab" data-mode="operate">Operate</button>
+      <button role="tab" data-mode="faults">Faults</button>
+      <button role="tab" data-mode="overhaul">Overhaul</button>
+      <button role="tab" data-mode="quiz">Quiz</button>
+    </div>
+  </div>
+  <div id="hud" hidden>
+    <div><span>Bowl speed</span><b id="hRpm">0</b><small>rpm</small></div>
+    <div><span>Motor current</span><b id="hAmp">0</b><small>A</small></div>
+    <div><span>Oil temperature</span><b id="hTemp">45</b><small>&deg;C</small></div>
+    <div><span>Status</span><b id="hSt">Stopped</b></div>
+  </div>
+  <div class="toast" id="toast">Drag to turn &middot; pinch to zoom &middot; tap a part</div>
+  <button id="fab" aria-label="Reset view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
+  <div id="veil"></div>
+  <section id="sheet" class="half" aria-live="polite">
+    <div id="grab" aria-label="Resize panel"><i></i></div>
+    <div id="body"></div>
+  </section>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const damp=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
+const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
+const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
+const col=h=>new THREE.Color(h).convertSRGBToLinear();
+const reduceMotion=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const canvas=$('#gl'),appEl=$('#app'),sheet=$('#sheet'),bodyEl=$('#body');
+let renderer;
+try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});}
+catch(e){bodyEl.innerHTML='<h2 class="h">3D is not available</h2><p class="lede">This browser could not start WebGL. Try another browser or device.</p>';throw e;}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.NoToneMapping;
+renderer.toneMappingExposure=1.0;
+renderer.setClearColor(0x000000,0);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(36,1,0.1,400);
+const secPlane=new THREE.Plane(new THREE.Vector3(0,0,-1),0);
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x44525c,0.8));
+const keyL=new THREE.DirectionalLight(0xffffff,1.5);keyL.position.set(8,16,12);scene.add(keyL);
+const rimL=new THREE.DirectionalLight(0xbfd8ff,0.6);rimL.position.set(-10,6,-8);scene.add(rimL);const fillL=new THREE.DirectionalLight(0xffffff,.5);fillL.position.set(0,-6,10);scene.add(fillL);
+
+const C={steel:'#c3ccd1',steelD:'#7d8a92',steelL:'#dbe2e6',blue:'#2f6690',hood:'#cfd9de',brass:'#c9a23c',rubber:'#1d2126',dark:'#2b3238',
+  red:'#c8372d',green:'#2f8f5b',yellow:'#e6b422',oil:'#8a5a2b',clean:'#e0a526',water:'#3b8fd1',sludge:'#4b3a30',hot:'#d96b3b',steam:'#cfd6da'};
+function M(hex,metal,rough,o){return new THREE.MeshStandardMaterial(Object.assign({color:col(hex),metalness:(metal==null?.6:metal)*.4,roughness:rough==null?.45:rough,side:THREE.DoubleSide,envMapIntensity:.6},o||{}));}
+
+function lathe(pts,mat,seg){return new THREE.Mesh(new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg||64),mat);}
+function shell(pts,t){
+  const n=pts.length,inner=[];
+  for(let i=0;i<n;i++){
+    const a=pts[Math.max(0,i-1)],b=pts[Math.min(n-1,i+1)];
+    let tx=b[0]-a[0],ty=b[1]-a[1];const l=Math.hypot(tx,ty)||1;tx/=l;ty/=l;
+    inner.push([pts[i][0]-ty*t,pts[i][1]+tx*t]);
+  }
+  return pts.concat(inner.reverse());
+}
+function cyl(p,rt,rb,h,mat,x,y,z,seg){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||32),mat);m.position.set(x||0,y||0,z||0);p.add(m);return m;}
+function hcyl(p,r,len,mat,x,y,z,seg){const m=cyl(p,r,r,len,mat,x,y,z,seg);m.rotation.z=Math.PI/2;return m;}
+function zcyl(p,r,len,mat,x,y,z,seg){const m=cyl(p,r,r,len,mat,x,y,z,seg);m.rotation.x=Math.PI/2;return m;}
+function bx(p,w,h,d,mat,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x||0,y||0,z||0);p.add(m);return m;}
+function sph(p,r,mat,x,y,z){const m=new THREE.Mesh(new THREE.SphereGeometry(r,20,14),mat);m.position.set(x||0,y||0,z||0);p.add(m);return m;}
+function tor(p,R,r,mat,x,y,z,seg){const m=new THREE.Mesh(new THREE.TorusGeometry(R,r,10,seg||64),mat);m.rotation.x=Math.PI/2;m.position.set(x||0,y||0,z||0);p.add(m);return m;}
+// ---------- PURIFIER MODEL ----------
+const root=new THREE.Group();scene.add(root);
+const mach=new THREE.Group();root.add(mach);
+const rot=new THREE.Group();mach.add(rot);
+const PARTS={},PLIST=[];
+const GLOW=col('#ffb020');
+function addPart(d){
+  const g=new THREE.Group();d.build(g);
+  (d.rot?rot:mach).add(g);
+  d.g=g;d.mats=[];d.ex=d.ex||[0,0,0];d.alpha=1;d.aT=1;d.glow=0;d.gT=0;d.dy=0;d.xk=0;d.xT=0;
+  g.traverse(o=>{if(o.isMesh){o.userData.pid=d.id;const a=Array.isArray(o.material)?o.material:[o.material];a.forEach(m=>{if(d.mats.indexOf(m)<0)d.mats.push(m);});}});
+  d.n=PLIST.length+1;PARTS[d.id]=d;PLIST.push(d);return d;
+}
+const pipeMat=h=>M(h,.55,.4);
+
+addPart({id:'framehood',name:'Frame hood',grp:'cover',ex:[0,12.5,0],anchor:[-2.6,6.7,0],zoom:16,
+  what:'Fixed cover over the whole bowl. It carries the feed inlet and both outlets, and keeps hot oil and noise inside.',
+  watch:'Check the hood is clamped down and its seal is sound. A loose hood can spray hot oil.',
+  build(g){
+    g.add(lathe(shell([[3.1,4.95],[3.1,5.7],[2.95,6.35],[2.55,7.05],[2.0,7.6],[1.5,7.95],[1.2,8.1],[1.2,8.35],[0.02,8.35]],.14),M(C.hood,.35,.5),80));
+    tor(g,3.1,.08,M(C.steelD,.7,.4),0,5.05,0,80);
+    for(let i=0;i<8;i++){const a=i/8*Math.PI*2;bx(g,.22,.3,.22,M(C.steelD,.8,.4),Math.cos(a)*3.2,5.05,Math.sin(a)*3.2);}
+  }});
+addPart({id:'inlet',name:'Feed inlet pipe',grp:'cover',ex:[0,15,0],anchor:[0,9.0,0],zoom:9,
+  what:'Fixed pipe that carries heated oil down the centre of the bowl and into the distributor.',
+  watch:'Feed oil only when the bowl is at full speed and closed. Feeding early gives poor separation and leaks.',
+  build(g){
+    const m=pipeMat(C.oil);
+    cyl(g,.14,.14,5.55,m,0,6.725,0,24);cyl(g,.3,.3,.12,m,0,8.45,0,32);sph(g,.17,m,0,9.5,0);
+    zcyl(g,.14,1.4,m,0,9.5,-.7,24);zcyl(g,.3,.1,m,0,9.5,-1.4,32);
+  }});
+addPart({id:'oil_out',name:'Clean oil outlet',grp:'cover',ex:[1.4,14,0],anchor:[1.8,8.9,0],zoom:9,
+  what:'Where purified oil leaves, pushed out by the oil paring disc. It runs on to the daily service tank.',
+  watch:'Outlet pressure should stay steady. A sudden rise or drop usually means a blockage or a full sludge space.',
+  build(g){
+    const m=pipeMat(C.clean);
+    cyl(g,.16,.16,.6,m,.7,8.6,0,24);sph(g,.19,m,.7,8.9,0);hcyl(g,.16,2.2,m,1.8,8.9,0,24);hcyl(g,.32,.1,m,2.9,8.9,0,32);
+  }});
+addPart({id:'water_out',name:'Water outlet',grp:'cover',ex:[-1.4,14,0],anchor:[-1.8,8.55,0],zoom:9,
+  what:'Separated water leaves here, pushed out by the water paring disc. It goes to the sludge tank.',
+  watch:'Oil coming out here means the water seal has broken. Stop feed, then check the gravity disc and seal water.',
+  build(g){
+    const m=pipeMat(C.water);
+    cyl(g,.16,.16,.25,m,-.7,8.425,0,24);sph(g,.19,m,-.7,8.55,0);hcyl(g,.16,2.2,m,-1.8,8.55,0,24);hcyl(g,.32,.1,m,-2.9,8.55,0,32);
+  }});
+addPart({id:'paring_oil',name:'Oil paring disc',grp:'cover',ex:[0,9.7,0],anchor:[.45,7.4,0],zoom:7,
+  what:'A fixed disc dipped into the spinning oil. It works as a pump (a centripetal pump) and pushes clean oil out under pressure.',
+  watch:'Wear lowers outlet pressure. Too much back pressure can push oil to the water side.',
+  build(g){
+    const m=M('#bfc9cf',.9,.3);
+    g.add(lathe([[.26,7.34],[.62,7.34],[.62,7.42],[.26,7.42],[.26,7.34]],m,64));
+    g.add(lathe(shell([[.32,7.42],[.32,8.2]],.06),m,32));
+    for(let i=0;i<6;i++){const a=i/6*Math.PI*2;const v=bx(g,.3,.05,.03,m,Math.cos(a)*.45,7.46,Math.sin(a)*.45);v.rotation.y=-a;}
+  }});
+addPart({id:'paring_water',name:'Water paring disc',grp:'cover',ex:[0,8.6,0],anchor:[-.8,7.08,0],zoom:7,
+  what:'A second fixed disc, bigger and lower. It pumps the separated water out of the bowl.',
+  watch:'Keep the water outlet free. A blocked outlet can raise bowl pressure and upset the oil-water interface.',
+  build(g){
+    const m=M('#a9c0cf',.9,.3);
+    g.add(lathe([[.45,7.04],[.95,7.04],[.95,7.12],[.45,7.12],[.45,7.04]],m,64));
+    g.add(lathe(shell([[.5,7.12],[.5,7.95]],.06),m,32));
+    for(let i=0;i<8;i++){const a=i/8*Math.PI*2;const v=bx(g,.4,.05,.03,m,Math.cos(a)*.72,7.16,Math.sin(a)*.72);v.rotation.y=-a;}
+  }});
+
+addPart({id:'hood',name:'Bowl hood',grp:'bowl',rot:true,ex:[0,7.6,0],anchor:[-1.3,6.1,0],zoom:10,
+  what:'The spinning top half of the bowl. With the bowl body and lock ring it forms the sealed separating chamber.',
+  watch:'Check the seal ring and O-rings for damage, and that the hood and bowl marks line up.',
+  build(g){g.add(lathe(shell([[2.2,5.0],[2.0,5.3],[1.5,5.9],[.95,6.4],[.72,6.65],[.72,6.9],[1.1,7.0],[1.1,7.55],[.85,7.65],[.85,7.8]],.1),M(C.steel,.88,.3),72));}});
+addPart({id:'lockring',name:'Lock ring',grp:'bowl',rot:true,ex:[0,2.5,0],anchor:[2.4,5.1,0],zoom:9,
+  what:'A big threaded ring that clamps the bowl hood onto the bowl body.',
+  watch:'Tighten until the alignment marks match. A wrongly tightened ring can let the bowl fail at speed.',
+  build(g){
+    g.add(lathe([[1.92,4.9],[2.48,4.9],[2.52,5.0],[2.52,5.2],[2.46,5.3],[1.92,5.3],[1.92,4.9]],M(C.steelD,.85,.35),72));
+    for(let i=0;i<8;i++){const a=i/8*Math.PI*2;bx(g,.22,.2,.12,M(C.steelD,.8,.4),Math.cos(a)*2.56,5.1,Math.sin(a)*2.56).rotation.y=-a-Math.PI/2;}
+    bx(g,.16,.34,.16,M(C.red,.2,.5),2.54,5.1,0);
+  }});
+addPart({id:'gravity',name:'Gravity disc',grp:'bowl',rot:true,ex:[0,5.7,0],anchor:[.85,6.33,0],zoom:6,
+  what:'A ring with a precise hole size. It sets where the oil-water interface sits in the bowl. Used in purifier mode, not in clarifier mode.',
+  watch:'Choose it from the maker\u2019s chart using oil density and temperature. Too big breaks the seal, too small lets water follow the oil.',
+  build(g){g.add(lathe([[.68,6.28],[.9,6.28],[.9,6.38],[.68,6.38],[.68,6.28]],M(C.brass,.9,.28),64));
+    for(let i=0;i<6;i++){const a=i/6*Math.PI*2;cyl(g,.04,.04,.12,M(C.dark,.3,.6),Math.cos(a)*.79,6.33,Math.sin(a)*.79,10);}}});
+addPart({id:'topdisc',name:'Top disc',grp:'bowl',rot:true,ex:[0,4.8,0],anchor:[-1.1,5.9,0],zoom:8,
+  what:'The thicker cone above the stack. It guides separated water toward the gravity disc and keeps it away from the clean oil.',
+  watch:'Make sure it sits flat on the stack. A dirty or damaged top disc upsets the water path.',
+  build(g){
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(.62,1.58,.62,72,1,true),M('#d3dbe0',.9,.25));m.position.y=5.89;g.add(m);
+    tor(g,1.58,.04,M(C.steelD,.8,.4),0,5.58,0,72);
+  }});
+addPart({id:'discs',name:'Disc stack',grp:'bowl',rot:true,ex:[0,4.0,0],anchor:[1.2,5.2,0],zoom:8,
+  what:'Many thin cone-shaped discs stacked with tiny gaps (this model shows 23 for clarity; real ones have far more). They give a huge settling area, so water and particles separate in seconds.',
+  watch:'Clean them at overhaul. Scale or sludge cuts capacity. A bent disc causes imbalance, so handle with care.',
+  build(g){
+    const N=23,im=new THREE.InstancedMesh(new THREE.CylinderGeometry(.65,1.5,.55,64,1,true),M('#cfd7dc',.92,.24),N),mt=new THREE.Matrix4();
+    for(let k=0;k<N;k++){mt.makeTranslation(0,4.9+k*.055-.275,0);im.setMatrixAt(k,mt);}
+    im.instanceMatrix.needsUpdate=true;g.add(im);
+  }});
+addPart({id:'distributor',name:'Distributor',grp:'bowl',rot:true,ex:[0,2.8,0],anchor:[-.6,4.6,0],zoom:8,
+  what:'The central tube that takes feed oil from the inlet pipe to the bottom, then sends it outward and up through the disc stack holes.',
+  watch:'Blocked holes or ribs cause uneven flow and vibration. Check at every overhaul.',
+  build(g){g.add(lathe(shell([[1.0,3.62],[.72,3.72],[.62,3.86],[.62,6.3]],.1),M('#aab6bc',.85,.35),64));}});
+addPart({id:'slide',name:'Operating slide',grp:'bowl',rot:true,ex:[0,1.8,0],anchor:[-1.7,4.1,0],zoom:9,
+  what:'A piston-like bottom plate (the sliding bowl bottom). Operating water pressure lifts it to close the bowl. When the water is released it drops and opens the sludge ports.',
+  watch:'Its seal ring must be in good shape. Leaking closing water means oil loss and a bowl that will not close.',
+  build(g){
+    g.add(lathe(shell([[.55,3.5],[1.2,3.62],[1.75,4.0],[2.1,4.55],[2.12,5.0]],.1),M('#9fb0b8',.85,.35),72));
+    tor(g,2.12,.05,M(C.rubber,0,.9),0,5.0,0,72);
+  }});
+addPart({id:'ports',name:'Sludge ports',grp:'bowl',rot:true,ex:[0,.6,0],anchor:[2.35,4.78,0],zoom:6,
+  what:'Slots around the bowl rim. The slide keeps them shut while purifying. They open for a split second to throw out sludge.',
+  watch:'Blocked ports let the bowl fill with sludge and shake. Look for this when vibration rises.',
+  build(g){
+    const m=M('#14171a',.3,.7);
+    for(let i=0;i<12;i++){const a=i/12*Math.PI*2;bx(g,.34,.14,.08,m,Math.cos(a)*2.3,4.78,Math.sin(a)*2.3).rotation.y=-a-Math.PI/2;}
+  }});
+addPart({id:'body',name:'Bowl body',grp:'bowl',rot:true,ex:[0,.6,0],anchor:[2.0,3.5,0],zoom:11,
+  what:'The spinning lower half of the bowl. It holds the slide, distributor and discs, and turns at several thousand rpm.',
+  watch:'Never run it with cracks, corrosion pits or damaged threads. Follow the maker\u2019s inspection limits.',
+  build(g){g.add(lathe(shell([[.25,3.0],[.8,3.0],[1.5,3.2],[2.0,3.7],[2.28,4.3],[2.28,4.85]],.12),M(C.steel,.85,.32),72));cyl(g,.4,.4,.3,M(C.steelD,.8,.4),0,3.0,0,32);}});
+addPart({id:'spindle',name:'Bowl spindle',grp:'bowl',rot:true,ex:[0,0,0],anchor:[0,2.2,0],zoom:8,
+  what:'The vertical shaft that carries the bowl. The worm wheel turns it, and it runs in bearings inside the frame.',
+  watch:'Noise, heat or rising vibration at the bearings means stop and investigate.',
+  build(g){
+    const s=M(C.steelL,.9,.25),d=M(C.steelD,.8,.4);
+    cyl(g,.2,.2,2.5,s,0,2.15,0,32);cyl(g,.36,.36,.28,d,0,1.0,0,32);cyl(g,.3,.3,.18,d,0,2.75,0,32);cyl(g,.26,.2,.4,s,0,3.2,0,32);
+    bx(g,.06,.5,.06,M(C.red,.2,.5),.2,2.0,0);
+  }});
+addPart({id:'sludgecover',name:'Sludge cover',grp:'cover',ex:[0,0,0],anchor:[2.9,3.9,0],zoom:12,
+  what:'A fixed casing around the lower bowl. It catches the sludge that is thrown out and guides it down the sludge outlet pipe.',
+  watch:'Clean it regularly. Hard sludge can build up and rub the bowl.',
+  build(g){
+    g.add(lathe(shell([[1.3,2.75],[2.4,2.85],[3.0,2.95],[3.1,3.2],[3.1,5.0]],.12),M(C.hood,.35,.55),80));
+    const m=pipeMat(C.sludge);
+    hcyl(g,.22,.95,m,-3.35,3.1,0,24);sph(g,.25,m,-3.8,3.1,0);cyl(g,.22,.22,2.5,m,-3.8,1.85,0,24);cyl(g,.36,.36,.1,m,-3.8,.6,0,32);
+  }});
+addPart({id:'gearcase',name:'Frame and gear case',grp:'drive',ex:[0,0,0],anchor:[-2.7,1.5,0],zoom:14,
+  what:'The cast frame that holds the spindle bearings and the worm gear in an oil bath. The sight glass shows the gear oil level.',
+  watch:'Check gear oil level and colour. Milky oil means water got in. Change oil at the maker\u2019s interval.',
+  build(g){
+    bx(g,10.2,.3,5.6,M('#59656c',.4,.7),.9,.15,0);
+    g.add(lathe(shell([[.3,.3],[2.7,.3],[2.76,.45],[2.74,2.3],[2.45,2.55],[1.3,2.62]],.14),M(C.blue,.3,.5),80));
+    cyl(g,1.3,1.3,.3,M(C.blue,.3,.5),0,2.7,0,48);
+    tor(g,.3,.05,M(C.steelD,.8,.4),0,1.0,2.76).rotation.x=0;
+    const lo=new THREE.Mesh(new THREE.CircleGeometry(.26,32,Math.PI,Math.PI),M(C.clean,0,.3));lo.position.set(0,1.0,2.78);g.add(lo);
+    const up=new THREE.Mesh(new THREE.CircleGeometry(.26,32,0,Math.PI),M('#202a30',0,.2,{transparent:true,opacity:.5}));up.position.set(0,1.0,2.78);g.add(up);
+  }});
+addPart({id:'worm',name:'Worm shaft and wheel',grp:'drive',ex:[0,0,0],anchor:[0,1.25,-1.2],zoom:8,
+  what:'The horizontal worm shaft turns the worm wheel on the spindle. This gearing speeds the bowl up far beyond the motor speed.',
+  watch:'Listen for gear noise and check the oil for metal particles. Wear shows up as vibration.',
+  build(g){
+    const s=M(C.steelL,.9,.28),d=M(C.steelD,.8,.4);
+    const wheel=new THREE.Group();wheel.position.y=1.25;g.add(wheel);
+    cyl(wheel,.9,.9,.28,d,0,0,0,40);cyl(wheel,.3,.3,.4,s,0,0,0,24);bx(wheel,.12,.32,.12,M(C.red,.2,.5),.6,0,0);
+    const worm=new THREE.Group();worm.position.set(0,1.25,-1.2);g.add(worm);
+    hcyl(worm,.14,4.4,s,1.1,0,0,20);
+    for(let i=0;i<9;i++){const t=new THREE.Mesh(new THREE.TorusGeometry(.3,.07,8,28),s);t.rotation.y=Math.PI/2;t.position.x=-.6+i*.15;worm.add(t);}
+    bx(worm,.2,.1,.1,M(C.red,.2,.5),2.0,.16,0);
+    g.userData.wheel=wheel;g.userData.worm=worm;
+  }});
+addPart({id:'coupling',name:'Friction coupling',grp:'drive',ex:[1.2,0,0],anchor:[2.95,1.25,-1.2],zoom:7,
+  what:'Lets the motor start while the heavy bowl is still at rest. Its shoes slip while the bowl speeds up, then grip. This also limits starting current.',
+  watch:'A very long run-up points to worn shoes. A very short, harsh one is also wrong. Compare with the usual run-up time.',
+  build(g){const m=M(C.steelD,.85,.35);hcyl(g,.62,1.1,m,2.95,1.25,-1.2,40);tor(g,.64,.05,M(C.dark,.6,.5),2.6,1.25,-1.2,40).rotation.set(0,Math.PI/2,0);tor(g,.64,.05,M(C.dark,.6,.5),3.3,1.25,-1.2,40).rotation.set(0,Math.PI/2,0);}});
+addPart({id:'motor',name:'Electric motor',grp:'drive',ex:[2.4,0,0],anchor:[4.6,2.3,-1.2],zoom:10,
+  what:'Drives the horizontal worm shaft through the friction coupling.',
+  watch:'Watch the ammeter. A high peak at start that settles to a steady value shows the bowl has reached full speed.',
+  build(g){
+    const m=M('#456b85',.5,.45);
+    hcyl(g,.95,2.1,m,4.55,1.25,-1.2,40);
+    for(let i=0;i<7;i++){const t=new THREE.Mesh(new THREE.TorusGeometry(.95,.05,8,40),m);t.rotation.y=Math.PI/2;t.position.set(3.75+i*.28,1.25,-1.2);g.add(t);}
+    hcyl(g,.85,.4,M('#2f4a5c',.4,.6),5.8,1.25,-1.2,32);bx(g,.7,.35,.55,M('#2f4a5c',.4,.6),4.5,2.3,-1.2);
+  }});
+addPart({id:'brake',name:'Brake',grp:'drive',ex:[-1.3,0,0],anchor:[-3.5,2.3,-1],zoom:7,
+  what:'A hand lever that brakes the bowl after the motor is off.',
+  watch:'Make sure it is released before starting. Use it only as the maker says. The bowl may take 20 minutes or more to stop.',
+  build(g){
+    const a=V3(-2.6,1.55,-1.0),b=V3(-3.55,2.25,-1.0),d=b.clone().sub(a),m=M(C.dark,.5,.5);
+    const rod=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,d.length(),12),m);rod.position.copy(a).addScaledVector(d,.5);
+    rod.quaternion.setFromUnitVectors(V3(0,1,0),d.clone().normalize());g.add(rod);
+    sph(g,.17,M(C.red,.2,.5),b.x,b.y,b.z);bx(g,.3,.3,.4,m,-2.7,1.55,-1.0);
+  }});
+addPart({id:'valves',name:'Operating water valves',grp:'drive',ex:[-1.2,0,1.6],anchor:[-2.7,2.55,1.2],zoom:7,
+  what:'A block of solenoid valves. On command from the control unit they give closing water, opening water and displacement water at the right moments.',
+  watch:'Low or dirty operating water means the bowl will not close or open properly. Check supply pressure and filters.',
+  build(g){
+    bx(g,.5,.9,.45,M('#d9dee1',.4,.5),-2.7,2.0,1.2);
+    [[C.yellow,-.16],[C.water,0],[C.green,.16]].forEach(c=>cyl(g,.07,.07,.3,M(c[0],.3,.5),-2.7+c[1],2.6,1.2,16));
+  }});
+
+// sludge ring that grows inside the bowl
+const sludgeMat=M('#3b2a20',0,.9);PARTS.slide.mats.push(sludgeMat);
+let sludgeMesh=null,sludgeLvl=-1;
+function setSludge(l){
+  if(Math.abs(l-sludgeLvl)<.015&&!(l===0&&sludgeLvl!==0))return;
+  sludgeLvl=l;const g=PARTS.slide.g;
+  if(sludgeMesh){g.remove(sludgeMesh);sludgeMesh.geometry.dispose();sludgeMesh=null;}
+  if(l<.02)return;
+  const rin=2.04-.42*l;
+  sludgeMesh=lathe([[rin,4.2],[2.04,4.2],[2.04,4.95],[rin,4.95],[rin,4.2]],sludgeMat,64);g.add(sludgeMesh);
+}
+// sludge discharge burst
+const burst={n:90,pos:new Float32Array(270),vel:new Float32Array(270),life:new Float32Array(90)};
+burst.geo=new THREE.BufferGeometry();burst.geo.setAttribute('position',new THREE.BufferAttribute(burst.pos,3));
+for(let i=0;i<90;i++)burst.pos[i*3+1]=-100;
+const dotTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const g=x.createRadialGradient(32,32,2,32,32,30);
+  g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.6,'rgba(255,255,255,.9)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();
+burst.pts=new THREE.Points(burst.geo,new THREE.PointsMaterial({color:col('#5a4030'),size:.42,map:dotTex,transparent:true,depthWrite:false,alphaTest:.02}));
+burst.pts.frustumCulled=false;root.add(burst.pts);
+function fireBurst(){
+  for(let i=0;i<90;i++){
+    const a=Math.random()*Math.PI*2,sp=6+Math.random()*4;
+    burst.pos.set([Math.cos(a)*2.2,4.78+Math.random()*.2,Math.sin(a)*2.2],i*3);
+    burst.vel.set([Math.cos(a)*sp,1+Math.random()*1.5,Math.sin(a)*sp],i*3);
+    burst.life[i]=1.2+Math.random()*.6;
+  }
+}
+function updBurst(dt){
+  let any=false;
+  for(let i=0;i<90;i++){
+    if(burst.life[i]<=0)continue;any=true;
+    const k=i*3;burst.vel[k+1]-=9*dt;
+    burst.pos[k]+=burst.vel[k]*dt;burst.pos[k+1]+=burst.vel[k+1]*dt;burst.pos[k+2]+=burst.vel[k+2]*dt;
+    const r=Math.hypot(burst.pos[k],burst.pos[k+2]);
+    if(r>2.9){const f=2.9/r;burst.pos[k]*=f;burst.pos[k+2]*=f;burst.vel[k]*=.05;burst.vel[k+2]*=.05;}
+    if(burst.pos[k+1]<3.25){burst.pos[k+1]=3.25;burst.vel[k+1]=0;burst.life[i]-=dt*3;}
+    burst.life[i]-=dt;
+    if(burst.life[i]<=0)burst.pos[k+1]=-100;
+  }
+  if(any)burst.geo.attributes.position.needsUpdate=true;
+}
+// ---------- SYSTEM (PLANT) MODEL ----------
+const PUR={x:2.2,z:.3,s:.5};
+const pw=(x,y,z)=>[PUR.x+PUR.s*x,PUR.s*y,PUR.z+PUR.s*z];
+const plant=new THREE.Group();scene.add(plant);
+const PIT={},PILIST=[];
+function addItem(d){
+  const g=new THREE.Group();d.build(g);plant.add(g);
+  d.g=g;d.mats=[];d.gT=0;d.glow=0;
+  g.traverse(o=>{if(o.isMesh){o.userData.iid=d.id;const a=Array.isArray(o.material)?o.material:[o.material];a.forEach(m=>{if(m.emissive&&d.mats.indexOf(m)<0)d.mats.push(m);});}});
+  d.n=PILIST.length+1;PIT[d.id]=d;PILIST.push(d);return d;
+}
+// floor
+(function(){
+  const f=new THREE.Mesh(new THREE.PlaneGeometry(30,20),M('#7d8d96',.1,.95,{transparent:true,opacity:.35}));
+  f.rotation.x=-Math.PI/2;f.position.set(0,-.01,-1);plant.add(f);
+  const gr=new THREE.GridHelper(30,30,0x6b7f8b,0x6b7f8b);gr.material.transparent=true;gr.material.opacity=.22;gr.position.set(0,0,-1);plant.add(gr);
+})();
+function tank(g,w,h,d,fills,cylinder){
+  const glass=M('#dfeaf0',0,.1,{transparent:true,opacity:.2,depthWrite:false});
+  const geo=cylinder?new THREE.CylinderGeometry(w/2,w/2,h,40):new THREE.BoxGeometry(w,h,d);
+  const m=new THREE.Mesh(geo,glass);m.position.y=h/2;g.add(m);
+  const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color:0x6e8794}));e.position.y=h/2;g.add(e);
+  fills.forEach(f=>{
+    const fm=M(f.c,.1,.5);
+    const fg=cylinder?new THREE.CylinderGeometry(w/2-.05,w/2-.05,f.h,36):new THREE.BoxGeometry(w-.1,f.h,d-.1);
+    const mm=new THREE.Mesh(fg,fm);mm.position.y=(f.y0||0)+f.h/2+.02;g.add(mm);
+  });
+}
+function pipeBuild(parent,pts,hex,r){
+  const m=pipeMat(hex),P=pts.map(p=>V3(p[0],p[1],p[2]));
+  for(let i=0;i<P.length-1;i++){
+    const d=P[i+1].clone().sub(P[i]),len=d.length();
+    const c=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,14),m);
+    c.position.copy(P[i]).addScaledVector(d,.5);c.quaternion.setFromUnitVectors(V3(0,1,0),d.normalize());parent.add(c);
+  }
+  for(let i=1;i<P.length-1;i++){const s=new THREE.Mesh(new THREE.SphereGeometry(r,14,10),m);s.position.copy(P[i]);parent.add(s);}
+}
+const PIPES={
+  suction:[[-6.5,.5,-3.5],[-6.5,.5,1.8],[-6.5,.9,1.8],[-6,.9,1.8]],
+  hot:[[-6,.9,1.8],[-1.2,.9,1.8]],
+  feed:[[-1.2,.9,1.8],[-1.2,4.75,1.8],[-1.2,4.75,-2],[2.2,4.75,-2],[2.2,4.75,-.4]],
+  recirc:[[-1.2,.9,1.8],[-1.2,.9,3.4],[-9.2,.9,3.4],[-9.2,3.2,3.4],[-9.2,3.2,-5],[-6.5,3.2,-5],[-6.5,2.2,-5]],
+  clean:[pw(2.9,8.9,0),[8.6,4.35,.3],[8.6,4.35,-1],[8.6,2.2,-1]],
+  water:[pw(-2.9,8.55,0),[.3,4.1,.3],[.3,.3,.3],[.3,.3,-6]],
+  opw:[[4.6,.5,3.7],[4.6,.5,2.6],[.85,.5,2.6],[.85,.5,.9],[.85,1,.9]],
+  steam:[[-3.2,3.4,1.8],[-3.2,1.4,1.8]]
+};
+PIPES.clean[1]=[8.6,pw(2.9,8.9,0)[1],.3];
+PIPES.water[1]=[.3,pw(-2.9,8.55,0)[1],.3];
+const pipesG=new THREE.Group();plant.add(pipesG);
+pipeBuild(pipesG,PIPES.suction,C.oil,.1);pipeBuild(pipesG,PIPES.hot,C.hot,.1);pipeBuild(pipesG,PIPES.feed,C.hot,.09);
+pipeBuild(pipesG,PIPES.recirc,C.oil,.08);pipeBuild(pipesG,PIPES.clean,C.clean,.09);pipeBuild(pipesG,PIPES.water,C.water,.08);
+pipeBuild(pipesG,PIPES.opw,C.water,.07);pipeBuild(pipesG,PIPES.steam,'#aab4b9',.08);
+
+addItem({id:'settling',name:'Settling tank',anchor:[-6.5,2.9,-5],zoom:12,
+  what:'A heated tank where oil rests so water and heavy sludge sink before purifying. It is the first stage of cleaning.',
+  watch:'Drain water and sludge from the bottom every day. The purifier is the second stage, not a substitute.',
+  build(g){g.position.set(-6.5,0,-5);tank(g,4,2.4,3,[{h:.25,c:C.sludge},{h:.2,c:C.water,y0:.25},{h:1.35,c:C.oil,y0:.45}]);}});
+addItem({id:'strainer',name:'Suction strainer',anchor:[-6.5,1.1,-2.9],zoom:7,
+  what:'A mesh filter that protects the feed pump from dirt and debris.',
+  watch:'Watch the pressure drop across it. A rising drop means it needs cleaning.',
+  build(g){g.position.set(-6.5,.5,-2.9);cyl(g,.3,.3,.7,M('#8c98a0',.6,.45),0,0,0,28);cyl(g,.34,.34,.1,M(C.steelD,.7,.4),0,.4,0,28);}});
+addItem({id:'pump',name:'Feed pump',anchor:[-6.5,1.4,-1.6],zoom:8,
+  what:'A screw pump that gives a steady flow of oil to the purifier.',
+  watch:'Set the flow to suit the oil. A lower flow keeps oil in the discs longer, so it comes out cleaner.',
+  build(g){g.position.set(-6.5,.5,-1.6);zcyl(g,.42,.8,M('#3d7a6a',.5,.45),0,0,.35,32);zcyl(g,.5,.9,M('#456b85',.5,.45),0,0,-.5,32);bx(g,.4,.25,.3,M('#2f4a5c',.4,.6),0,.55,-.5);}});
+addItem({id:'heater',name:'Steam heater',anchor:[-4.4,1.7,1.8],zoom:9,
+  what:'Heats the oil to separating temperature, about 98 \u00b0C for heavy fuel and 85\u201390 \u00b0C for lube oil. Hot oil is thin, so water and solids separate quickly.',
+  watch:'Do not exceed the limit. Too hot can boil any water in the oil and upset the separation.',
+  build(g){g.position.set(-4.25,.9,1.8);hcyl(g,.5,3.5,M('#8c98a0',.7,.4),0,0,0,36);[-1.75,1.75].forEach(x=>{hcyl(g,.58,.12,M(C.steelD,.7,.4),x,0,0,36);});
+    cyl(g,.18,.18,.4,M(C.steelD,.7,.4),1.05,.6,0,20);}});
+addItem({id:'tic',name:'Temperature control',anchor:[-2.6,2.3,1.8],zoom:8,
+  what:'A sensor on the hot oil line tells a controller to open or close the steam valve. It holds the oil temperature steady.',
+  watch:'Keep temperature within about \u00b12 \u00b0C. Swings move the oil-water interface and can break the water seal.',
+  build(g){
+    const m=M('#6d7c85',.6,.4);
+    cyl(g,.07,.07,.5,m,-2.0,1.15,1.8,16);cyl(g,.14,.14,.16,M('#2b3238',.4,.5),-2.0,1.5,1.8,20);
+    const v=M(C.red,.4,.5);
+    const c1=cyl(g,0,.22,.3,v,-3.2,2.15,1.8,20);const c2=cyl(g,.22,0,.3,v,-3.2,2.45,1.8,20);cyl(g,.04,.04,.4,m,-3.2,2.8,1.8,12);cyl(g,.25,.25,.2,M('#2f4a5c',.4,.5),-3.2,3.05,1.8,24);
+    bx(g,.55,.45,.2,M('#2f4a5c',.4,.6),-2.45,2.3,1.8);
+  }});
+addItem({id:'threeway',name:'Three-way valve',anchor:[-1.2,1.5,1.8],zoom:7,
+  what:'Sends hot oil either back to the settling tank (recirculation) or on to the purifier. Used at start-up and during sludge discharge.',
+  watch:'Never feed the purifier until the bowl is at speed, closed and sealed. Switch to recirculation to stop feed.',
+  build(g){
+    const m=M('#9aa5ab',.7,.4);g.position.set(-1.2,.9,1.8);sph(g,.28,m,0,0,0);
+    cyl(g,.14,.14,.7,m,0,.35,0,18);zcyl(g,.14,.7,m,0,0,.35,18);cyl(g,.04,.04,.5,M(C.dark,.4,.5),0,.55,0,10);
+    const lv=new THREE.Group();lv.position.set(0,.8,0);bx(lv,.7,.08,.12,M(C.yellow,.2,.5),0,0,0);g.add(lv);g.userData.lever=lv;
+  }});
+addItem({id:'service',name:'Daily service tank',anchor:[8.6,3.3,-1.5],zoom:11,
+  what:'Holds clean, purified oil. The engine\u2019s fuel system draws from this tank.',
+  watch:'Drain a little water from the bottom every day. Water here means the purifier is not doing its job.',
+  build(g){g.position.set(8.6,0,-1.5);tank(g,4,2.8,3,[{h:1.9,c:C.clean}]);}});
+addItem({id:'sludgeT',name:'Sludge tank',anchor:[.3,1.9,-6.5],zoom:11,
+  what:'Receives sludge from the discharge and water from the water outlet. It is disposed of by approved methods ashore or in an incinerator.',
+  watch:'Check there is room before every discharge. A full sludge tank forces the purifier to stop.',
+  build(g){g.position.set(.3,0,-6.5);tank(g,3,1.3,2.4,[{h:.6,c:C.sludge},{h:.15,c:C.water,y0:.6}]);}});
+addItem({id:'waterT',name:'Operating water tank',anchor:[4.6,2.4,4.6],zoom:9,
+  what:'Clean fresh water for closing the bowl, opening it for discharge, and forming the water seal.',
+  watch:'Water must be clean and at the right pressure. Dirt blocks the valves.',
+  build(g){g.position.set(4.6,0,4.6);tank(g,1.8,1.9,1.8,[{h:1.3,c:C.water}],true);}});
+addItem({id:'purifier',name:'Purifier',anchor:[2.2,5.2,.3],zoom:11,
+  what:'The centrifugal separator. A bowl spins at several thousand rpm and throws water and solids outward while clean oil moves inward through the discs.',
+  watch:'Tap \u201cExplore the purifier\u201d to open the detailed model.',
+  build(g){}});
+// ---------- FLOWS ----------
+const FLOWS=[];
+class Flow{
+  constructor(parent,pts,hex,n,speed,size,jit){
+    this.pts=pts.map(p=>V3(p[0],p[1],p[2]));this.len=[0];
+    for(let i=1;i<this.pts.length;i++)this.len.push(this.len[i-1]+this.pts[i].distanceTo(this.pts[i-1]));
+    this.L=this.len[this.len.length-1]||1;this.n=n;this.speed=speed;
+    this.o=new Float32Array(n*3);const j=jit||0;for(let i=0;i<n*3;i++)this.o[i]=(Math.random()-.5)*j;
+    this.geo=new THREE.BufferGeometry();this.geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(n*3),3));
+    this.mat=new THREE.PointsMaterial({color:col(hex),size:size,map:dotTex,transparent:true,depthWrite:false,opacity:0,alphaTest:.02});
+    this.obj=new THREE.Points(this.geo,this.mat);this.obj.frustumCulled=false;this.obj.visible=false;parent.add(this.obj);
+    this.on=0;this.k=0;this.int=false;FLOWS.push(this);
+  }
+  update(dt,time,tmp){
+    this.k=damp(this.k,this.on,6,dt);
+    const vis=this.k>.02;this.obj.visible=vis;if(!vis)return;
+    this.mat.opacity=this.k*.95;
+    const pos=this.geo.attributes.position.array,L=this.L,len=this.len,P=this.pts;
+    for(let i=0;i<this.n;i++){
+      const s=(((i/this.n)+time*this.speed/L)%1)*L;let a=1;
+      while(a<len.length-1&&len[a]<s)a++;
+      const t=(s-len[a-1])/((len[a]-len[a-1])||1),p0=P[a-1],p1=P[a];
+      pos[i*3]=p0.x+(p1.x-p0.x)*t+this.o[i*3];pos[i*3+1]=p0.y+(p1.y-p0.y)*t+this.o[i*3+1];pos[i*3+2]=p0.z+(p1.z-p0.z)*t+this.o[i*3+2];
+    }
+    this.geo.attributes.position.needsUpdate=true;
+  }
+}
+const mir=p=>p.map(q=>[-q[0],q[1],q[2]]);
+const G={};
+function grp(name,flows,internal){flows.forEach(f=>f.int=!!internal);G[name]=flows;}
+const FEEDA=[[0,9.5,-1.4],[0,9.5,0],[0,4,0]];
+const FEEDB=[[0,4,0],[.5,3.78,0],[1,3.84,0],[1,4.7,0],[1,5.95,0]];
+const mkFeed=(hex)=>[new Flow(root,FEEDA,hex,22,2.6,.42,.05),new Flow(root,FEEDB,hex,14,2.2,.4,.05),new Flow(root,mir(FEEDB),hex,14,2.2,.4,.05)];
+grp('feedO',mkFeed(C.oil),1);
+grp('feedW',mkFeed('#4aa8ee'),1);
+const brs=[];[4.9,5.4,5.85].forEach(y=>{const p=[[1,y-.22,0],[.74,y-.1,0]];brs.push(new Flow(root,p,C.clean,5,.5,.38,.02),new Flow(root,mir(p),C.clean,5,.5,.38,.02));});
+grp('br',brs,1);
+const OILUP=[[.74,4.95,0],[.74,6.2,0],[.5,6.8,0],[.3,7.38,0]];
+grp('oil',[new Flow(root,OILUP,C.clean,14,1.6,.42,.03),new Flow(root,mir(OILUP),C.clean,14,1.6,.42,.03),
+  new Flow(root,[[.3,7.38,0],[.3,8.3,0],[.7,8.5,0],[.7,8.9,0],[2.9,8.9,0]],C.clean,18,1.8,.42,.03)],1);
+const HEAVY=[[1.05,4.8,0],[1.5,4.4,0],[1.95,4.5,0],[2.04,4.85,0]];
+grp('heavy',[new Flow(root,HEAVY,'#6b4a37',9,.9,.4,.04),new Flow(root,mir(HEAVY),'#6b4a37',9,.9,.4,.04)],1);
+grp('water',[new Flow(root,[[-1.1,4.95,0],[-1.55,4.55,0],[-1.72,4.8,0],[-1.72,5.55,0],[-1.5,5.82,0],[-1,6.12,0],[-.86,6.4,0],[-.86,7,0],[-.85,7.25,0],[-.7,7.9,0],[-.7,8.55,0],[-2.9,8.55,0]],'#4aa8ee',22,1.4,.4,.03)],1);
+const WPATH=[[-1.1,4.95,0],[-1.55,4.55,0],[-1.72,4.8,0],[-1.72,5.55,0],[-1.5,5.82,0],[-1,6.12,0],[-.86,6.4,0],[-.86,7,0],[-.85,7.25,0],[-.7,7.9,0],[-.7,8.55,0],[-2.9,8.55,0]];
+grp('oilLoss',[new Flow(root,WPATH,C.oil,26,1.4,.46,.04)],1);
+grp('waterInOil',[new Flow(root,OILUP,'#4aa8ee',9,1.6,.42,.03),new Flow(root,mir(OILUP),'#4aa8ee',9,1.6,.42,.03),new Flow(root,[[.3,7.38,0],[.3,8.3,0],[.7,8.5,0],[.7,8.9,0],[2.9,8.9,0]],'#4aa8ee',10,1.8,.42,.03)],1);
+grp('sOut',[new Flow(root,[[-2.9,2.95,0],[-3.8,3.1,0],[-3.8,.6,0]],'#6b4a37',14,2.2,.45,.04)],1);
+const wp=a=>a.map(p=>[p[0],p[1],p[2]]);
+grp('pCold',[new Flow(plant,wp(PIPES.suction),C.oil,24,2.4,.38,.02)]);
+grp('pHot',[new Flow(plant,wp(PIPES.hot),C.hot,22,2.4,.38,.02)]);
+grp('pRecirc',[new Flow(plant,wp(PIPES.recirc),C.hot,40,2.6,.38,.02)]);
+grp('pFeed',[new Flow(plant,wp(PIPES.feed),C.hot,26,2.6,.38,.02)]);
+grp('pClean',[new Flow(plant,wp(PIPES.clean),C.clean,28,2.6,.38,.02)]);
+grp('pWater',[new Flow(plant,wp(PIPES.water),'#4aa8ee',30,2.4,.36,.02)]);
+grp('pOpW',[new Flow(plant,wp(PIPES.opw),'#4aa8ee',16,2.2,.34,.02)]);
+grp('pSteam',[new Flow(plant,wp(PIPES.steam),'#eef3f5',8,1.6,.3,.02)]);
+
+// ---------- SIMULATION STATE ----------
+const sim={shake:0,upMul:1,noOpen:false,rpm:0,rpmT:0,temp:45,tempT:45,closed:0,closedT:0,seal:0,sealT:0,sludge:0,slideOpen:0};
+const RPM_MAX=7500;
+let want=new Set(),valve='recirc',sludgeMode='static',decelFast=true,statusOverride='';
+const dis={t:-1,fired:false};
+function startDischarge(){dis.t=0;dis.fired=false;}
+function updSim(dt){
+  const up=RPM_MAX/9*sim.upMul,down=decelFast?4000:RPM_MAX/14;
+  if(sim.rpm<sim.rpmT)sim.rpm=Math.min(sim.rpmT,sim.rpm+up*dt);else sim.rpm=Math.max(sim.rpmT,sim.rpm-down*dt);
+  sim.temp+=clamp(sim.tempT-sim.temp,-8*dt,6*dt);
+  sim.closed=damp(sim.closed,sim.closedT,3,dt);if(Math.abs(sim.closed-sim.closedT)<.003)sim.closed=sim.closedT;
+  sim.seal=damp(sim.seal,sim.sealT,1.2,dt);
+  if(dis.t>=0){
+    dis.t+=dt;const t=dis.t;
+    sim.slideOpen=sim.noOpen?0:clamp(sstep(.9,1.05,t)-sstep(1.7,2.3,t),0,1);
+    if(!dis.fired&&t>1.0){dis.fired=true;if(!sim.noOpen){fireBurst();sim.sludge=0;}}
+    if(t>3.2){dis.t=-1;sim.slideOpen=0;}
+  }
+  if(sludgeMode==='grow'&&sim.closed>.9&&dis.t<0)sim.sludge=Math.min(.9,sim.sludge+dt*.05);
+}
+const dischargeBusy=()=>dis.t>=0&&dis.t<2.8;
+function amps(){return sim.rpmT>0?Math.round(11+(sim.upMul<1?58:48)*Math.pow(clamp(1-sim.rpm/RPM_MAX,0,1),1.5)):0;}
+function statusText(){
+  if(statusOverride)return statusOverride;
+  if(dis.t>=0)return'Discharging';
+  if(want.has('feedO')&&sim.closed>.9)return'Purifying';
+  if(sim.seal>.9&&sim.closed>.9)return'Seal formed';
+  if(sim.closed>.9)return'Bowl closed';
+  if(sim.rpm>100)return'Bowl open';
+  return'Stopped';
+}
+
+// ---------- CAMERA ----------
+const cam={th:.45,ph:1.2,r:28,t:V3(0,4.3,0),g:{th:.45,ph:1.2,r:28,t:V3(0,4.3,0)}};
+let userCam=false,viewFn=null;
+const FOV=36,TANH=Math.tan(FOV*Math.PI/360);
+function sheetH(){return sheet.offsetHeight;}
+function sideMode(){const W=canvas.clientWidth,H=canvas.clientHeight;return W>H&&W>=560;}
+function sideW(){return sheet.offsetWidth+24;}
+function topH(){return 90;}
+function fitR(w,h){
+  const W=canvas.clientWidth||360,H=canvas.clientHeight||700,desk=sideMode();
+  const sh=desk?0:sheetH(),Hv=Math.max(150,H-sh-topH()),asp=desk?Math.max(.3,(W-sideW())/H):W/H;
+  const dv=(h/2)/(TANH*(Hv/H)),dh=(w/2)/(TANH*asp);
+  return clamp(Math.max(dv,dh)*1.06,6,66);
+}
+function setView(o,instant){
+  cam.g.th=o.th;cam.g.ph=o.ph;cam.g.r=o.r;cam.g.t.copy(o.t);
+  if(instant){cam.th=o.th;cam.ph=o.ph;cam.r=o.r;cam.t.copy(o.t);}
+  userCam=false;
+}
+function frameView(c,w,h,th,ph,instant){
+  viewFn=()=>setView({th:th,ph:ph,r:fitR(w,h),t:V3(c[0],c[1],c[2])},instant);viewFn();
+}
+function updCam(dt){
+  const k=1-Math.exp(-7*dt);
+  cam.th+=(cam.g.th-cam.th)*k;cam.ph+=(cam.g.ph-cam.ph)*k;cam.r+=(cam.g.r-cam.r)*k;cam.t.lerp(cam.g.t,k);
+  const sp=Math.sin(cam.ph);
+  camera.position.set(cam.t.x+cam.r*sp*Math.sin(cam.th),cam.t.y+cam.r*Math.cos(cam.ph),cam.t.z+cam.r*sp*Math.cos(cam.th));
+  camera.lookAt(cam.t);
+  const W=canvas.clientWidth,H=canvas.clientHeight,desk=sideMode();
+  const off=desk?-topH()/2:(sheetH()-topH())/2;
+  const ox=desk?sideW()/2:0;
+  if(Math.abs(off-(camera._off||0))>.4||Math.abs(ox-(camera._ox||0))>.4||camera._w!==W||camera._h!==H){
+    camera._off=off;camera._ox=ox;camera._w=W;camera._h=H;camera.setViewOffset(W,H,ox,off,W,H);
+  }
+}
+function panBy(dx,dy){
+  const e=camera.matrixWorld.elements,s=cam.r*.0017;
+  cam.g.t.x+=(-e[0]*dx+e[4]*dy)*s;cam.g.t.y+=(-e[1]*dx+e[5]*dy)*s;cam.g.t.z+=(-e[2]*dx+e[6]*dy)*s;
+  cam.g.t.y=clamp(cam.g.t.y,-2,30);
+}
+const ptrs=new Map();let moved=0,downT=0;
+canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size===1){moved=0;downT=performance.now();}userCam=true;});
+canvas.addEventListener('pointermove',e=>{
+  const p=ptrs.get(e.pointerId);if(!p)return;
+  const dx=e.clientX-p.x,dy=e.clientY-p.y;
+  if(ptrs.size===1){
+    if(e.pointerType==='mouse'&&((e.buttons&2)||e.shiftKey))panBy(dx,dy);
+    else{cam.g.th-=dx*.006;cam.g.ph=clamp(cam.g.ph-dy*.006,.12,1.72);}
+    moved+=Math.abs(dx)+Math.abs(dy);
+  }else if(ptrs.size===2){
+    let o=null;ptrs.forEach((v,id)=>{if(id!==e.pointerId)o=v;});
+    if(o){const d0=Math.hypot(p.x-o.x,p.y-o.y),d1=Math.hypot(e.clientX-o.x,e.clientY-o.y);if(d1>8)cam.g.r=clamp(cam.g.r*d0/d1,4,70);}
+    panBy(dx/2,dy/2);moved+=20;
+  }
+  p.x=e.clientX;p.y=e.clientY;
+});
+const endP=e=>{
+  if(!ptrs.has(e.pointerId))return;
+  const wasOne=ptrs.size===1;ptrs.delete(e.pointerId);
+  if(e.type==='pointerup'&&wasOne&&moved<8&&performance.now()-downT<500)tapAt(e.clientX,e.clientY);
+};
+canvas.addEventListener('pointerup',endP);canvas.addEventListener('pointercancel',endP);
+canvas.addEventListener('wheel',e=>{e.preventDefault();cam.g.r=clamp(cam.g.r*Math.exp(e.deltaY*.0012),4,70);userCam=true;},{passive:false});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+// ---------- STATE ----------
+let mode='plant',sceneMode='',secOn=false,spinOn=false,flowOn=false,pinsOn=true,exK=0,exGoal=0;
+let selPart=null,selItem=null,stepI=0,quizI=0,quizScore=0,quizDone=false,quizPick=-1;
+const glowSet=new Set();let timers=[];
+const later=(ms,fn)=>timers.push(setTimeout(fn,ms));
+const clearTimers=()=>{timers.forEach(clearTimeout);timers=[];};
+const isPortrait=()=>!sideMode()&&canvas.clientHeight>canvas.clientWidth*1.1;
+const veil=$('#veil'),pinsEl=$('#pins');
+
+function setSceneMode(s){
+  if(sceneMode===s)return;
+  if(sceneMode){veil.classList.add('on');requestAnimationFrame(()=>requestAnimationFrame(()=>veil.classList.remove('on')));}
+  sceneMode=s;
+  plant.visible=s==='plant';
+  if(s==='plant'){root.position.set(PUR.x,0,PUR.z);root.scale.setScalar(PUR.s);}
+  else{root.position.set(0,0,0);root.scale.setScalar(1);}
+}
+function plantView(){
+  if(isPortrait())frameView([1,1.2,-1.2],13.6,17.5,Math.PI/2,.85);
+  else frameView([1,1.4,-1],21,12,.35,1.0);
+}
+function purView(){
+  const k=exK>.02?exGoal:0;
+  frameView([.9,4.4+8.4*k,0],isPortrait()?11:12,10.4+16.5*k,secOn?.05:.45,1.25);
+}
+function applyPlantState(){
+  const p=valve==='purifier';
+  want=new Set(['pCold','pHot','pSteam'].concat(p?['pFeed','pClean','pWater','feedO','br','oil','heavy','water']:['pRecirc']));
+  sim.rpmT=RPM_MAX;sim.closedT=1;sim.sealT=1;sim.tempT=98;sludgeMode=p?'grow':'zero';if(!p)sim.sludge=0;decelFast=true;
+}
+function applyPurState(){
+  want=flowOn?new Set(['feedO','br','oil','heavy','water']):new Set();
+  sim.rpmT=spinOn?RPM_MAX:0;sim.closedT=1;sim.sealT=1;sim.tempT=98;sludgeMode='static';if(dis.t<0)sim.sludge=.45;decelFast=true;
+}
+
+// ---------- CONTENT: OPERATE STEPS ----------
+const STEPS=[
+ {t:'Check before starting',scene:'purifier',sec:0,rpm:0,temp:45,closed:0,flows:[],hl:['lockring','brake','gearcase'],view:[[.9,4.4,0],11,10.4,.5,1.25],
+  d:['Brake is off and the bowl turns freely.','Lock ring is tightened to its alignment marks.','Gear case oil level shows in the sight glass.','Sludge cover is clean and closed.'],
+  w:'A loose or mis-marked lock ring. Never start until it is fixed.',y:'The bowl spins at several thousand rpm. A wrong assembly is the main cause of serious purifier accidents.'},
+ {t:'Fit the right gravity disc',scene:'purifier',sec:1,rpm:0,temp:45,closed:0,flows:[],hl:['gravity'],view:[[0,6.4,0],6,5.5,.05,1.3],
+  d:['Find the oil density at 15 \u00b0C and the separating temperature.','Look up the disc size on the maker\u2019s chart.','Fit the largest disc that still keeps the water seal.'],
+  w:'Oil in the water outlet: disc too big, seal broke. Water in the clean oil: disc too small.',y:'The disc sets the radius of the oil-water interface inside the stack.'},
+ {t:'Line up the system',scene:'plant',rpm:0,temp:45,closed:0,valve:'recirc',flows:[],hl:['settling','pump','threeway'],view:'plant',
+  d:['Open the suction and discharge valves.','Set the three-way valve to recirculation.','Check the sludge tank has room and operating water is available.','Check steam is available for the heater.'],
+  w:'A closed valve in the line. The feed pump must never run dry or against a shut valve.',y:'Starting on recirculation keeps oil away from the purifier until everything is ready.'},
+ {t:'Start the motor, no feed yet',scene:'purifier',sec:0,rpm:RPM_MAX,temp:45,closed:0,flows:[],hl:['motor','coupling'],view:[[1.6,2.6,-1],12,8,.95,1.25],reset:1,btn:'Replay start-up',
+  d:['Start the motor with no oil feed.','Watch the ammeter: a high start peak, then it falls.','Wait until the bowl is at full speed (several minutes in real life).'],
+  w:'Unusual noise or vibration while speeding up. Stop at once.',y:'The friction coupling slips while the bowl gathers speed. Feeding before full speed gives poor separation and leaks.'},
+ {t:'Heat the oil on recirculation',scene:'plant',rpm:RPM_MAX,temp:98,closed:0,valve:'recirc',flows:['pCold','pHot','pRecirc','pSteam'],hl:['heater','tic','threeway'],view:'plant',
+  d:['Pump the oil round the loop with the valve on recirculation.','Open steam to the heater.','Let the controller bring the oil to separating temperature (heavy fuel about 98 \u00b0C, lube oil 85\u201390 \u00b0C).'],
+  w:'Temperature steady within about \u00b12 \u00b0C.',y:'Hot oil is thin, so water and solids settle faster. Swings in temperature move the oil-water interface.'},
+ {t:'Close the bowl',scene:'purifier',sec:1,rpm:RPM_MAX,temp:98,closed:1,flows:[],hl:['slide','valves'],view:[[0,4.2,0],8,6.5,.05,1.3],
+  d:['Give closing water (operating water).','The pressure lifts the slide against the hood seal.','Confirm on the control panel that the bowl is closed.'],
+  w:'Weak closing water pressure. The bowl will not seal.',y:'A closed bowl is a sealed chamber. An open bowl would leak oil from the sludge ports.'},
+ {t:'Form the water seal',scene:'purifier',sec:1,rpm:RPM_MAX,temp:98,closed:1,seal:1,flows:['feedW','water'],hl:['gravity','water_out'],view:[[0,6.2,0],9,8,.05,1.3],
+  d:['With the bowl closed and at speed, feed clean water into the bowl.','Stop when water flows out of the water outlet.'],
+  w:'Water leaving the water outlet shows the seal is full.',y:'Without a water seal, oil would escape through the water outlet as soon as feed starts.'},
+ {t:'Start feeding oil',scene:'plant',rpm:RPM_MAX,temp:98,closed:1,seal:1,valve:'purifier',sludge:'grow',
+  flows:['pCold','pHot','pSteam','pFeed','pClean','pWater','feedO','br','oil','heavy','water'],hl:['threeway','purifier'],view:'plant',
+  d:['Switch the three-way valve to the purifier.','Open the feed slowly to the set flow.','The oil pushes the sealing water out and the oil-water interface forms.'],
+  w:'Throughput. A lower flow gives cleaner oil.',y:'Slow opening avoids upsetting the water seal.'},
+ {t:'Purify and monitor',scene:'purifier',sec:1,rpm:RPM_MAX,temp:98,closed:1,seal:1,sludge:'grow',flows:['feedO','br','oil','heavy','water'],hl:['discs'],view:[[.5,5.4,0],10,10,.05,1.3],
+  d:['Check temperature, outlet pressure and flow regularly.','Look for oil in the water outlet.','Drain the tanks and keep to the discharge interval.'],
+  w:'A pressure rise or drop. It means a blocked outlet or a full sludge space.',y:'Light oil moves inward between the discs. Water and heavy particles are flung outward, and sludge builds up at the rim.'},
+ {t:'Discharge the sludge',scene:'purifier',sec:1,rpm:RPM_MAX,temp:98,closed:1,seal:1,sludge:'full',flows:['feedO','br','oil','heavy','water'],hl:['slide','ports','sludgecover'],view:[[-.2,4.2,0],12,9,.05,1.3],btn:'Replay discharge',
+  enter(){sim.sludge=.85;later(900,startDischarge);},
+  d:['Feed stops (valve to recirculation).','Displacement water pushes the oil out of the bowl, so none is lost.','Opening water drops the slide. The ports open for a fraction of a second.','The bowl recloses, seal water refills and feed resumes.'],
+  w:'Discharge alarms on the control panel. Check the operating water.',y:'Sludge builds up at the rim. Left alone it would block the discs and unbalance the bowl.'},
+ {t:'Stop the purifier',scene:'purifier',sec:0,rpm:RPM_MAX,temp:98,closed:1,seal:1,flows:[],hl:['motor','brake'],view:[[1.2,3.4,-.6],13,10,.8,1.25],
+  enter(){sim.sludge=.5;later(600,startDischarge);later(4200,()=>{sim.rpmT=0;decelFast=false;});},
+  d:['Switch the valve to recirculation and stop the feed.','Give displacement water and run a final discharge.','Stop the motor and let the bowl run down on its own.','Use the brake only as the maker says, once the speed is low.'],
+  w:'A run-down much shorter than usual. It points to a dragging brake or bearing trouble.',y:'The bowl is heavy and fast. It can take 20 minutes or more to coast to a stop.'}
+];
+function applyStep(i){
+  stepI=i;const s=STEPS[i];clearTimers();dis.t=-1;resetFx();sim.slideOpen=0;
+  setSceneMode(s.scene);secOn=!!s.sec;exGoal=0;exK=0;
+  sim.rpmT=s.rpm;sim.tempT=s.temp;sim.closedT=s.closed;sim.sealT=s.seal||0;decelFast=true;
+  if(s.scene==='purifier'&&s.rpm===0)sim.rpm=0;
+  if(s.reset)sim.rpm=0;
+  if(i<3){sim.temp=45;sim.closed=0;sim.seal=0;}
+  valve=s.valve||(i>=7&&i<10?'purifier':'recirc');
+  want=new Set(s.flows);
+  sludgeMode=s.sludge==='grow'?'grow':'static';
+  if(s.sludge==='grow'){if(i===8)sim.sludge=Math.max(sim.sludge,.1);}else if(!s.sludge)sim.sludge=0;
+  glowSet.clear();s.hl.forEach(h=>glowSet.add(h));
+  selPart=null;selItem=null;
+  if(s.view==='plant')plantView();else frameView(s.view[0],s.view[1],s.view[2],s.view[3],s.view[4]);
+  if(s.enter)s.enter();
+  buildPins();renderOperate();
+}
+function replayStep(){
+  const s=STEPS[stepI];
+  if(stepI===3){sim.rpm=0;sim.rpmT=RPM_MAX;}
+  else if(stepI===9){sim.sludge=.85;startDischarge();}
+  void s;
+}
+
+// ---------- CONTENT: QUIZ ----------
+const QUIZ=[
+ {q:'Why must the bowl be at full speed before you feed oil?',o:['The motor would overheat','Separation would be poor and oil could leak out','The heater needs time','The brake would stay on'],a:1,e:'At low speed the centrifugal force is too weak to hold the water seal and to separate. Oil can escape through the outlets.'},
+ {q:'What does the gravity disc set?',o:['The feed rate','The bowl speed','The position of the oil-water interface','The oil temperature'],a:2,e:'Its hole size sets the radius where oil and water meet inside the bowl.'},
+ {q:'Oil is coming out of the water outlet. Most likely cause?',o:['The water seal has broken','The bowl is spinning too fast','Gear oil level is too high','The brake is applied'],a:0,e:'With no water seal, oil can follow the water out. Stop the feed and check the gravity disc and seal water.'},
+ {q:'Why heat the oil before purifying?',o:['To burn off the sludge','To make it thin so water and solids separate faster','To make the bowl spin faster','To close the bowl'],a:1,e:'Viscosity falls as temperature rises, which speeds up settling.'},
+ {q:'What drops the operating slide and opens the sludge ports?',o:['Feed oil pressure','The brake','Steam','Opening water'],a:3,e:'Operating water control: closing water lifts the slide, and opening water lets it drop.'},
+ {q:'To get cleaner oil, you would usually\u2026',o:['Raise the feed flow','Lower the feed flow','Cool the oil to 40 \u00b0C','Remove some discs'],a:1,e:'A lower flow gives the oil more time between the discs.'},
+ {q:'What does the friction coupling do?',o:['Seals the bowl','Sets the interface','Lets the motor start while the heavy bowl accelerates, limiting current','Stops the bowl'],a:2,e:'Its shoes slip during run-up, then grip once the bowl is near full speed.'},
+ {q:'Where does separated sludge collect during purifying?',o:['At the bowl centre','In the clean oil outlet','In the heater','At the bowl rim'],a:3,e:'Heavy solids are flung outward and settle in the sludge space at the periphery.'}
+];
+
+// ---------- SELECTION / CAMERA FOCUS ----------
+const tmpW=V3(0,0,0);
+function partWorld(d,out){out.set(d.anchor[0]+d.ex[0]*exK,d.anchor[1]+d.ex[1]*exK,d.anchor[2]+d.ex[2]*exK);return root.localToWorld(out);}
+function focusAt(pos,dist){
+  cam.g.t.copy(pos);cam.g.r=clamp(dist,5,60);userCam=true;
+}
+function selectPart(id){
+  selPart=id;selItem=null;
+  PLIST.forEach(p=>{p.aT=(id&&p.id!==id)?.1:1;});
+  if(id){const d=PARTS[id];root.updateMatrixWorld(true);partWorld(d,tmpW);focusAt(tmpW,d.zoom*(isPortrait()?1.7:1.25));if(sheet.classList.contains('peek'))setSheet('half');}
+  refreshCard();refreshChips();refreshPins();
+}
+function selectItem(id){
+  selItem=id;selPart=null;
+  if(id){const d=PIT[id];focusAt(V3(d.anchor[0],d.anchor[1]-.8,d.anchor[2]),d.zoom*(isPortrait()?1.8:1.3));if(sheet.classList.contains('peek'))setSheet('half');}
+  refreshCard();refreshChips();refreshPins();
+}
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
+function tapAt(x,y){
+  if(mode!=='plant'&&mode!=='purifier')return;
+  const r=canvas.getBoundingClientRect();
+  ndc.set(((x-r.left)/r.width)*2-1,-((y-r.top)/r.height)*2+1);
+  ray.setFromCamera(ndc,camera);
+  const hits=ray.intersectObjects(sceneMode==='plant'?[root,plant]:[root],true);
+  for(const h of hits){
+    const o=h.object;if(o.isPoints||o.isLineSegments)continue;
+    if(sceneMode==='purifier'&&secOn&&h.point.z>.02)continue;
+    if(o.userData.pid){
+      if(sceneMode==='plant'){selectItem('purifier');return;}
+      if(PARTS[o.userData.pid].alpha<.35)continue;
+      selectPart(selPart===o.userData.pid?null:o.userData.pid);return;
+    }
+    if(o.userData.iid){selectItem(selItem===o.userData.iid?null:o.userData.iid);return;}
+  }
+  if(sceneMode==='plant')selectItem(null);else selectPart(null);
+}
+
+// ---------- PINS ----------
+let pins=[];
+function buildPins(){
+  pinsEl.innerHTML='';pins=[];
+  const show=(mode==='plant'||(mode==='purifier'&&pinsOn));
+  if(!show)return;
+  const list=sceneMode==='plant'?PILIST:PLIST;
+  list.forEach(d=>{
+    const el=document.createElement('button');el.className='pin';el.textContent=d.n;el.setAttribute('aria-label',d.name);
+    el.addEventListener('click',()=>{sceneMode==='plant'?selectItem(d.id):selectPart(d.id);});
+    pinsEl.appendChild(el);pins.push({el,d,plant:sceneMode==='plant'});
+  });
+  refreshPins();
+}
+function refreshPins(){pins.forEach(p=>p.el.classList.toggle('on',p.plant?selItem===p.d.id:selPart===p.d.id));}
+const pv=V3(0,0,0);
+function updPins(){
+  if(!pins.length)return;
+  const w=canvas.clientWidth,h=canvas.clientHeight;
+  for(const p of pins){
+    const d=p.d;
+    if(p.plant)pv.set(d.anchor[0],d.anchor[1],d.anchor[2]);
+    else{pv.set(d.anchor[0]+d.ex[0]*exK,d.anchor[1]+d.ex[1]*exK,d.anchor[2]+d.ex[2]*exK);root.localToWorld(pv);}
+    const wz=pv.z;pv.project(camera);
+    const vis=pv.z<1&&Math.abs(pv.x)<1.05&&Math.abs(pv.y)<1.05&&(p.plant||(!(secOn&&wz>.05)&&d.alpha>.3));
+    p.el.style.display=vis?'':'none';
+    if(vis)p.el.style.transform='translate('+((pv.x*.5+.5)*w).toFixed(1)+'px,'+((-pv.y*.5+.5)*h).toFixed(1)+'px)';
+  }
+}
+
+// ---------- SHEET ----------
+function setSheet(st){sheet.classList.remove('peek','half','full','drag');sheet.classList.add(st);sheet.style.height='';}
+(function(){
+  const grab=$('#grab');let y0=0,h0=0,x0=0,w0=0,drag=false,mv=0,side=false;
+  grab.addEventListener('pointerdown',e=>{drag=true;mv=0;y0=e.clientY;h0=sheet.offsetHeight;x0=e.clientX;w0=sheet.offsetWidth;side=sideMode();sheet.classList.add('drag');grab.setPointerCapture(e.pointerId);});
+  grab.addEventListener('pointermove',e=>{
+    if(!drag)return;
+    if(side){
+      mv=Math.max(mv,Math.abs(e.clientX-x0));
+      const nw=clamp(w0+(x0-e.clientX),240,appEl.clientWidth*.7);
+      document.documentElement.style.setProperty('--sw',nw+'px');
+      if(!userCam&&viewFn)viewFn();
+      return;
+    }
+    mv=Math.max(mv,Math.abs(e.clientY-y0));sheet.style.height=clamp(h0+(y0-e.clientY),92,appEl.clientHeight*.9)+'px';
+  });
+  const up=()=>{
+    if(!drag)return;drag=false;
+    if(side){sheet.classList.remove('drag');return;}
+    const H=appEl.clientHeight,h=sheet.offsetHeight;let st;
+    if(mv<5){const cur=h0<120?'peek':h0>H*.7?'full':'half';st=cur==='peek'?'half':cur==='half'?'full':'half';}
+    else{const c={peek:92,half:H*.46,full:H*.86};st=Object.keys(c).sort((a,b)=>Math.abs(c[a]-h)-Math.abs(c[b]-h))[0];}
+    setSheet(st);
+  };
+  grab.addEventListener('pointerup',up);grab.addEventListener('pointercancel',up);
+})();
+
+// ---------- RENDER PANELS ----------
+const GROUPS=[['bowl','Bowl assembly (spins)'],['cover','Cover, outlets and catcher (fixed)'],['drive','Drive and frame']];
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+function chipsHTML(list,sel,kind){
+  return list.map(d=>'<button class="chip" data-a="'+kind+'" data-v="'+d.id+'" aria-pressed="'+(sel===d.id)+'"><b>'+d.n+'</b>'+esc(d.name)+'</button>').join('');
+}
+function renderPlant(){
+  bodyEl.innerHTML='<h2 class="h">Fuel oil purifying system</h2>'
+   +'<p class="lede">Oil leaves the settling tank, is heated, and is cleaned in the purifier. Clean oil goes to the service tank. Water and sludge go to the sludge tank. Tap a numbered dot or a name below.</p>'
+   +'<div class="seg" role="group" aria-label="Three-way valve position"><button data-a="valve" data-v="recirc" aria-pressed="'+(valve==='recirc')+'">Recirculate</button><button data-a="valve" data-v="purifier" aria-pressed="'+(valve==='purifier')+'">To purifier</button></div>'
+   +'<div class="legend"><span><i style="background:var(--oil)"></i>Dirty oil</span><span><i style="background:var(--hot)"></i>Hot oil</span><span><i style="background:var(--clean)"></i>Clean oil</span><span><i style="background:var(--water)"></i>Water</span></div>'
+   +'<div id="card"></div><div class="chips" id="chips">'+chipsHTML(PILIST,selItem,'item')+'</div>'
+   +'<p class="note">Generic training model. Real units differ, so always follow the maker\u2019s manual and your ship\u2019s procedures.</p>';
+  refreshCard();
+}
+function renderPurifier(){
+  const tg=(k,l,on)=>'<button data-a="tg" data-v="'+k+'" aria-pressed="'+on+'">'+l+'</button>';
+  bodyEl.innerHTML='<h2 class="h">Purifier in detail</h2>'
+   +'<div class="seg" role="group" aria-label="View options">'+tg('sec','Cutaway',secOn)+tg('flow','Flow',flowOn)+tg('spin','Spin',spinOn)+tg('pins','Numbers',pinsOn)+'</div>'
+   +'<label class="ex">Exploded view<output id="exv">'+Math.round(exGoal*100)+'%</output><input type="range" id="ex" min="0" max="1" step="0.01" value="'+exGoal+'"></label>'
+   +'<div class="row"><button class="btn alt" data-a="desludge">Run a sludge discharge</button></div>'
+   +'<div id="card"></div>'
+   +GROUPS.map(g=>'<div class="grp">'+g[1]+'</div><div class="chips">'+chipsHTML(PLIST.filter(p=>p.grp===g[0]),selPart,'part')+'</div>').join('')
+   +'<p class="note">The model shows 23 discs and a simplified layout. Real purifiers vary by maker.</p>';
+  $('#ex').addEventListener('input',e=>{setExplode(+e.target.value);});
+  refreshCard();
+}
+function syncTools(){
+  document.querySelectorAll('[data-a="tg"]').forEach(b=>{const v=b.dataset.v;b.setAttribute('aria-pressed',String(v==='sec'?secOn:v==='flow'?flowOn:v==='spin'?spinOn:pinsOn));});
+}
+function refreshCard(){
+  const c=$('#card');if(!c)return;
+  if(mode==='plant'){
+    const d=selItem&&PIT[selItem];
+    c.innerHTML=d?'<div class="card"><h3>'+d.n+'. '+esc(d.name)+'</h3><div class="k">What it does</div><p>'+esc(d.what)+'</p><div class="k">Watch for</div><p>'+esc(d.watch)+'</p>'
+      +(d.id==='purifier'?'<div class="row"><button class="btn" data-a="openpur">Explore the purifier</button></div>':'')+'</div>':'';
+  }else if(mode==='purifier'){
+    const d=selPart&&PARTS[selPart];
+    c.innerHTML=d?'<div class="card"><h3>'+d.n+'. '+esc(d.name)+'<span class="tag">'+(d.rot?'spins':'fixed')+'</span></h3><div class="k">What it does</div><p>'+esc(d.what)+'</p><div class="k">Watch for</div><p>'+esc(d.watch)+'</p><div class="row"><button class="btn alt" data-a="clear">Show all parts</button></div></div>'
+      :'<p class="lede">Tap a part, a number, or a name below. Turn on Cutaway and Flow to see how oil moves.</p>';
+  }
+}
+function refreshChips(){
+  document.querySelectorAll('.chip').forEach(b=>{const k=b.dataset.a,v=b.dataset.v;b.setAttribute('aria-pressed',String(k==='part'?selPart===v:selItem===v));});
+}
+function renderOperate(){
+  const s=STEPS[stepI];
+  bodyEl.innerHTML='<div class="ticks">'+STEPS.map((_,i)=>'<button data-a="step" data-v="'+i+'" aria-label="Step '+(i+1)+'" class="'+(i<stepI?'done':i===stepI?'cur':'')+'"></button>').join('')+'</div>'
+   +'<div class="stepno">Step '+(stepI+1)+' of '+STEPS.length+'</div><h2 class="h">'+esc(s.t)+'</h2>'
+   +'<ul class="do">'+s.d.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>'
+   +'<div class="watch"><b>Watch for: </b>'+esc(s.w)+'</div><p class="why"><b>Why: </b>'+esc(s.y)+'</p>'
+   +(s.btn?'<div class="row"><button class="btn alt" data-a="replay">'+s.btn+'</button></div>':'')
+   +'<div class="nav"><button class="btn alt" data-a="prev" '+(stepI===0?'disabled':'')+'>Back</button><button class="btn" data-a="next">'+(stepI===STEPS.length-1?'Restart':'Next step')+'</button></div>'
+   +'<p class="note">Generic sequence for a self-cleaning purifier. Timings and settings vary by model.</p>';
+  bodyEl.scrollTop=0;
+}
+function renderQuiz(){
+  if(quizDone){
+    bodyEl.innerHTML='<h2 class="h">Score: '+quizScore+' of '+QUIZ.length+'</h2><p class="lede">'+(quizScore>=QUIZ.length-1?'Excellent. You know this machine well.':quizScore>=5?'Good work. Review the steps you missed in Operate.':'Worth another pass through Operate and Purifier.')+'</p><div class="row"><button class="btn" data-a="qrestart">Try again</button></div>';
+    return;
+  }
+  const q=QUIZ[quizI];
+  bodyEl.innerHTML='<div class="stepno">Question '+(quizI+1)+' of '+QUIZ.length+'</div><h2 class="h">'+esc(q.q)+'</h2>'
+   +q.o.map((o,i)=>'<button class="opt'+(quizPick>=0?(i===q.a?' right':i===quizPick?' wrong':''):'')+'" data-a="qopt" data-v="'+i+'" '+(quizPick>=0?'disabled':'')+'>'+esc(o)+'</button>').join('')
+   +(quizPick>=0?'<div class="watch">'+(quizPick===q.a?'<b>Correct. </b>':'<b>Not quite. </b>')+esc(q.e)+'</div><div class="row"><button class="btn" data-a="qnext">'+(quizI===QUIZ.length-1?'See score':'Next question')+'</button></div>':'');
+}
+
+// ---------- ACTIONS ----------
+function setExplode(v){
+  exGoal=v;const o=$('#exv');if(o)o.textContent=Math.round(v*100)+'%';
+  if(v>.02&&selPart)selectPart(null);
+  const k=v;cam.g.t.set(.9,4.4+8.4*k,0);cam.g.r=fitR(isPortrait()?11:12,10.4+16.5*k);userCam=true;
+}
+function setMode(m){
+  clearTimers();dis.t=-1;sim.slideOpen=0;mode=m;selPart=null;selItem=null;glowSet.clear();resetFx();
+  PLIST.forEach(p=>{p.aT=1;});
+  document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.mode===m)));
+  $('#hud').hidden=!(m==='operate'||m==='faults');
+  if(m==='plant'){setSceneMode('plant');secOn=false;exGoal=0;exK=0;valve='recirc';applyPlantState();plantView();renderPlant();}
+  else if(m==='purifier'){setSceneMode('purifier');secOn=false;flowOn=false;spinOn=false;exGoal=0;exK=0;applyPurState();purView();renderPurifier();}
+  else if(m==='operate'){applyStep(0);return;}
+  else if(m==='faults'){setSceneMode('purifier');exGoal=0;exK=0;faultsList();}
+  else if(m==='overhaul'){applyOv(0);return;}
+  else{setSceneMode('purifier');secOn=false;exGoal=0;exK=0;want=new Set();sim.rpmT=RPM_MAX;sim.closedT=1;sim.sealT=1;sludgeMode='static';sim.sludge=.45;decelFast=true;purView();quizI=0;quizScore=0;quizDone=false;quizPick=-1;renderQuiz();}
+  buildPins();
+}
+bodyEl.addEventListener('click',e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;
+  const a=b.dataset.a,v=b.dataset.v;
+  if(a==='part')selectPart(selPart===v?null:v);
+  else if(a==='item')selectItem(selItem===v?null:v);
+  else if(a==='clear')selectPart(null);
+  else if(a==='openpur')setMode('purifier');
+  else if(a==='valve'){valve=v;applyPlantState();document.querySelectorAll('[data-a="valve"]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===valve)));}
+  else if(a==='tg'){
+    if(v==='sec'){secOn=!secOn;if(!secOn&&flowOn){}purView();}
+    else if(v==='flow'){flowOn=!flowOn;if(flowOn&&!secOn){secOn=true;purView();}if(flowOn&&exGoal>.02){exGoal=0;const r=$('#ex');if(r)r.value=0;setExplode(0);purView();}applyPurState();}
+    else if(v==='spin'){spinOn=!spinOn;applyPurState();}
+    else if(v==='pins'){pinsOn=!pinsOn;buildPins();}
+    syncTools();
+  }
+  else if(a==='desludge'){
+    if(exGoal>.02){exGoal=0;const r=$('#ex');if(r)r.value=0;setExplode(0);}
+    spinOn=true;secOn=true;sim.sludge=.85;sim.rpm=Math.max(sim.rpm,RPM_MAX*.9);applyPurState();sim.sludge=.85;purView();syncTools();startDischarge();
+    if(sheet.classList.contains('full'))setSheet('half');
+  }
+  else if(a==='fault')applyFault(+v);
+  else if(a==='flist')faultsList();
+  else if(a==='fopt'){faultPick=+v;renderFaults();}
+  else if(a==='fnext')applyFault((faultI+1)%FAULTS.length);
+  else if(a==='fbtn'){if(faultI===4)startDischarge();else if(faultI===5){sim.rpm=0;sim.rpmT=RPM_MAX;}}
+  else if(a==='ostep')applyOv(+v);
+  else if(a==='onext')applyOv(ovI===OV.length-1?0:ovI+1);
+  else if(a==='oprev')applyOv(Math.max(0,ovI-1));
+  else if(a==='oreplay')reassemble();
+  else if(a==='step')applyStep(+v);
+  else if(a==='next')applyStep(stepI===STEPS.length-1?0:stepI+1);
+  else if(a==='prev')applyStep(Math.max(0,stepI-1));
+  else if(a==='replay')replayStep();
+  else if(a==='qopt'){quizPick=+v;if(quizPick===QUIZ[quizI].a)quizScore++;renderQuiz();}
+  else if(a==='qnext'){quizPick=-1;if(quizI===QUIZ.length-1)quizDone=true;else quizI++;renderQuiz();bodyEl.scrollTop=0;}
+  else if(a==='qrestart'){quizI=0;quizScore=0;quizDone=false;quizPick=-1;renderQuiz();}
+});
+document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
+$('#fab').addEventListener('click',()=>{if(viewFn)viewFn();userCam=false;});
+// ---------- FAULTS + OVERHAUL ----------
+function resetFx(){sim.shake=0;sim.upMul=1;sim.noOpen=false;statusOverride='';PLIST.forEach(p=>{p.xT=0;});}
+const MAINF=['feedO','br','oil','heavy','water'];
+const FAULTS=[
+ {t:'Oil in the water outlet',sym:'Oil is running out of the water outlet. The water outlet looks oily and the clean oil flow drops.',
+  q:'What do you do first?',o:['Keep feeding and watch it','Switch the feed to recirculation, then investigate','Fit a bigger gravity disc straight away','Raise the temperature above the limit'],a:1,
+  ex:'Stop the feed so no more oil is lost, then find out why the water seal broke.',
+  causes:['Water seal lost: not enough seal water, or feed started without a seal','Gravity disc too large for the oil density and temperature','Oil temperature or feed flow swinging a lot','Too much back pressure on the clean oil outlet','Bowl not fully closed, or a worn seal ring'],
+  checks:['Recirculate, then form the water seal again.','Check the gravity disc against the maker\u2019s chart.','Check temperature is steady and feed flow is as set.','Check the clean oil outlet valve and filters for restriction.','At the next stop, inspect the slide and hood seal rings.'],
+  fix:'Re-form the water seal, then restart the feed slowly. If it returns, fit the next smaller gravity disc.',
+  prevent:'Pick the disc from the chart, hold temperature steady, and open the feed slowly.',
+  st:{sec:1,rpm:RPM_MAX,closed:1,seal:1,temp:98,flows:['feedO','oilLoss','heavy'],hl:['gravity','water_out'],status:'Oil loss',view:[[0,6.2,0],9,8,.05,1.3]}},
+ {t:'Water in the clean oil',sym:'Water shows up in the clean oil. The service tank drains come off wet or a water alarm trips.',
+  q:'Which change most likely helps?',o:['Raise the feed flow','Lower the feed flow and check the temperature','Block the water outlet','Remove the water seal'],a:1,
+  ex:'A lower flow gives the oil more time between the discs, and correct temperature keeps it thin enough to separate.',
+  causes:['Feed flow too high for the oil','Oil too cold, so too thick','Gravity disc too small','Dirty or choked disc stack','Settling tank not drained, so too much water arrives'],
+  checks:['Check the feed flow against the oil grade.','Check the temperature at the purifier inlet.','Check the gravity disc size.','Check the discharge interval, then the discs at the next overhaul.','Drain water from the settling tank.'],
+  fix:'Cut the flow and bring the temperature to normal. If water persists, shut down and clean the bowl.',
+  prevent:'Drain the settling tank daily and keep the purifier on its set flow and temperature.',
+  st:{sec:1,rpm:RPM_MAX,closed:1,seal:1,temp:98,flows:['feedO','br','waterInOil','heavy','water'],hl:['discs','gravity'],status:'Water in oil',view:[[.5,5.6,0],10,10,.05,1.3]}},
+ {t:'High vibration',sym:'The machine shakes or hums harder than normal. The vibration alarm may trip.',
+  q:'What is the safest first move?',o:['Apply the brake straight away','Stop the feed and run a discharge. If it does not clear, stop the motor and let it run down','Tighten the lock ring while it runs','Ignore it until the alarm trips'],a:1,
+  ex:'Never grab a spinning bowl or brake hard at speed. Stop the feed, try a discharge, and follow the maker\u2019s limits. If it stays high, stop the motor and let it coast.',
+  causes:['Sludge not discharged, so it builds up unevenly','Blocked sludge ports','Disc stack dirty, bent or assembled in the wrong order','Worn spindle bearings','Lock ring or hood not tightened to its marks'],
+  checks:['Check the log: when was the last discharge?','After it stops, check the ports and the sludge space.','Check the disc stack order and marks.','Check bearings and spindle run-out.','Check the lock ring and bowl marks.'],
+  fix:'Clean the bowl and reassemble with every mark aligned. Replace worn bearings.',
+  prevent:'Keep to the discharge interval, assemble to the marks, and log vibration readings.',
+  st:{sec:1,rpm:RPM_MAX,closed:1,seal:1,temp:98,sludge:.95,shake:1,flows:MAINF,hl:['body','ports','discs','spindle'],status:'Vibration high',view:[[.5,4.6,0],11,10,.05,1.3]}},
+ {t:'Bowl will not close',sym:'Water leaks from the sludge ports and out the sludge pipe. The water seal never forms.',
+  q:'Best first check?',o:['Operating water pressure and valve','Gear case oil level','Heater steam supply','Clean oil outlet filter'],a:0,
+  ex:'Closing depends on operating water lifting the slide. No water or a stuck valve leaves the slide down.',
+  causes:['Operating water supply low or off','Dirty or stuck solenoid valve','Worn or damaged slide seal ring','Damaged hood seal or O-ring','Slide fouled by deposits'],
+  checks:['Check operating water pressure and the supply valve.','Check the solenoid valve and its filter.','Look for water leaking at the ports.','At the next stop, inspect the slide and seal rings.'],
+  fix:'Restore the water supply or clean the valve. Renew worn seal rings.',
+  prevent:'Use clean water and renew seal rings at the maker\u2019s interval.',
+  st:{sec:1,rpm:RPM_MAX,closed:0,seal:0,temp:98,flows:['sOut'],hl:['slide','valves'],status:'Will not close',view:[[-.2,4.2,0],12,9,.05,1.3]}},
+ {t:'No sludge discharge',sym:'A discharge is commanded but nothing comes out. Outlet pressure climbs and vibration may follow.',
+  q:'Which is a likely cause?',o:['Opening water missing or valve stuck','Gravity disc too small','Oil too hot','Motor too fast'],a:0,
+  ex:'Opening water drops the slide. Without it the ports stay shut and sludge keeps building.',
+  causes:['No opening water, or low pressure','Solenoid valve stuck or coil failed','Slide jammed by deposits','Control unit timing fault'],
+  checks:['Check the opening water supply.','Test the solenoid valve.','Check the control unit alarm list.','Inspect the slide at the next stop.'],
+  fix:'Fix the water supply or valve, and clean the slide. Do not keep feeding with a full bowl.',
+  prevent:'Check alarms daily and keep operating water clean.',
+  btn:'Try a discharge',
+  st:{sec:1,rpm:RPM_MAX,closed:1,seal:1,temp:98,sludge:.95,noOpen:1,flows:MAINF,hl:['slide','valves','ports'],status:'No discharge',view:[[-.2,4.2,0],12,9,.05,1.3],enter(){later(1200,startDischarge);}}},
+ {t:'Slow run-up, high current',sym:'The bowl takes much longer than usual to reach speed. Motor current stays high.',
+  q:'What is most likely worn?',o:['Gravity disc','Friction coupling shoes, or the brake is dragging','Operating water valve','Oil heater'],a:1,
+  ex:'The coupling shoes slip while the bowl accelerates. Worn shoes or a dragging brake stretch the run-up.',
+  causes:['Worn friction coupling shoes','Brake not fully released','Bearing or gear drag','Low supply voltage'],
+  checks:['Check the brake is fully off.','Compare run-up time and current with the log.','Check the gear case for noise or heat.','Inspect the coupling shoes at the next stop.'],
+  fix:'Release or adjust the brake. Renew coupling shoes if worn.',
+  prevent:'Log run-up time and current at every start. Trends show wear early.',
+  btn:'Replay start-up',
+  st:{sec:0,rpm:RPM_MAX,closed:0,seal:0,temp:45,upMul:.3,reset:1,flows:[],hl:['coupling','brake'],status:'Slow run-up',view:[[1.6,2.6,-1],12,8,.95,1.25]}}
+];
+let faultI=-1,faultPick=-1;
+function applyFault(i){
+  faultI=i;faultPick=-1;const f=FAULTS[i],s=f.st;
+  clearTimers();dis.t=-1;resetFx();setSceneMode('purifier');
+  secOn=!!s.sec;exGoal=0;exK=0;
+  sim.rpmT=s.rpm;sim.tempT=s.temp;sim.closedT=s.closed;sim.sealT=s.seal||0;sim.shake=s.shake||0;sim.upMul=s.upMul||1;sim.noOpen=!!s.noOpen;
+  sim.sludge=s.sludge==null?.45:s.sludge;sludgeMode='static';decelFast=true;
+  sim.temp=s.temp;sim.closed=s.closed;sim.seal=s.seal||0;sim.rpm=s.reset?0:s.rpm;
+  want=new Set(s.flows);statusOverride=s.status;
+  glowSet.clear();s.hl.forEach(h=>glowSet.add(h));
+  frameView(s.view[0],s.view[1],s.view[2],s.view[3],s.view[4]);
+  if(s.enter)s.enter();
+  buildPins();renderFaults();
+}
+function faultsList(){
+  faultI=-1;clearTimers();dis.t=-1;resetFx();glowSet.clear();secOn=false;
+  want=new Set();sim.rpmT=RPM_MAX;sim.closedT=1;sim.sealT=1;sim.tempT=98;sim.sludge=.45;
+  purView();renderFaults();
+}
+function renderFaults(){
+  if(faultI<0){
+    bodyEl.innerHTML='<h2 class="h">Real-world faults</h2><p class="lede">Pick a symptom. The 3D model shows it, then you decide what to do.</p>'
+     +FAULTS.map((f,i)=>'<button class="opt" data-a="fault" data-v="'+i+'"><b>'+esc(f.t)+'</b><br><span style="color:var(--ink-2);font-size:14px">'+esc(f.sym)+'</span></button>').join('')
+     +'<p class="note">Typical causes for a generic purifier. Your maker\u2019s manual and alarm limits come first.</p>';
+    return;
+  }
+  const f=FAULTS[faultI],ans=faultPick>=0;
+  let h='<div class="stepno">Fault '+(faultI+1)+' of '+FAULTS.length+'</div><h2 class="h">'+esc(f.t)+'</h2><div class="watch"><b>Symptom: </b>'+esc(f.sym)+'</div>'
+   +(f.btn?'<div class="row"><button class="btn alt" data-a="fbtn">'+f.btn+'</button></div>':'')
+   +'<div class="k">'+esc(f.q)+'</div>'
+   +f.o.map((o,i)=>'<button class="opt'+(ans?(i===f.a?' right':i===faultPick?' wrong':''):'')+'" data-a="fopt" data-v="'+i+'" '+(ans?'disabled':'')+'>'+esc(o)+'</button>').join('');
+  if(ans){
+    h+='<div class="watch"><b>'+(faultPick===f.a?'Correct. ':'Not quite. ')+'</b>'+esc(f.ex)+'</div>'
+     +'<div class="k">Likely causes</div><ul class="do">'+f.causes.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>'
+     +'<div class="k">Check in this order</div><ol class="do">'+f.checks.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol>'
+     +'<div class="k">Fix</div><p class="why">'+esc(f.fix)+'</p><div class="k">Prevent it</div><p class="why">'+esc(f.prevent)+'</p>';
+  }
+  h+='<div class="nav"><button class="btn alt" data-a="flist">All faults</button><button class="btn" data-a="fnext">Next fault</button></div>';
+  bodyEl.innerHTML=h;bodyEl.scrollTop=0;
+}
+
+const REASSEMBLY=['slide','distributor','discs','topdisc','gravity','hood','lockring','paring_water','paring_oil','framehood','inlet','oil_out','water_out'];
+const OV=[
+ {t:'Make it safe',rm:[],hl:['motor','brake'],view:[[2,1.5,-1],14,10,.8,1.25],
+  d:['Stop the motor and let the bowl stop completely before opening anything.','Lock off the motor electrically and tag it.','Close the feed, outlet and operating water valves.','Let hot parts cool and relieve any pressure.'],
+  w:'Never open a bowl that is still turning. A full stop can take 20 minutes or more.',y:'The bowl keeps spinning long after the motor stops, and hot oil can scald.'},
+ {t:'Take off the cover',rm:['framehood','inlet','oil_out','water_out','paring_oil','paring_water'],hl:['framehood','paring_oil','paring_water'],view:[[.9,11,0],14,26,.45,1.1],
+  d:['Disconnect the inlet and outlet pipes.','Undo the clamps and lift off the frame hood.','Lift out the paring discs and keep them safe.'],
+  w:'The hood is heavy. Use lifting gear and a second person if needed.',y:'This opens up access to the bowl.'},
+ {t:'Remove the lock ring',rm:['lockring'],hl:['lockring'],view:[[.9,8,0],12,22,.4,1.15],
+  d:['Check the ring and bowl marks are visible before loosening.','Fit the special spanner and turn the ring the way the maker marks.','Lift the ring off.'],
+  w:'Check the thread direction marked on the ring. Never hammer on it.',y:'The lock ring clamps the hood and carries the marks that keep the bowl balanced.'},
+ {t:'Lift the bowl hood',rm:['hood'],hl:['hood'],view:[[.9,9,0],12,22,.4,1.15],
+  d:['Use the lifting tool to raise the hood straight up.','Set it down on a soft surface, never on its seal faces.','Check the hood seal ring.'],
+  w:'Lift straight. A tilted hood can jam on the slide.',y:'The hood seal ring keeps the bowl tight. Damage here causes leaks.'},
+ {t:'Remove gravity and top disc',rm:['gravity','topdisc'],hl:['gravity','topdisc'],view:[[.9,9,0],12,22,.4,1.15],
+  d:['Note the gravity disc size stamped on it.','Lift out the gravity disc, then the top disc.','Lay them out in order on a clean surface.'],
+  w:'Do not mix gravity discs between machines or oils.',y:'The gravity disc size is part of the machine\u2019s setting.'},
+ {t:'Lift out the disc stack',rm:['discs'],hl:['discs'],view:[[.9,9,0],12,22,.4,1.15],
+  d:['Lift the discs off as one stack, keeping their order.','Stack them on a clean rod or tray, numbered.','Never use sharp tools or a hammer.'],
+  w:'Discs are thin and can cut. Wear gloves and do not bend them.',y:'Discs are balanced as a set. Order and marks matter.'},
+ {t:'Remove the distributor',rm:['distributor'],hl:['distributor'],view:[[.9,8,0],12,20,.4,1.15],
+  d:['Lift the distributor straight up off its seat.','Check its holes and ribs are clear.'],
+  w:'Handle it carefully. Damage to its seat upsets the balance.',y:'A blocked distributor gives uneven flow and vibration.'},
+ {t:'Pull out the operating slide',rm:['slide'],hl:['slide'],view:[[.9,8,0],12,20,.4,1.15],
+  d:['Fit the slide extractor tool.','Lift the slide out straight to protect its seal ring.','Check the slide and the seal ring.'],
+  w:'Use the maker\u2019s tool. Levering with a screwdriver damages sealing faces.',y:'The slide must seal cleanly or the bowl will not close.'},
+ {t:'Inspect the bowl body',rm:[],hl:['body','ports','sludgecover'],view:[[.9,4.3,0],11,10,.45,1.25],
+  d:['Check the inside of the bowl body for pitting, erosion and cracks.','Check the threads for damage.','Clear and check every sludge port.','Clean the sludge cover.'],
+  w:'Deep pits, cracks or damaged threads mean the part must be replaced. Do not run it.',y:'Damage at speed is a safety risk and causes imbalance.'},
+ {t:'Clean and check the parts',rm:[],hl:['discs','distributor','gravity','spindle'],view:[[.9,4.3,0],11,10,.45,1.25],
+  d:['Clean discs, distributor and top disc with soft tools and the right cleaning agent.','Never use wire brushes or scrapers on disc surfaces.','Check spindle run-out and bearings as the maker requires.','Renew O-rings and seal rings at the maker\u2019s interval.'],
+  w:'Keep every part clean and in order.',y:'Clean parts balance better and last longer.'},
+ {t:'Reassemble in reverse',rm:[],hl:[],view:[[.9,9,0],12,24,.45,1.15],btn:'Replay reassembly',
+  d:['Fit parts in reverse order: slide, distributor, discs, top disc, gravity disc, hood.','Lightly lubricate seals and threads with the right grease.','Line up every mark, then tighten the lock ring to its mark.','Fit paring discs, frame hood and pipes.'],
+  w:'Marks must line up. A wrong assembly is a serious hazard.',y:'The marks keep the bowl in balance.'},
+ {t:'Test run',rm:[],hl:[],view:[[.9,4.4,0],12,10.4,.45,1.25],
+  d:['Start with no feed. Check vibration, noise and run-up time against the log.','Close the bowl and check for leaks.','Form the water seal, then feed slowly.','Record the overhaul and the running hours.'],
+  w:'Compare with earlier run-up time and current. Anything unusual means stop.',y:'A good first run proves the assembly before it goes back to work.'}
+];
+let ovI=0;
+function ovOut(i){const s=new Set();for(let k=0;k<=Math.min(i,9);k++)OV[k].rm.forEach(x=>s.add(x));return s;}
+function reassemble(){
+  clearTimers();PLIST.forEach(p=>{p.xT=1;});
+  REASSEMBLY.forEach((id,k)=>later(300+k*650,()=>{PARTS[id].xT=0;}));
+}
+function applyOv(i){
+  ovI=i;const s=OV[i];clearTimers();dis.t=-1;resetFx();setSceneMode('purifier');
+  secOn=false;exGoal=0;exK=0;want=new Set();selPart=null;PLIST.forEach(p=>{p.aT=1;});
+  sim.rpmT=i===11?RPM_MAX:0;sim.rpm=i===11?0:0;sim.closedT=(i<8||i===11)?1:0;sim.closed=sim.closedT;sim.sealT=0;sim.seal=0;
+  sim.tempT=45;sim.temp=45;decelFast=true;sludgeMode='static';sim.sludge=i<9?.6:0;
+  if(i>=10&&i<11)reassemble();
+  else if(i===11){PLIST.forEach(p=>{p.xT=0;});}
+  else{const out=ovOut(i);PLIST.forEach(p=>{p.xT=out.has(p.id)?1:0;});}
+  if(i===9)later(900,()=>{sim.sludge=0;});
+  glowSet.clear();s.hl.forEach(h=>glowSet.add(h));
+  frameView(s.view[0],s.view[1],s.view[2],s.view[3],s.view[4]);
+  buildPins();renderOverhaul();
+}
+function renderOverhaul(){
+  const s=OV[ovI];
+  bodyEl.innerHTML='<div class="ticks">'+OV.map((_,i)=>'<button data-a="ostep" data-v="'+i+'" aria-label="Step '+(i+1)+'" class="'+(i<ovI?'done':i===ovI?'cur':'')+'"></button>').join('')+'</div>'
+   +'<div class="stepno">Overhaul step '+(ovI+1)+' of '+OV.length+'</div><h2 class="h">'+esc(s.t)+'</h2>'
+   +'<ol class="do">'+s.d.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol>'
+   +'<div class="watch"><b>Caution: </b>'+esc(s.w)+'</div><p class="why"><b>Why: </b>'+esc(s.y)+'</p>'
+   +(s.btn?'<div class="row"><button class="btn alt" data-a="oreplay">'+s.btn+'</button></div>':'')
+   +'<div class="nav"><button class="btn alt" data-a="oprev" '+(ovI===0?'disabled':'')+'>Back</button><button class="btn" data-a="onext">'+(ovI===OV.length-1?'Restart':'Next step')+'</button></div>'
+   +'<p class="note">Generic sequence. Tools, thread directions and intervals differ by maker, so follow your manual.</p>';
+  bodyEl.scrollTop=0;
+}
+// ---------- LOOP ----------
+const hRpm=$('#hRpm'),hAmp=$('#hAmp'),hTemp=$('#hTemp'),hSt=$('#hSt');
+let last=performance.now(),time=0,hudT=0,pulse=0;
+const INT_MAIN=['feedO','br','oil','heavy','water'];
+function resize(){
+  const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;
+  renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();camera._w=0;
+  if(!userCam&&viewFn)viewFn();
+}
+window.addEventListener('resize',resize);
+if(window.ResizeObserver)new ResizeObserver(resize).observe(canvas);
+
+function update(dt){
+  updSim(dt);updBurst(dt);
+  const ang=sim.rpm/RPM_MAX*6;
+  rot.rotation.y+=ang*dt;const sh=sim.shake*.07*(sim.rpm/RPM_MAX);rot.position.set((Math.random()-.5)*sh,0,(Math.random()-.5)*sh);
+  const wd=PARTS.worm.g.userData;wd.wheel.rotation.y=rot.rotation.y;wd.worm.rotation.x=rot.rotation.y*3.2;
+  exK=damp(exK,exGoal,6,dt);if(Math.abs(exK-exGoal)<.001)exK=exGoal;
+  PARTS.slide.dy=-.32*Math.max(1-sim.closed,sim.slideOpen);
+  setSludge(sim.sludge);
+  pulse=.55+.45*Math.sin(time*4.5);
+  const purGlow=selItem==='purifier'||glowSet.has('purifier');
+  for(const d of PLIST){
+    d.xk=damp(d.xk,d.xT,5,dt);if(Math.abs(d.xk-d.xT)<.002)d.xk=d.xT;const ek=Math.max(exK,d.xk);d.g.position.set(d.ex[0]*ek,d.ex[1]*ek+d.dy,d.ex[2]*ek);
+    d.alpha=damp(d.alpha,d.aT,10,dt);d.gT=(selPart===d.id||glowSet.has(d.id)||purGlow)?1:0;d.glow=damp(d.glow,d.gT,10,dt);
+    const tr=d.alpha<.995,dw=d.alpha>.6;
+    for(const m of d.mats){
+      if(m.transparent!==tr){m.transparent=tr;m.needsUpdate=true;}
+      m.opacity=tr?d.alpha:1;m.depthWrite=dw;
+      m.emissive.copy(GLOW);m.emissiveIntensity=d.glow*(.2+.3*pulse);
+    }
+  }
+  for(const d of PILIST){
+    d.gT=(selItem===d.id||glowSet.has(d.id))?1:0;d.glow=damp(d.glow,d.gT,10,dt);
+    for(const m of d.mats){m.emissive.copy(GLOW);m.emissiveIntensity=d.glow*(.15+.25*pulse);}
+  }
+  PIT.threeway.g.userData.lever.rotation.y=damp(PIT.threeway.g.userData.lever.rotation.y,valve==='purifier'?Math.PI/2:0,6,dt);
+  const busy=dischargeBusy(),dt0=dis.t;
+  for(const name in G){
+    let on=want.has(name)?1:0;const f0=G[name][0];
+    if(f0.int){
+      if(exK>.03)on=0;
+      if(busy&&INT_MAIN.indexOf(name)>=0)on=0;
+      if(name==='feedW'&&dt0>.2&&dt0<.9)on=1;
+      if(name==='sOut')on=(want.has('sOut')||(dt0>1.0&&dt0<2.8))?1:0;
+    }
+    if(sceneMode==='plant'&&f0.int&&name==='sOut')on=0;
+    G[name].forEach(f=>{f.on=on;});
+  }
+  renderer.clippingPlanes=(sceneMode==='purifier'&&secOn)?[secPlane]:[];
+  if(mode==='quiz'&&!userCam)cam.g.th+=dt*.25;
+  for(const f of FLOWS)f.update(dt,time);
+  updCam(dt);
+  hudT+=dt;
+  if((mode==='operate'||mode==='faults')&&hudT>.1){
+    hudT=0;hRpm.textContent=Math.round(sim.rpm/10)*10;hAmp.textContent=amps();hTemp.textContent=Math.round(sim.temp);hSt.textContent=statusText();
+  }
+}
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=Math.min(.05,(now-last)/1000);last=now;time+=reduceMotion?dt*.5:dt;
+  update(dt);renderer.render(scene,camera);updPins();
+}
+resize();
+setMode('plant');
+cam.th=cam.g.th;cam.ph=cam.g.ph;cam.r=cam.g.r;cam.t.copy(cam.g.t);
+requestAnimationFrame(frame);
+(function(){const t=$('#toast');setTimeout(()=>t.classList.add('on'),600);setTimeout(()=>t.classList.remove('on'),4200);})();
+
+</script>
+</body>
+</html>
