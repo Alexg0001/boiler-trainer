@@ -1203,8 +1203,26 @@ function goStep(i){
   renderStep();
   if(S.tab!=='learn')showTab('learn');
 }
+/* ---- learning progress, saved on this phone for the menu bars ---- */
+const MT_PROG={
+  id:'compressor',
+  total:PARTS.length+QUIZ.length,
+  mark(item){
+    try{
+      const doneAll=JSON.parse(localStorage.getItem('marineTrainers.done')||'{}')||{};
+      const mine=new Set(doneAll[this.id]||[]);
+      if(mine.has(item))return;
+      mine.add(item);doneAll[this.id]=[...mine];
+      localStorage.setItem('marineTrainers.done',JSON.stringify(doneAll));
+      const prog=JSON.parse(localStorage.getItem('marineTrainers.progress')||'{}')||{};
+      prog[this.id]=Math.min(100,Math.round(mine.size/this.total*100));
+      localStorage.setItem('marineTrainers.progress',JSON.stringify(prog));
+    }catch(e){}
+  }
+};
 function selectPart(id,o){
   o=o||{};
+  if(id)MT_PROG.mark('part:'+id);
   S.sel=id;
   const p=PMAP[id];if(!p)return;
   renderDetail(p);
@@ -1256,7 +1274,7 @@ function renderQuiz(){
   if(Q.ans!==null){h+='<div class="expl">'+q.e+'</div><button class="btn primary" id="qNext">'+(Q.i===QUIZ.length-1?'See score':'Next question')+'</button>';}
   el.innerHTML=h;
   $$('.opt',el).forEach(function(b){b.addEventListener('click',function(){
-    Q.ans=+b.dataset.i;if(Q.ans===q.a)Q.score++;renderQuiz();});});
+    Q.ans=+b.dataset.i;if(Q.ans===q.a){Q.score++;MT_PROG.mark('q'+Q.i);}renderQuiz();});});
   const n=$('#qNext');if(n)n.addEventListener('click',function(){Q.i++;Q.ans=null;renderQuiz();});
 }
 

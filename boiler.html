@@ -1385,7 +1385,25 @@ function setTab(t){
 $$('#tabs button').forEach(b=>b.addEventListener('click',()=>{expandIfCollapsed();setTab(b.dataset.tab);}));
 
 /* parts guide */
+/* ---- learning progress, saved on this phone for the menu bars ---- */
+const MT_PROG={
+  id:'boiler',
+  total:PARTS.length+QUIZ.length,
+  mark(item){
+    try{
+      const doneAll=JSON.parse(localStorage.getItem('marineTrainers.done')||'{}')||{};
+      const mine=new Set(doneAll[this.id]||[]);
+      if(mine.has(item))return;
+      mine.add(item);doneAll[this.id]=[...mine];
+      localStorage.setItem('marineTrainers.done',JSON.stringify(doneAll));
+      const prog=JSON.parse(localStorage.getItem('marineTrainers.progress')||'{}')||{};
+      prog[this.id]=Math.min(100,Math.round(mine.size/this.total*100));
+      localStorage.setItem('marineTrainers.progress',JSON.stringify(prog));
+    }catch(e){}
+  }
+};
 function selectPart(id){
+  if(id)MT_PROG.mark('part:'+id);
   UI.sel=id;
   if(UI.tab!=='parts')setTab('parts');
   else{renderParts();view3d.focus(id);}
@@ -1567,7 +1585,7 @@ $('#v-quiz').addEventListener('click',e=>{
   if(b.dataset.q==='start'){startQuiz();$('#v-quiz').scrollTop=0;}
   else if(b.dataset.q==='parts'){UI.quiz=null;setTab('parts');}
   else if(b.dataset.q==='next'){Q.i++;Q.picked=null;Q.opts=null;renderQuiz();$('#v-quiz').scrollTop=0;}
-  else if(b.dataset.k!==undefined&&Q&&Q.picked===null){Q.picked=+b.dataset.k;if(Q.opts[Q.picked].ok)Q.score++;renderQuiz();}
+  else if(b.dataset.k!==undefined&&Q&&Q.picked===null){Q.picked=+b.dataset.k;if(Q.opts[Q.picked].ok){Q.score++;MT_PROG.mark('q'+Q.order[Q.i]);}renderQuiz();}
 });
 
 /* stage controls */

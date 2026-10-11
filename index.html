@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Marine Trainers</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#071823">
+<meta name="theme-color" content="#0b2a3c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -15,11 +15,38 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=Pacifico&display=swap" rel="stylesheet">
 <script>
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
+// Progress is saved on the phone by each trainer under one key: {boiler:0-100, compressor:0-100, ...}
+function readProgress(){
+  try{const v=JSON.parse(localStorage.getItem("marineTrainers.progress")||"{}");return (v&&typeof v==="object")?v:{};}
+  catch(e){return {};}
+}
+function drawProgress(){
+  const p=readProgress();
+  document.querySelectorAll("a.card[data-id]").forEach(card=>{
+    const id=card.dataset.id;
+    let v=Number(p[id]);if(!isFinite(v))v=0;v=Math.max(0,Math.min(100,Math.round(v)));
+    let bar=card.querySelector(".prog");
+    if(!bar){
+      bar=document.createElement("div");bar.className="prog";
+      bar.setAttribute("aria-label","Progress");
+      bar.innerHTML='<div class="track"><div class="fill"></div></div><div class="pct"></div>';
+      card.querySelector(".go").before(bar);
+    }
+    bar.querySelector(".fill").style.width=v+"%";
+    const pct=bar.querySelector(".pct");
+    pct.classList.toggle("done",v>=100);
+    pct.textContent=v>=100?"Complete":v>0?v+"% done":"Not started";
+    bar.setAttribute("aria-valuenow",String(v));
+  });
+}
+drawProgress();
+window.addEventListener("pageshow",drawProgress);
 </script>
 <style>
   :root{--ink:#eaf4f9;--ink2:#9fbccb;--line:rgba(120,190,225,.22);--accent:#f0b429;--glow:#3fb6e8}
   *,*::before,*::after{box-sizing:border-box}
-  html,body{margin:0;min-height:100%}
+  html{background:#071823;min-height:100%;min-height:100dvh}
+  html,body{margin:0;min-height:100%;min-height:100dvh}
   body{
     color:var(--ink);font-family:'Barlow',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     background:
@@ -71,6 +98,11 @@ if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.se
   .go svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;transition:transform .2s ease}
   a.card:hover .go svg{transform:translateX(4px)}
 
+  .prog{margin-top:12px;display:flex;align-items:center;gap:10px}
+  .prog .track{flex:1;height:8px;border-radius:99px;background:rgba(120,190,225,.14);overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.35)}
+  .prog .fill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 70%,#fff 0%),var(--c));box-shadow:0 0 10px var(--c);transition:width .6s ease}
+  .prog .pct{min-width:96px;text-align:right;font:600 13px/1 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+  .prog .pct.done{color:var(--c)}
   footer{margin-top:auto;padding:44px 4px 6px;text-align:center}
   .sig{font:400 34px/1.1 'Pacifico',cursive;background:linear-gradient(90deg,#f0b429,#ffe08a 50%,#f0b429);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 12px rgba(240,180,41,.25))}
   .made{margin-top:6px;font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink2);opacity:.75}
@@ -111,7 +143,7 @@ if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.se
 </header>
 
 <main class="list">
-  <a class="card" href="boiler.html" style="--c:#f0b429">
+  <a class="card" data-id="boiler" href="boiler.html" style="--c:#f0b429">
     <div class="row">
       <div class="ico"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="13" rx="6" ry="7"/><path d="M9 6V3M12 6V2M15 6V3"/></svg></div>
       <div>
@@ -122,7 +154,7 @@ if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.se
     </div>
   </a>
 
-  <a class="card" href="compressor.html" style="--c:#ff8a3d">
+  <a class="card" data-id="compressor" href="compressor.html" style="--c:#ff8a3d">
     <div class="row">
       <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="8.5" stroke-dasharray="3 3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg></div>
       <div>
@@ -133,7 +165,7 @@ if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.se
     </div>
   </a>
 
-  <a class="card" href="purifier.html" style="--c:#59c3ff">
+  <a class="card" data-id="purifier" href="purifier.html" style="--c:#59c3ff">
     <div class="row">
       <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 3c3 4 5 7 5 10a5 5 0 0 1-10 0c0-3 2-6 5-10z"/></svg></div>
       <div>
@@ -144,7 +176,7 @@ if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.se
     </div>
   </a>
 
-  <a class="card" href="steering.html" style="--c:#7ee08a">
+  <a class="card" data-id="steering" href="steering.html" style="--c:#7ee08a">
     <div class="row">
       <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 4v6M12 14v6M4 12h6M14 12h6"/></svg></div>
       <div>
