@@ -5,64 +5,161 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Marine Trainers</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#245676">
+<meta name="theme-color" content="#071823">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=Pacifico&display=swap" rel="stylesheet">
+<script>
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
+</script>
 <style>
-  :root { box-sizing: border-box; }
-  *, *::before, *::after { box-sizing: inherit; }
-  html, body { margin: 0; height: 100%; }
-  body {
-    background: #08141b;
-    color: #e8f1f7;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    padding: env(safe-area-inset-top, 0px) 16px env(safe-area-inset-bottom, 0px);
-    display: flex; flex-direction: column;
+  :root{--ink:#eaf4f9;--ink2:#9fbccb;--line:rgba(120,190,225,.22);--accent:#f0b429;--glow:#3fb6e8}
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    color:var(--ink);font-family:'Barlow',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:
+      radial-gradient(120% 60% at 50% -10%,rgba(63,182,232,.22),transparent 60%),
+      linear-gradient(180deg,#0b2a3c 0%,#071823 55%,#050f16 100%);
+    background-attachment:fixed;
+    padding:env(safe-area-inset-top,0px) 18px calc(env(safe-area-inset-bottom,0px) + 24px);
+    display:flex;flex-direction:column;overflow-x:hidden;
   }
-  header { padding: 32px 4px 24px; }
-  header h1 { margin: 0; font-size: 32px; font-weight: 700; }
-  header p { margin: 8px 0 0; color: #8fa9bb; font-size: 18px; }
-  .list { display: flex; flex-direction: column; gap: 14px; }
-  a.card {
-    display: block; text-decoration: none; color: inherit;
-    background: linear-gradient(180deg, #14324a, #0e2636);
-    border: 1px solid #245676; border-radius: 16px;
-    padding: 24px 22px; min-height: 120px;
+  /* faint chart-grid across the background */
+  body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.35;
+    background-image:linear-gradient(rgba(120,190,225,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(120,190,225,.09) 1px,transparent 1px);
+    background-size:44px 44px;mask-image:linear-gradient(180deg,#000 0%,transparent 75%);-webkit-mask-image:linear-gradient(180deg,#000 0%,transparent 75%)}
+
+  header{padding:34px 4px 22px;position:relative}
+  .eyebrow{font:600 13px/1 'Barlow Condensed',sans-serif;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:10px}
+  .eyebrow::before{content:"";width:26px;height:2px;background:var(--accent);border-radius:2px;box-shadow:0 0 10px var(--accent)}
+  h1{margin:12px 0 0;font:700 40px/1 'Barlow Condensed',sans-serif;letter-spacing:.01em;
+    background:linear-gradient(90deg,#fff,#bfe6f7 60%,#7fd0f2);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{margin:10px 0 0;color:var(--ink2);font-size:17px}
+  .count{position:absolute;right:4px;top:40px;text-align:center;border:1px solid var(--line);border-radius:14px;padding:8px 12px;background:rgba(8,30,44,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .count b{display:block;font:700 26px/1 'Barlow Condensed',sans-serif;color:var(--accent)}
+  .count span{font-size:12px;color:var(--ink2);letter-spacing:.06em;text-transform:uppercase}
+
+  .list{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+  a.card{
+    position:relative;display:block;text-decoration:none;color:inherit;overflow:hidden;
+    border-radius:20px;padding:20px 20px 18px 24px;min-height:112px;
+    background:linear-gradient(160deg,rgba(24,62,88,.85),rgba(10,32,48,.9));
+    border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.05);
+    transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+    opacity:0;transform:translateY(12px);animation:rise .5s ease forwards;
   }
-  a.card:active { transform: scale(0.99); }
-  .title { font-size: 24px; font-weight: 700; color: #ffffff; }
-  .sub { margin-top: 8px; font-size: 17px; line-height: 1.45; color: #8fa9bb; }
-  .tag { display: inline-block; margin-top: 14px; font-size: 15px; font-weight: 600; color: #f2c230; letter-spacing: .04em; text-transform: uppercase; }
+  a.card:nth-child(1){animation-delay:.05s}a.card:nth-child(2){animation-delay:.14s}a.card:nth-child(3){animation-delay:.23s}a.card:nth-child(4){animation-delay:.32s}
+  @keyframes rise{to{opacity:1;transform:none}}
+  /* coloured edge that glows */
+  a.card::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:var(--c,var(--accent));box-shadow:0 0 14px var(--c,var(--accent))}
+  /* soft light that sweeps across on hover */
+  a.card::after{content:"";position:absolute;inset:-1px;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.08) 50%,transparent 70%);transform:translateX(-100%);transition:transform .7s ease;pointer-events:none}
+  a.card:hover,a.card:focus-visible{transform:translateY(-2px);border-color:rgba(63,182,232,.5);box-shadow:0 14px 36px rgba(0,0,0,.45),0 0 0 1px rgba(63,182,232,.15)}
+  a.card:hover::after,a.card:focus-visible::after{transform:translateX(100%)}
+  a.card:active{transform:scale(.99)}
+  .row{display:flex;align-items:flex-start;gap:14px}
+  .ico{flex:0 0 46px;height:46px;border-radius:14px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 18%,transparent);border:1px solid color-mix(in srgb,var(--c) 45%,transparent)}
+  .ico svg{width:24px;height:24px;stroke:var(--c);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .title{font:700 24px/1.1 'Barlow Condensed',sans-serif;color:#fff;letter-spacing:.01em}
+  .desc{margin-top:5px;font-size:15.5px;line-height:1.4;color:var(--ink2)}
+  .go{margin-top:12px;display:inline-flex;align-items:center;gap:8px;font:600 14px/1 'Barlow Condensed',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--c,var(--accent))}
+  .go svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;transition:transform .2s ease}
+  a.card:hover .go svg{transform:translateX(4px)}
+
+  footer{margin-top:auto;padding:44px 4px 6px;text-align:center}
+  .sig{font:400 34px/1.1 'Pacifico',cursive;background:linear-gradient(90deg,#f0b429,#ffe08a 50%,#f0b429);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 12px rgba(240,180,41,.25))}
+  .made{margin-top:6px;font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink2);opacity:.75}
+  .wave{height:28px;margin:0 auto 14px;width:min(240px,70%);opacity:.7}
+
+
+  /* water: three drifting wave layers and a light shimmer, all behind the content */
+  .water{position:fixed;left:0;right:0;bottom:0;height:46vh;z-index:-1;pointer-events:none;overflow:hidden}
+  .wl{position:absolute;left:0;width:200%;background-repeat:repeat-x;background-size:50% 100%;animation:drift linear infinite}
+  .wl.w3{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath fill='%231b6f98' d='M0 50 C120 10, 240 90, 360 50 S600 10, 720 50 S960 90, 1080 50 S1320 10, 1440 50 V120 H0Z'/%3E%3C/svg%3E");bottom:-6px;height:90px;opacity:.28;animation-duration:26s}
+.wl.w2{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath fill='%2311527a' d='M0 46 C120 6, 240 86, 360 46 S600 6, 720 46 S960 86, 1080 46 S1320 6, 1440 46 V120 H0Z'/%3E%3C/svg%3E");bottom:-4px;height:110px;opacity:.38;animation-duration:18s;animation-direction:reverse}
+.wl.w1{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath fill='%230a3f5e' d='M0 42 C120 2, 240 82, 360 42 S600 2, 720 42 S960 82, 1080 42 S1320 2, 1440 42 V120 H0Z'/%3E%3C/svg%3E");bottom:-2px;height:130px;opacity:.55;animation-duration:12s}
+
+  .shimmer{position:absolute;inset:0;opacity:.5;
+    background:repeating-linear-gradient(100deg,rgba(127,208,242,.07) 0 16px,transparent 16px 52px);
+    animation:shim 14s linear infinite;
+    -webkit-mask-image:linear-gradient(transparent 0%,#000 60%);mask-image:linear-gradient(transparent 0%,#000 60%)}
+  @keyframes drift{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  @keyframes shim{from{transform:translateX(-30%)}to{transform:translateX(30%)}}
+  /* the water surface, a thin bright line along the top of the waves */
+  .surf{position:absolute;left:0;right:0;bottom:calc(46vh - 2px);height:2px;background:linear-gradient(90deg,transparent,rgba(127,208,242,.45),transparent);opacity:0;pointer-events:none}
+  @media (prefers-reduced-motion:reduce){a.card{animation:none;opacity:1;transform:none}a.card::after{display:none}.wl,.shimmer{animation:none}}
+  @media (min-width:700px){.list{display:grid;grid-template-columns:1fr 1fr;max-width:860px;margin:6px auto 0;width:100%}header{max-width:860px;margin:0 auto;width:100%}footer{max-width:860px;margin-left:auto;margin-right:auto;width:100%}}
 </style>
 </head>
 <body>
+<div class="water" aria-hidden="true">
+  <div class="shimmer"></div>
+  <div class="wl w3"></div>
+  <div class="wl w2"></div>
+  <div class="wl w1"></div>
+</div>
 <header>
+  <div class="eyebrow">Ship training</div>
   <h1>Marine Trainers</h1>
-  <p>Choose a system to study</p>
+  <p class="sub">Choose a system to study</p>
+  <div class="count"><b>4</b><span>Systems</span></div>
 </header>
+
 <main class="list">
-  <a class="card" href="boiler.html">
-    <div class="title">Boiler trainer</div>
-    <div class="sub">Oil-fired auxiliary boiler: components, water and steam, safety, and procedures.</div>
-    <span class="tag">Open</span>
+  <a class="card" href="boiler.html" style="--c:#f0b429">
+    <div class="row">
+      <div class="ico"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="13" rx="6" ry="7"/><path d="M9 6V3M12 6V2M15 6V3"/></svg></div>
+      <div>
+        <div class="title">Boiler trainer</div>
+        <div class="desc">Oil-fired auxiliary boiler: components, water and steam, safety, and procedures.</div>
+        <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+    </div>
   </a>
-  <a class="card" href="compressor.html">
-    <div class="title">Air compressor trainer</div>
-    <div class="sub">Marine air compressor: detailed components and step-by-step operation.</div>
-    <span class="tag">Open</span>
+
+  <a class="card" href="compressor.html" style="--c:#ff8a3d">
+    <div class="row">
+      <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="8.5" stroke-dasharray="3 3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg></div>
+      <div>
+        <div class="title">Air compressor trainer</div>
+        <div class="desc">Marine air compressor: detailed components and step-by-step operation.</div>
+        <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+    </div>
   </a>
-  <a class="card" href="purifier.html">
-    <div class="title">Oil purifier trainer</div>
-    <div class="sub">Marine centrifugal separator: system, bowl parts, operation, faults, and overhaul.</div>
-    <span class="tag">Open</span>
+
+  <a class="card" href="purifier.html" style="--c:#59c3ff">
+    <div class="row">
+      <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 3c3 4 5 7 5 10a5 5 0 0 1-10 0c0-3 2-6 5-10z"/></svg></div>
+      <div>
+        <div class="title">Oil purifier trainer</div>
+        <div class="desc">Marine centrifugal separator: system, bowl parts, operation, faults, and overhaul.</div>
+        <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+    </div>
   </a>
-  <a class="card" href="steering.html">
-    <div class="title">Steering gear trainer</div>
-    <div class="sub">Electro-hydraulic two-ram steering gear: parts, pump control, tests, and emergency steering.</div>
-    <span class="tag">Open</span>
+
+  <a class="card" href="steering.html" style="--c:#7ee08a">
+    <div class="row">
+      <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 4v6M12 14v6M4 12h6M14 12h6"/></svg></div>
+      <div>
+        <div class="title">Steering gear trainer</div>
+        <div class="desc">Electro-hydraulic two-ram steering gear: parts, pump control, tests, and emergency steering.</div>
+        <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+    </div>
   </a>
 </main>
+
+<footer>
+  <svg class="wave" viewBox="0 0 240 28" aria-hidden="true"><path d="M0 14 Q20 2 40 14 T80 14 T120 14 T160 14 T200 14 T240 14" fill="none" stroke="#3fb6e8" stroke-width="2" stroke-linecap="round"/></svg>
+  <div class="sig">Thura Maung</div>
+  <div class="made">Trainers by</div>
+</footer>
 </body>
 </html>
