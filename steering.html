@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Marine Steering Gear Trainer</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#245676">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script>
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --stage-a:#245676; --stage-b:#0b2131;
+  --bg:#e7edf0; --panel:#f3f6f7; --card:#ffffff; --ink:#10222d; --ink2:#4d616d; --line:#cbd6dc; --chip:#e3eaee;
+  --accent:#f2c230; --accent-ink:#1b1708;
+  --ok:#17804f; --warn:#a96a00; --bad:#c32f2f; --info:#1f6fa8;
+  --c-comb:#e8742f; --c-water:#3a9bdc; --c-mount:#e0b020; --c-feed:#3fae7c;
+  --font-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-disp:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#08141b; --panel:#112430; --card:#17303f; --ink:#e8f0f4; --ink2:#a0b4c0; --line:#28475a; --chip:#1e3a4b;
+    --ok:#4fd197; --warn:#f0b445; --bad:#ff7070; --info:#6cb8ee;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#08141b; --panel:#112430; --card:#17303f; --ink:#e8f0f4; --ink2:#a0b4c0; --line:#28475a; --chip:#1e3a4b;
+  --ok:#4fd197; --warn:#f0b445; --bad:#ff7070; --info:#6cb8ee;
+}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:linear-gradient(var(--stage-a) 50%,var(--panel) 50%)}
+body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--font-body);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+*,*::before,*::after{box-sizing:inherit}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#app{height:100%;display:flex;flex-direction:column}
+#stage{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:radial-gradient(120% 90% at 50% 40%,var(--stage-a),var(--stage-b))}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.nogl{position:absolute;inset:auto 16px 16px;margin:0;padding:12px 14px;background:rgba(0,0,0,.55);color:#fff;border-radius:8px}
+
+/* stage overlays */
+#top{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:10px 10px 0;pointer-events:none;color:#eaf3f8}
+#top>*{pointer-events:auto}
+.brand{display:flex;flex-direction:column;line-height:1.05;text-shadow:0 1px 8px rgba(0,0,0,.45)}
+.brand strong{font:700 24px/1 var(--font-disp);letter-spacing:.01em}
+.brand span{font-size:14.5px;opacity:.82;margin-top:3px}
+.seg{display:inline-flex;background:rgba(8,26,38,.62);border:1px solid rgba(190,225,245,.22);border-radius:9px;padding:2px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.seg button{border:0;background:transparent;color:inherit;padding:6px 10px;border-radius:7px;font-size:14px;font-weight:500;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+#top .seg{color:#dcecf5}
+#readout{position:absolute;left:10px;right:64px;top:58px;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none}
+.pill{display:flex;align-items:baseline;gap:5px;background:rgba(8,26,38,.66);border:1px solid rgba(190,225,245,.2);color:#eaf3f8;border-radius:8px;padding:3px 9px 4px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.pill i{font-style:normal;font-size:14px;opacity:.8}
+.pill b{font:600 22px/1 var(--font-disp);font-variant-numeric:tabular-nums}
+.pill u{text-decoration:none;font-size:14px;opacity:.8}
+.pill.warn{border-color:#f0b445;background:rgba(120,78,0,.7)}
+.pill.bad{border-color:#ff7070;background:rgba(130,20,20,.75)}
+#state{flex-basis:100%;font-size:15.5px;color:#dff0f8;text-shadow:0 1px 6px rgba(0,0,0,.6);padding-left:2px}
+#cams{position:absolute;right:10px;top:58px;display:flex;flex-direction:column;gap:6px}
+#cams button{width:46px;min-height:36px;border:1px solid rgba(190,225,245,.22);background:rgba(8,26,38,.62);color:#dcecf5;border-radius:8px;font-size:13px;padding:4px 0;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#cams button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+#alarmBanner{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;max-width:calc(100% - 24px);border:0;border-radius:9px;padding:8px 14px;font-weight:600;font-size:15px;color:#fff;box-shadow:0 4px 18px rgba(0,0,0,.4)}
+#alarmBanner.warn{background:#9a6200}
+#alarmBanner.bad{background:#b52a2a}
+#toast{position:absolute;left:50%;transform:translateX(-50%) translateY(6px);bottom:56px;max-width:calc(100% - 24px);background:rgba(8,26,38,.9);color:#eaf3f8;border:1px solid rgba(190,225,245,.25);border-left:4px solid var(--info);border-radius:8px;padding:8px 12px;font-size:14.5px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;text-align:left}
+#toast.show{opacity:1;transform:translateX(-50%)}
+#toast.ok{border-left-color:#4fd197}#toast.warn{border-left-color:#f0b445}#toast.bad{border-left-color:#ff7070}
+
+/* pins */
+#pins{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#pins.hide{display:none}
+.pin{position:absolute;left:0;top:0;width:30px;height:30px;margin:-15px 0 0 -15px;padding:0;border:0;background:none;pointer-events:auto;display:grid;place-items:center;will-change:transform,opacity}
+.pin .dot{width:13px;height:13px;border-radius:50%;background:var(--pc,#fff);border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.4)}
+.pin .lab{position:absolute;left:22px;top:50%;transform:translateY(-50%);white-space:nowrap;background:rgba(8,26,38,.9);color:#fff;font-size:13.5px;padding:2px 8px;border-radius:5px;display:none;pointer-events:none}
+body.names .pin .lab,.pin.on .lab{display:block}
+.pin.on{z-index:3}
+.pin.on .dot{transform:scale(1.45);background:var(--accent);box-shadow:0 0 0 3px rgba(242,194,48,.35),0 2px 8px rgba(0,0,0,.5)}
+@media (prefers-reduced-motion:no-preference){.pin.on .dot{animation:ping 1.8s ease-out infinite}}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(242,194,48,.7)}100%{box-shadow:0 0 0 14px rgba(242,194,48,0)}}
+
+/* panel */
+#panel{flex:0 0 auto;height:48%;display:flex;flex-direction:column;background:var(--panel);color:var(--ink);border-radius:16px 16px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.25);position:relative;z-index:5;min-height:0}
+#panel.snap{transition:height .22s ease}
+#grab{flex:0 0 22px;display:grid;place-items:center;touch-action:none;cursor:ns-resize}
+#grab i{width:42px;height:5px;border-radius:3px;background:var(--line)}
+#tabs{flex:0 0 auto;display:flex;border-bottom:1px solid var(--line);padding:0 6px}
+#tabs button{flex:1;border:0;background:none;padding:8px 2px 9px;font:600 18px/1.1 var(--font-disp);color:var(--ink2);border-bottom:3px solid transparent;margin-bottom:-1px;min-height:44px}
+#tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+#body{flex:1 1 0;min-height:0;position:relative}
+.view{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;padding:12px 14px 22px;-webkit-overflow-scrolling:touch}
+.view[hidden]{display:none}
+h2{font:700 30px/1.05 var(--font-disp);margin:2px 0 4px}
+h3{font:600 19px/1.2 var(--font-body);margin:16px 0 4px}
+p{margin:0 0 8px}
+.muted{color:var(--ink2)}
+.small{font-size:15.5px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin:0 -14px 6px;padding-left:14px;padding-right:14px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:6px 13px;font-size:15px;min-height:36px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:15px;color:var(--ink2);margin:2px 0 10px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend s{width:18px;height:6px;border-radius:3px;display:inline-block}
+.plist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.prow{width:100%;text-align:left;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-left:6px solid var(--gc,#999);border-radius:8px;min-height:48px}
+.prow b{font-weight:600;flex:1}
+.prow small{color:var(--ink2);font-size:15px}
+.prow:active{background:var(--chip)}
+.back{border:0;background:none;color:var(--info);padding:4px 0;font-weight:600;font-size:16.5px;min-height:36px}
+.gtag{display:inline-block;border-radius:999px;padding:3px 11px;font-size:15px;background:var(--chip);border-left:5px solid var(--gc,#999);margin-bottom:6px}
+.facts{margin:6px 0 0;padding-left:20px}
+.facts li{margin:3px 0}
+.watch{margin-top:12px;padding:10px 12px;border-radius:8px;background:rgba(242,194,48,.18);border-left:5px solid var(--accent)}
+.watch b{display:block;margin-bottom:2px}
+.pnav{display:flex;gap:8px;margin-top:16px}
+.btn{flex:1;border:1px solid var(--line);background:var(--card);border-radius:9px;padding:10px 12px;font-weight:600;min-height:46px}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.sm{flex:0 0 auto;padding:7px 12px;min-height:40px;font-size:16.5px}
+.btn:disabled{opacity:.45;cursor:default}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+
+/* steps */
+.procs{display:flex;gap:6px;overflow-x:auto;margin:0 -14px 10px;padding:0 14px 4px;scrollbar-width:none}
+.procs::-webkit-scrollbar{display:none}
+.prog{height:6px;border-radius:3px;background:var(--chip);overflow:hidden;margin:2px 0 8px}
+.prog i{display:block;height:100%;background:var(--accent);transition:width .25s}
+.stepno{font:600 16.5px var(--font-body);color:var(--ink2)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:10px}
+.chk{display:flex;align-items:center;gap:9px;margin-top:10px;padding:9px 11px;border-radius:8px;background:var(--chip);font-size:16.5px}
+.chk .tick{width:20px;height:20px;border-radius:50%;border:2px solid var(--ink2);flex:0 0 auto;display:grid;place-items:center;font-size:13px;line-height:1}
+.chk.ok .tick{background:var(--ok);border-color:var(--ok);color:#fff}
+.chk.ok .tick::after{content:"✓"}
+.caution{margin-top:10px;padding:10px 13px;border-radius:8px;background:rgba(195,47,47,.12);border-left:5px solid var(--bad);font-size:16.5px}
+
+/* simulator */
+.gauges{display:grid;grid-template-columns:1.3fr .7fr;gap:10px;align-items:stretch}
+.gbox{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gbox svg{width:100%;height:auto;max-height:150px}
+.gbox .cap{font-size:15px;color:var(--ink2);margin-top:2px}
+.temps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
+.temps div{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px;text-align:center}
+.temps b{display:block;font:600 22px/1.1 var(--font-disp);font-variant-numeric:tabular-nums}
+.temps span{font-size:14px;color:var(--ink2)}
+.seqrow{display:flex;gap:4px;margin:6px 0 12px}
+.seqrow span{flex:1;text-align:center;font-size:14.5px;padding:5px 2px;border-radius:6px;background:var(--chip);color:var(--ink2)}
+.seqrow span.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.seqrow span.bad{background:var(--bad);color:#fff;font-weight:600}
+.ctl{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.ctl:first-of-type{border-top:0}
+.ctl label,.ctl>span{font-weight:500;flex:1}
+.ctl .seg{background:var(--chip);border-color:var(--line);backdrop-filter:none}
+.ctl .seg button{color:var(--ink);min-height:38px;padding:6px 12px}
+.ctl .seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.ctl input[type=range]{flex:0 0 150px;accent-color:#c99a00;height:32px}
+.ctl output{width:44px;text-align:right;font-variant-numeric:tabular-nums}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.alist{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:5px}
+.alist li{padding:8px 11px;border-radius:7px;font-size:16.5px;border-left:5px solid var(--warn);background:rgba(240,180,69,.16)}
+.alist li.bad{border-left-color:var(--bad);background:rgba(195,47,47,.14)}
+.alist li.none{border-left-color:var(--ok);background:rgba(23,128,79,.12)}
+
+/* quiz */
+.opt{display:block;width:100%;text-align:left;margin-top:8px;padding:11px 13px;border-radius:9px;border:1px solid var(--line);background:var(--card);min-height:48px}
+.opt.right{border-color:var(--ok);background:rgba(23,128,79,.14)}
+.opt.wrong{border-color:var(--bad);background:rgba(195,47,47,.13)}
+.opt:disabled{cursor:default}
+.score{font:700 54px/1 var(--font-disp);margin:6px 0}
+
+@media (min-width:640px) and (min-aspect-ratio:1/1){
+  #app{flex-direction:row}
+  #panel{width:min(46vw,430px);height:100%!important;border-radius:0;order:2;box-shadow:-6px 0 24px rgba(0,0,0,.22)}
+  #grab{display:none}
+  #tabs{padding-top:8px}
+  #alarmBanner{bottom:16px}
+  #toast{bottom:64px}
+}
+@media (max-width:420px){.brand strong{font-size:21px}.seg button{padding:6px 8px;font-size:13.5px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.ctl input[type=range]{flex:0 0 150px}
+.note{font-size:15px;color:var(--ink2);margin:6px 0 0}
+</style>
+</head>
+<body>
+<div id="app">
+  <main id="stage">
+    <canvas id="gl" aria-label="Interactive 3D model of a ship's electro-hydraulic steering gear. Drag to rotate, pinch or scroll to zoom, tap a part to learn about it." tabindex="0"></canvas>
+    <div id="pins"></div>
+    <header id="top">
+      <div class="brand"><strong>Steering gear trainer</strong><span>Electro-hydraulic, two-ram</span></div>
+      <div class="seg" id="viewseg" role="group" aria-label="View style">
+        <button data-view="cut" aria-pressed="true">Cutaway</button>
+        <button data-view="xray" aria-pressed="false">X-ray</button>
+        <button data-view="ext" aria-pressed="false">Outside</button>
+      </div>
+    </header>
+    <div id="readout" aria-live="off">
+      <div class="pill" id="pr"><i>Rudder</i><b id="r-a">0.0</b><u id="r-au">&deg;</u></div>
+      <div class="pill" id="pp"><i>Pressure</i><b id="r-p">0</b><u>bar</u></div>
+      <div class="pill" id="po"><i>Oil</i><b id="r-o">75</b><u>%</u></div>
+      <div id="state"></div>
+    </div>
+    <div id="cams" role="group" aria-label="Camera">
+      <button data-cam="front">Front</button>
+      <button data-cam="right">Right</button>
+      <button data-cam="back">Back</button>
+      <button data-cam="top">Top</button>
+      <button id="namesBtn" aria-pressed="false">Names</button>
+    </div>
+    <button id="alarmBanner" hidden></button>
+    <div id="toast" role="status" aria-live="polite"></div>
+  </main>
+  <section id="panel" aria-label="Learning panel">
+    <div id="grab" role="button" aria-label="Resize panel" tabindex="0"><i></i></div>
+    <nav id="tabs" role="tablist" aria-label="Sections">
+      <button role="tab" data-tab="parts" aria-selected="true">Parts</button>
+      <button role="tab" data-tab="steps" aria-selected="false">Procedures</button>
+      <button role="tab" data-tab="run" aria-selected="false">Simulator</button>
+      <button role="tab" data-tab="quiz" aria-selected="false">Quiz</button>
+    </nav>
+    <div id="body">
+      <section class="view" id="v-parts" role="tabpanel"></section>
+      <section class="view" id="v-steps" role="tabpanel" hidden></section>
+      <section class="view" id="v-run" role="tabpanel" hidden></section>
+      <section class="view" id="v-quiz" role="tabpanel" hidden></section>
+    </div>
+  </section>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $=(s,e)=>(e||document).querySelector(s);
+const $$=(s,e)=>Array.from((e||document).querySelectorAll(s));
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const reduce=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+/* ---------------- simulation ---------------- */
+const SIM=(function(){
+  const C={LIM:35,STOP:37,RMAX:2.6,RELIEF:165,WORK:135,LOW:40,LL:15,KN:18};
+  function make(){
+    return {th:0,ord:0,mode:'follow',lever:0,p1:true,p2:false,run1:true,run2:false,trip:false,bypass:false,knots:15,oil:75,
+      faults:{pump1:false,ctl:false,limit:false,leak:false},stroke:0,q1:0,q2:0,pA:5,pB:5,relief:0,shockT:0,shockDir:1,rate:0,
+      limLamp:false,speed:1,events:[],test:{st:0,t:0,tot:0,last:null,ok:null},errT:0,prev:{rl:0,keys:''}};
+  }
+  const ev=(s,msg,sev)=>{s.events.push({msg:msg,sev:sev||'info'});};
+  const pumps=s=>(s.run1?1:0)+(s.run2?1:0);
+  function alarms(s){
+    const a=[],n=pumps(s);
+    if(s.trip)a.push({k:'trip',sev:'bad',text:'Oil level very low. Pumps tripped.'});
+    else if(s.oil<C.LOW)a.push({k:'low',sev:'warn',text:'Low oil level in the run tank'});
+    if(!s.trip&&n===0)a.push({k:'nopump',sev:'bad',text:'No pump running. Steering power is not available.'});
+    if(s.faults.pump1&&s.p1)a.push({k:'p1',sev:'bad',text:'Pump 1 motor overload trip'});
+    if(s.faults.ctl&&s.mode==='follow')a.push({k:'ctl',sev:'bad',text:'Remote control failure. Change to local control.'});
+    if(s.relief)a.push({k:'relief',sev:'warn',text:'Relief valve lifted: shock load or rudder on the stop'});
+    if(s.bypass)a.push({k:'byp',sev:'warn',text:'Bypass valve open: the pumps cannot steer'});
+    if(s.errT>8)a.push({k:'err',sev:'bad',text:'Rudder is not following the helm order'});
+    if(s.faults.limit&&Math.abs(s.th)>=C.STOP-0.05)a.push({k:'lim',sev:'bad',text:'Limit switch failed: rudder is on the mechanical stop'});
+    return a;
+  }
+  const fmt=a=>Math.abs(a).toFixed(0)+'\u00b0 '+(a>0.5?'stbd':a<-0.5?'port':'');
+  function status(s){
+    const n=pumps(s);
+    if(s.trip)return 'Pumps tripped on low oil';
+    if(n===0)return 'No pump running';
+    const who=n===2?'Pumps 1 and 2':(s.run1?'Pump 1':'Pump 2');
+    if(s.test.st>0)return who+' running. Hard-over test in progress';
+    if(s.mode==='local')return who+' running. Local control';
+    if(s.faults.ctl)return who+' running. Remote control lost';
+    if(s.bypass)return who+' running. Bypass open';
+    return Math.abs(s.ord-s.th)>0.4?who+' running. Steering to '+fmt(s.ord):who+' running. On ordered angle';
+  }
+  function step(s,dtReal){
+    const dt=dtReal*s.speed;
+    if(s.faults.leak&&s.oil>0)s.oil=Math.max(0,s.oil-1.1*dt);
+    s.run1=s.p1&&!s.faults.pump1&&!s.trip;
+    s.run2=s.p2&&!s.trip;
+    if(!s.trip&&s.oil<C.LL&&(s.p1||s.p2)){s.trip=true;s.run1=false;s.run2=false;}
+    const n=pumps(s);
+    let cmd=0;
+    if(s.mode==='follow'){if(!s.faults.ctl){const e=s.ord-s.th;cmd=Math.abs(e)<0.25?0:clamp(e/5,-1,1);}}
+    else cmd=s.lever;
+    const lim=s.faults.limit?C.STOP:C.LIM;
+    if(!s.faults.limit){if(s.th>=C.LIM-0.001&&cmd>0)cmd=0;if(s.th<=-C.LIM+0.001&&cmd<0)cmd=0;}
+    s.stroke+=(cmd-s.stroke)*Math.min(1,dt*5);
+    if(Math.abs(s.stroke)<0.003)s.stroke=0;
+    const eff=(n>0&&!s.bypass)?s.stroke:0;
+    s.q1=s.run1?s.stroke:0;s.q2=s.run2?s.stroke:0;
+    s.rate=eff*C.RMAX*n;
+    s.th+=s.rate*dt;
+    if(s.bypass&&Math.abs(s.th)>0.01){const d=Math.min(Math.abs(s.th),0.5*dt);s.th-=Math.sign(s.th)*d;s.rate=-Math.sign(s.th)*0.5;}
+    let onStop=false;
+    if(s.th>=lim){s.th=lim;onStop=s.faults.limit&&cmd>0;}
+    else if(s.th<=-lim){s.th=-lim;onStop=s.faults.limit&&cmd<0;}
+    s.limLamp=Math.abs(s.th)>=C.LIM-0.05;
+    if(s.shockT>0)s.shockT=Math.max(0,s.shockT-dt);
+    /* pressures */
+    const v=s.knots/C.KN,load=v*v*(0.25+0.75*Math.abs(s.th)/C.LIM);
+    let pa=n>0?5:3,pb=pa;
+    const hold=6+72*load;
+    if(!s.bypass){
+      if(Math.abs(eff)>0.03){
+        const assist=(eff>0&&s.th<0)||(eff<0&&s.th>0);
+        const drive=9+50*Math.abs(eff)+(assist?10:70)*load;
+        if(eff>0)pa=Math.max(pa,drive);else pb=Math.max(pb,drive);
+      }else if(Math.abs(s.th)>0.5){
+        if(s.th>0)pa=Math.max(pa,hold);else pb=Math.max(pb,hold);
+      }
+    }else{pa=4;pb=4;}
+    if(onStop){if(s.th>0)pa=C.RELIEF+1;else pb=C.RELIEF+1;}
+    if(s.shockT>0){if(s.shockDir>0)pb=C.RELIEF+1;else pa=C.RELIEF+1;}
+    let rl=0;
+    if(pa>C.RELIEF){pa=C.RELIEF;rl=1;}
+    if(pb>C.RELIEF){pb=C.RELIEF;rl=1;}
+    const k=Math.min(1,dt*8);
+    s.pA+=(pa-s.pA)*k;s.pB+=(pb-s.pB)*k;
+    s.relief=rl;
+    if(rl&&!s.prev.rl)ev(s,'Relief valve lifted','warn');
+    s.prev.rl=rl;
+    if(s.mode==='follow'&&!s.faults.ctl&&Math.abs(s.ord-s.th)>5&&Math.abs(s.rate)<0.2)s.errT+=dt;else s.errT=0;
+    /* hard-over test */
+    const t=s.test;
+    if(t.st>0){
+      t.tot+=dt;t.t+=dt;
+      if(s.mode!=='follow'||n===0||s.faults.ctl||t.tot>150){t.st=0;ev(s,'Test stopped. It needs follow-up control and a running pump.','warn');}
+      else if(t.st===1){if(s.th>=34.7){t.st=2;t.t=0;s.ord=-35;ev(s,'Timing started','info');}}
+      else if(t.st===2&&s.th<=-30){
+        t.last=t.t;t.ok=t.t<=28;t.st=0;s.ord=0;
+        ev(s,'Hard-over test: '+t.t.toFixed(1)+' s. '+(t.ok?'Pass (limit 28 s)':'Too slow (limit 28 s)'),t.ok?'ok':'bad');
+      }
+    }
+    /* new alarms raise a toast */
+    const al=alarms(s),keys=al.map(a=>a.k);
+    al.forEach(a=>{if(s.prev.keys.indexOf(a.k)<0&&a.k!=='relief')ev(s,a.text,a.sev);});
+    s.prev.keys=keys.join(',');
+  }
+  const act={
+    pump(s,i,on){if(i===1)s.p1=!!on;else s.p2=!!on;if(on&&s.trip)ev(s,'Top up the oil and reset the trip first','warn');},
+    mode(s,m){s.mode=m;s.lever=0;if(m==='follow')s.ord=Math.round(s.th);},
+    helm(s,d){s.ord=clamp(d,-C.LIM,C.LIM);},
+    lever(s,v){s.lever=clamp(v,-1,1);},
+    bypass(s,on){s.bypass=!!on;},
+    knots(s,k){s.knots=clamp(k,0,22);},
+    topUp(s){s.oil=85;ev(s,'Oil topped up','info');},
+    resetTrip(s){if(s.oil<C.LL+5){ev(s,'Top up the oil before resetting','warn');return;}s.trip=false;ev(s,'Trip reset','info');},
+    fault(s,name,on){s.faults[name]=!!on;},
+    shock(s){s.shockT=1.8;s.shockDir=Math.random()<0.5?1:-1;s.th=clamp(s.th+s.shockDir*2.5,-C.STOP,C.STOP);ev(s,'A heavy sea hits the rudder','warn');},
+    hardOver(s){
+      if(s.mode!=='follow'||pumps(s)===0||s.faults.ctl){ev(s,'Start a pump and use follow-up control first','warn');return;}
+      s.test.st=1;s.test.t=0;s.test.tot=0;s.ord=35;ev(s,'Going to 35 degrees starboard first','info');
+    }
+  };
+  function preset(s,name){
+    const keep=s.speed;
+    Object.assign(s,make());s.speed=keep;
+    s.p1=(name!=='stopped');s.p2=(name==='both');
+    s.run1=s.p1;s.run2=s.p2;
+    s.prev.keys=alarms(s).map(a=>a.k).join(',');
+  }
+  return {C:C,make:make,step:step,act:act,alarms:alarms,status:status,preset:preset,pumps:pumps,fmt:fmt};
+})();
+const sim=SIM.make();
+
+/* ---------------- content ---------------- */
+const GROUPS={mech:{n:'Mechanical',c:'#8fa6b5'},hyd:{n:'Hydraulic',c:'#e8742f'},ctrl:{n:'Control',c:'#2fa59a'},pow:{n:'Power & safety',c:'#e0b020'}};
+const PARTS=[
+{id:'rudder',n:'Rudder & rudder stock',g:'mech',pin:[0,-2.0,0.9],cam:{t:[0,-1.5,0.8],r:8,az:-150,el:8},
+ what:"The blade that turns the ship. It hangs under the hull on the rudder stock, a vertical steel shaft that carries the turning force up to the steering gear.",
+ how:"Water flowing past an angled rudder pushes the stern sideways, so the ship turns. The stock passes up through the hull in a trunk with a packed gland that keeps sea water out. The tiller is fixed to the top of the stock, so when the rams swing the tiller the whole rudder turns with it.",
+ facts:['Rudder angle is measured from midships. The normal maximum is 35 degrees each way','The force on the blade grows with ship speed and with rudder angle','Zero angle is called midships'],
+ watch:'Never run the steering gear while anyone is working on or near the rudder or stock. Isolate the power first.'},
+{id:'tiller',n:'Tiller & crosshead pins',g:'mech',pin:[1.5,1.6,0.0],cam:{t:[0,1.0,0.4],r:6.5,az:-150,el:35},
+ what:"A heavy steel arm fixed to the top of the rudder stock. It turns the stock when the rams push on its ends.",
+ how:"Each ram end is pinned to a tip of the tiller. Pressure oil pushes one ram out, which swings the tiller one way. The tiller pushes the other ram back into its cylinder, and that oil returns to the pump. The cylinders pivot slightly on trunnions so the rams can follow the curved path of the tiller tips.",
+ facts:['The pins and bushes carry the full steering force','The tiller is keyed or clamped to the stock so it cannot slip','Wear shows up as lost motion between helm and rudder'],
+ watch:'Check pin retainers, and check for play. A worn pin can make the rudder lag behind the helm.'},
+{id:'bearing',n:'Stock gland & carrier bearing',g:'mech',pin:[0.55,0.5,0.4],cam:{t:[0,0.6,0.2],r:5,az:-160,el:30},
+ what:"The housing where the stock comes up through the deck. It supports the weight of the rudder and keeps the stock centred as it turns.",
+ how:"A carrier bearing takes the weight of the rudder. Below it, gland packing stops sea water leaking up the stock. Both need greasing and regular checks. Too much leakage means the packing needs adjusting.",
+ facts:['Greased to the maker\u2019s schedule','A slight weep from the gland is normal. A stream is not','Listen for noise or heat from the bearing while steering'],
+ watch:'Do not over-tighten the gland. It makes the stock hard to turn and overloads the pumps.'},
+{id:'rams',n:'Rams & cylinders (plungers)',g:'hyd',pin:[-1.5,1.75,3.4],cam:{t:[0,1.0,2.6],r:9,az:-140,el:30},
+ what:"Two hydraulic plungers that push the tiller. Each sits in a cylinder pivoted on a trunnion at its base.",
+ how:"Oil from the pump pushes a plunger out of its cylinder. Each ram only pushes, so one side is pressurised while oil from the other side returns to the pump. In the cutaway the oil turns orange when it is under high pressure and stays blue at low pressure.",
+ facts:['Two-ram gear has one ram for each direction','Glands at the cylinder mouths keep oil in and dirt out','Air vents at the high points let trapped air escape'],
+ watch:'Air in the rams makes steering spongy. Vent the system after any opening up, and look for oil leaks at the glands.'},
+{id:'pump',n:'Variable-delivery pump (tilting box)',g:'hyd',pin:[-2.6,1.95,8.3],cam:{t:[-2.6,1.0,8.4],r:6.5,az:160,el:28},
+ what:"An axial-piston pump whose output can be varied from zero to full and reversed, while the motor runs at constant speed.",
+ how:"Pistons in a rotating barrel slide against a tilting plate, called the tilting box. With the plate upright the pistons do not stroke and no oil flows. Tilt it one way and oil leaves through port A. Tilt it the other way and the flow reverses to port B. The bigger the tilt, the faster the rudder moves. A control lever on the side of the casing sets the tilt.",
+ facts:['Zero tilt means zero flow, so the pump can run all the time','The direction of tilt sets the direction of rudder movement','Two pumps are fitted. One is normally used and one is standby'],
+ watch:'Start the standby pump before stopping the duty pump. Listen for noise that may mean air in the oil or a worn pump.'},
+{id:'tank',n:'Run (header) tank & level gauge',g:'hyd',pin:[0,2.85,9.0],cam:{t:[0,2.2,9.0],r:7,az:170,el:20},
+ what:"The oil tank above the pumps. It keeps the system topped up and gives the pumps a head of oil at their suction.",
+ how:"The tank feeds oil to the pump suction lines and takes back leakage and expansion. A level switch gives a low-level alarm on the bridge and in the machinery space. A gauge glass shows the level.",
+ facts:['A low-level alarm is the earliest sign of an oil leak','Use only the oil grade the maker specifies','Keep the oil clean. Dirt wears pumps and sticks valves'],
+ watch:'A falling level means a leak somewhere. Find it and fix it, then top up. Topping up alone hides the problem.'},
+{id:'valves',n:'Isolating & bypass valves',g:'hyd',pin:[0.6,0.95,6.2],cam:{t:[0.6,0.8,6.0],r:6,az:150,el:32},
+ what:"Valves that let you cut a pump or a ram off from the system, or join the two sides together.",
+ how:"Isolating valves close off a pump or a ram line so it can be repaired while the rest keeps working. The bypass valve joins the two oil lines. When it is open the rams are no longer held, so the rudder is free to move. In normal service the isolating valves are open and the bypass is shut.",
+ facts:['Normal: isolating valves open, bypass shut','Bypass open means the pumps cannot steer the ship','Valve positions should match the ship\u2019s steering gear diagram'],
+ watch:'The wrong valve in the wrong position can leave the rudder uncontrolled. Tell the bridge before you change any valve.'},
+{id:'relief',n:'Relief (shock) valves',g:'hyd',pin:[-1.5,1.95,6.2],cam:{t:[0,1.2,5.9],r:6.5,az:160,el:30},
+ what:"Spring-loaded valves that protect the system from sudden pressure spikes.",
+ how:"A wave can hit the rudder and push the rams back harder than the pumps can hold. Pressure would soar. The relief valves lift at a set pressure and let oil pass, then close again when the pressure falls. They also protect the system if the rudder hits a stop.",
+ facts:['Set above normal working pressure and within the maker\u2019s limit','The sea can push the rudder a little while a valve lifts, then the gear recovers','Settings are changed only by authority'],
+ watch:'A valve that lifts at normal load is set too low, or something is wrong. Do not just raise the setting.'},
+{id:'control',n:'Telemotor receiver & hunting gear',g:'ctrl',pin:[0,1.45,3.0],cam:{t:[0,1.0,3.0],r:5.5,az:-160,el:40},
+ what:"The control gear that turns the helm order from the bridge into pump stroke, and then stops the stroke at the right angle.",
+ how:"The bridge order moves the receiver rod. Older ships send it by a hydraulic telemotor and newer ships by an electric signal. A floating lever combines this with the hunting gear, a rod from the tiller that reports the actual rudder angle. The difference between ordered and actual angle sets the pump stroke. When the rudder reaches the ordered angle the stroke returns to zero and the rudder stops.",
+ facts:['Follow-up control: the rudder follows the helm to the angle ordered','Error between order and actual angle sets the pump stroke','Non-follow-up (NFU) control lets a lever set the stroke directly'],
+ watch:'If the rudder does not follow the helm, change to local control and tell the bridge.'},
+{id:'indicator',n:'Rudder angle indicator',g:'ctrl',pin:[0.85,0.45,1.0],cam:{t:[0,0.4,0.9],r:4.5,az:-150,el:45},
+ what:"A pointer and scale that show the rudder angle at the steering gear. The bridge has its own indicator.",
+ how:"The pointer turns with the rudder stock. The bridge indicator is driven by a separate transmitter, so the two can be compared. If they disagree, one of them is wrong.",
+ facts:['Zero is midships. Port and starboard are shown either side','The bridge indicator works independently of the steering control','Compare both against the real position during tests'],
+ watch:'Always compare the local pointer with the bridge indication during tests and drills.'},
+{id:'motor',n:'Electric motor',g:'pow',pin:[2.6,1.85,10.4],cam:{t:[2.6,1.0,10.3],r:6.5,az:140,el:25},
+ what:"A constant-speed electric motor that drives each pump.",
+ how:"The motor turns the pump barrel at a steady speed whenever the pump is running. The pump output is changed by the tilting box, not by motor speed. Motors are started locally or from the bridge and have overload protection.",
+ facts:['One motor for each pump','Each power unit has its own supply, so one fault does not stop both','Overload trips the motor and sounds an alarm'],
+ watch:'A hot or noisy motor is a warning. Do not keep resetting trips without finding the cause.'},
+{id:'starter',n:'Starter panel & alarms',g:'pow',pin:[4.3,2.05,6.3],cam:{t:[4.3,1.1,6.3],r:6,az:-80,el:18},
+ what:"The panel that starts and stops the pump motors and gives the steering gear alarms.",
+ how:"Each motor has a starter with overload protection and a running lamp. Alarms for motor overload, power failure, low oil level and control failure go to the bridge and the machinery space. The panel in this model shows the rudder angle and which pumps are running.",
+ facts:['Alarms are both audible and visual','Test the alarms during the pre-departure check','The bridge can see which pump is running'],
+ watch:'Never silence an alarm without finding out why it sounded.'},
+{id:'stops',n:'Limit switches & rudder stops',g:'pow',pin:[1.45,1.75,-1.05],cam:{t:[1.3,1.1,-1.0],r:6,az:-160,el:25},
+ what:"Devices that stop the rudder before it reaches the end of its travel.",
+ how:"Limit switches stop the pump just before the mechanical stops, usually near 35 degrees. The mechanical stops are a back-up a little further out. If a limit switch fails, the rudder runs onto the stop, pressure rises, and the relief valves lift.",
+ facts:['Limit switch first, mechanical stop second','They work on the steering gear itself, not through the bridge control','Test them at the pre-departure check'],
+ watch:'Never defeat a limit switch to get extra angle.'}
+];
+const PBY={};PARTS.forEach(p=>{PBY[p.id]=p;});
+
+const PROCS=[
+{id:'predep',n:'Pre-departure test',steps:[
+ {t:'Check the oil level',b:'Look at the gauge glass on the run tank. The level should be well above the low-level mark, with no oil on the deck around the gear.',why:'The steering gear is tested within 12 hours before departure. A low level means a leak, or an earlier top-up that was never investigated.',part:'tank',chk:s=>s.oil>=50,chkL:'Oil level above 50%',doL:'Top up oil',doF:s=>SIM.act.topUp(s)},
+ {t:'Look for leaks and loose parts',b:'Walk round the rams, glands, pipes and valves. Look for oil on the deck, loose guards, and unusual noise or heat. Check valve positions against the steering gear diagram.',why:'Small leaks and loose pins get worse under load.',part:'rams'},
+ {t:'Start pump No. 1',b:'Start pump 1 and check the running lamp. Listen for smooth running and look at the pressure.',why:'You test each power unit on its own so you know it can steer the ship.',part:'motor',chk:s=>s.run1&&!s.run2,chkL:'Pump 1 running on its own',doL:'Start pump 1 only',doF:s=>{SIM.act.pump(s,1,true);SIM.act.pump(s,2,false);}},
+ {t:'Run the hard-over test',b:'From the bridge, order the rudder from 35 degrees on one side to 30 degrees on the other and time it. At full service speed the main steering gear must do this in 28 seconds or less.',why:'This is the required performance of the main steering gear.',caut:'Make sure the area is clear and the bridge knows a test is starting.',part:'control',chk:s=>s.test.last!==null,chkL:'Hard-over test completed',doL:'Run the hard-over test',doF:s=>SIM.act.hardOver(s)},
+ {t:'Change to pump No. 2 and repeat',b:'Start pump 2, stop pump 1, and repeat the hard-over test.',why:'Both power units must be proved before sailing.',part:'pump',chk:s=>s.run2&&!s.run1,chkL:'Pump 2 running on its own',doL:'Pump 2 on, pump 1 off',doF:s=>{SIM.act.pump(s,2,true);SIM.act.pump(s,1,false);}},
+ {t:'Compare the rudder angle indicators',b:'Read the local pointer and the bridge indicator at midships and at each end of the travel. They should agree.',why:'The bridge indicator is the helmsman\u2019s only view of the rudder.',part:'indicator'},
+ {t:'Check limit switches and alarms',b:'Watch the rudder stop at the limit switch near 35 degrees. Test the low-level, motor overload and power failure alarms.',why:'These protect the gear and warn of failures.',part:'stops'},
+ {t:'Return to midships and log it',b:'Put the helm amidships. Record the test in the log with times and any defects.',why:'The log is the evidence that the test was done.',part:'rudder',chk:s=>Math.abs(s.th)<1,chkL:'Rudder at midships',doL:'Helm to midships',doF:s=>{SIM.act.mode(s,'follow');SIM.act.helm(s,0);}}
+]},
+{id:'change',n:'Change pumps',steps:[
+ {t:'Tell the bridge',b:'Say that you are changing pumps. The helm should be steady while you do it.',why:'A change can cause a small kick in the rudder. The bridge must be ready for it.',part:'starter'},
+ {t:'Check the standby pump is ready',b:'Look at the standby pump and motor. Check the isolating valves on its lines are open and the oil level is good.',why:'You never start a pump you have not looked at.',part:'pump',chk:s=>s.oil>=40,chkL:'Oil level good'},
+ {t:'Start the standby pump',b:'Start pump 2 and check that it runs smoothly with no unusual noise.',why:'Starting the standby first means steering power is never lost.',part:'motor',chk:s=>s.run1&&s.run2,chkL:'Both pumps running',doL:'Start pump 2',doF:s=>SIM.act.pump(s,2,true)},
+ {t:'Stop the duty pump',b:'Stop pump 1. Pump 2 now carries the load.',why:'Now the first pump is free for inspection or repair.',part:'pump',chk:s=>s.run2&&!s.run1,chkL:'Pump 2 running, pump 1 stopped',doL:'Stop pump 1',doF:s=>SIM.act.pump(s,1,false)},
+ {t:'Check the steering',b:'Ask the bridge for a small helm order. The rudder should follow smoothly. Check the pressure and listen for noise.',why:'This proves the new pump is steering properly.',part:'control',chk:s=>s.mode==='follow'&&s.run2,chkL:'Follow-up control with pump 2'}
+]},
+{id:'local',n:'Local control',steps:[
+ {t:'Man the steering flat',b:'Go to the steering flat. Test the phone to the bridge and read the compass repeater so you can follow orders.',why:'In an emergency the bridge steers through you, using the phone and a heading display.',part:'starter'},
+ {t:'Start a pump',b:'Make sure at least one pump is running.',why:'The rams only move if a pump is delivering oil.',part:'motor',chk:s=>s.run1||s.run2,chkL:'A pump is running',doL:'Start pump 1',doF:s=>SIM.act.pump(s,1,true)},
+ {t:'Change to local control',b:'Switch the control from the bridge to local. The lever now sets the pump stroke directly.',why:'This takes the bridge control out of the loop.',caut:'Tell the bridge before you change over.',part:'control',chk:s=>s.mode==='local',chkL:'Local control selected',doL:'Select local control',doF:s=>SIM.act.mode(s,'local')},
+ {t:'Follow orders with the lever',b:'Move the lever the way you are told, port or starboard, and watch the angle. Return the lever to the middle to stop the rudder.',why:'In local control the rudder keeps moving as long as the lever is away from the middle.',part:'rudder',chk:s=>Math.abs(s.th)>=5,chkL:'Rudder has moved from midships'},
+ {t:'Hold the rudder at midships',b:'Put the lever back to the middle when the rudder is on the ordered angle. Hold midships when told.',why:'Releasing the lever stops the pump.',part:'indicator',chk:s=>Math.abs(s.th)<1.5&&Math.abs(s.lever)<0.05,chkL:'Rudder near midships, lever centred'},
+ {t:'Hand control back and test',b:'When the fault is cleared, change back to follow-up control and test it with a small helm order.',why:'Never leave the gear in local control without a reason.',part:'control',chk:s=>s.mode==='follow',chkL:'Follow-up control selected',doL:'Select follow-up',doF:s=>SIM.act.mode(s,'follow')}
+]},
+{id:'lowoil',n:'Low oil alarm',steps:[
+ {t:'Recognise the alarm',b:'The low-level alarm sounds on the bridge and in the machinery space. Check the gauge glass on the run tank.',why:'A falling level is the earliest sign of an oil leak.',part:'tank',chk:s=>s.oil<40||s.faults.leak,chkL:'Low level, or a leak in progress',doL:'Start an oil leak',doF:s=>SIM.act.fault(s,'leak',true)},
+ {t:'Tell the bridge and keep steering',b:'Report what you have found. Keep the pump running while you look for the leak, unless told otherwise.',why:'The bridge needs to know the steering may fail if the oil runs out.',part:'starter'},
+ {t:'Find and stop the leak',b:'Check the rams, glands, joints and valves. Close an isolating valve to separate a leaking part if you can.',why:'Finding the leak comes before topping up.',part:'rams',chk:s=>!s.faults.leak,chkL:'Leak stopped',doL:'Stop the leak',doF:s=>SIM.act.fault(s,'leak',false)},
+ {t:'Top up the oil',b:'Top up the run tank with the correct grade of oil.',why:'Mixing grades can harm the seals and the pumps.',part:'tank',chk:s=>s.oil>=60,chkL:'Oil level above 60%',doL:'Top up oil',doF:s=>SIM.act.topUp(s)},
+ {t:'Reset the trip',b:'If the pumps tripped on very low level, reset the trip and restart a pump.',why:'The gear will not restart until the trip is reset.',part:'starter',chk:s=>!s.trip,chkL:'No trip active',doL:'Reset trip',doF:s=>SIM.act.resetTrip(s)},
+ {t:'Test the steering',b:'Move the rudder a few degrees each way from the bridge and check the oil level stays steady.',why:'This proves the leak is really fixed.',part:'rudder',chk:s=>s.run1||s.run2,chkL:'A pump is running',doL:'Start pump 1',doF:s=>SIM.act.pump(s,1,true)}
+]}
+];
+
+const QUIZ=[
+{q:'What does tilting the pump\u2019s tilting box do?',a:['Changes the motor speed','Changes the oil flow and its direction','Cools the oil','Locks the rudder'],c:1,w:'The tilt sets how far the pistons stroke. No tilt means no flow. Tilt one way for one direction and the other way for the reverse.'},
+{q:'In a two-ram gear, what happens to the second ram when the first one pushes the tiller?',a:['It also pushes','It is pushed back and its oil returns to the pump','It locks solid','It cools the first ram'],c:1,w:'Each ram only pushes. The tiller drives the other ram back into its cylinder and the oil goes back to the pump.'},
+{q:'What does the hunting gear do?',a:['Reports the actual rudder angle so the pump stroke returns to zero at the ordered angle','Cools the pump','Pumps oil to the tank','Locks the rudder stock'],c:0,w:'The hunting gear gives follow-up. When the rudder reaches the ordered angle the stroke comes back to zero and the rudder stops.'},
+{q:'How fast must the main steering gear move the rudder from 35 degrees on one side to 30 degrees on the other?',a:['In 10 seconds','In not more than 28 seconds','In not more than 60 seconds','In 2 minutes'],c:1,w:'This is the required performance at full service speed and deepest draught. It is checked in the pre-departure test.'},
+{q:'The auxiliary steering gear must move the rudder from 15 degrees one side to 15 degrees the other in:',a:['28 seconds','Not more than 60 seconds','5 minutes','15 seconds'],c:1,w:'The requirement is for the ship at half its maximum service speed or 7 knots, whichever is greater.'},
+{q:'When must the steering gear be checked and tested before sailing?',a:['Within 12 hours before departure','Once a year','Only after repairs','Once a month'],c:0,w:'The crew test the steering gear, the alarms and the indicators within 12 hours before the ship departs.'},
+{q:'How often should emergency steering drills be held?',a:['Every week','At least every three months','Once a year','Only in dry dock'],c:1,w:'Drills keep the crew practised in the local and emergency steering procedures.'},
+{q:'What does a low oil level alarm warn of?',a:['An oil leak','Motor speed too high','Too much rudder angle','A wrong helm order'],c:0,w:'A falling level is the earliest sign of a leak. Find the leak. Do not just top up.'},
+{q:'Why do relief (shock) valves lift?',a:['To start the pump','To protect the rams and pipes from pressure spikes from waves or a stop','To bleed air','To change the direction of flow'],c:1,w:'They open at a set pressure and close again when the pressure falls.'},
+{q:'What do limit switches do?',a:['Stop the gear just before the mechanical stops','Start the standby pump','Cool the oil','Show the ship\u2019s heading'],c:0,w:'Limit switches work on the gear itself. The mechanical stops are a back-up.'},
+{q:'The bypass valve is open. What happens?',a:['Pump pressure doubles','Oil moves freely between the rams, so the pumps cannot steer','The rudder locks in place','The standby pump starts'],c:1,w:'The bypass joins the two sides of the system. Pump oil just goes round in a circle.'},
+{q:'When changing from one pump to the other, what is good practice?',a:['Stop the duty pump first','Start the standby pump, then stop the duty pump','Stop both and restart','Close all the valves'],c:1,w:'Start the standby first so steering power is never lost. Tell the bridge before you start.'},
+{q:'What does follow-up control mean?',a:['The rudder follows the helm to the ordered angle, then stops','The pump runs until the limit switch','A lever sets the stroke directly','Only the autopilot can steer'],c:0,w:'The stroke is set by the difference between ordered and actual angle. When the difference is zero, the stroke is zero.'},
+{q:'In non-follow-up (NFU) or local lever control, how does the rudder stop?',a:['It stops by itself at the ordered angle','You return the lever to the middle','It stops after ten seconds','It never stops'],c:1,w:'The lever sets the pump stroke directly. The rudder moves until you centre the lever or a limit switch stops it.'},
+{q:'The pump tilting box is at zero tilt. What does that mean?',a:['No oil flow, so the rudder stays where it is','Maximum flow','The pump is damaged','Reverse flow'],c:0,w:'With zero tilt the pistons do not stroke. The motor can run all the time.'},
+{q:'What is a common cause of spongy or jerky steering?',a:['Air in the hydraulic system','Too much rudder angle','A full run tank','A bright bridge indicator'],c:0,w:'Air compresses. Vent the system and find out where air is getting in.'},
+{q:'Where is the rudder angle shown?',a:['On the bridge only','On the bridge and at the steering gear','Only in the engine room','Nowhere'],c:1,w:'The bridge indicator is independent of the steering control, so you can compare the two.'},
+{q:'What is the standby pump for?',a:['To take over if the duty pump fails','To cool the oil','To fill the tank','To test alarms only'],c:0,w:'Having two power units means one failure does not leave the ship without steering.'},
+{q:'The rudder does not follow the helm from the bridge. What should you do?',a:['Go to the steering flat, use local control, and tell the bridge','Ignore it','Switch off both pumps','Close all the isolating valves'],c:0,w:'Local control from the steering flat takes the faulty remote control out of the loop.'},
+{q:'What does the stock gland do?',a:['Stops sea water leaking up the stock','Drives the rudder','Measures the angle','Cools the oil'],c:0,w:'It is packing around the stock where it passes through the hull.'},
+{q:'Which valve positions are normal in service?',a:['Isolating valves open, bypass shut','Isolating valves shut, bypass open','All valves shut','All valves open'],c:0,w:'An open bypass stops the rams being held by the pumps.'},
+{q:'Why do the ram cylinders pivot on trunnions?',a:['To follow the curved path of the tiller tips','To cool the oil','To change the oil flow','To lock the rudder'],c:0,w:'The tiller tips move in an arc, so the cylinders swing slightly as the rudder turns.'},
+{q:'What sets how fast the rudder moves?',a:['The pump stroke and how many pumps are running','The colour of the oil','The size of the run tank','The bridge indicator'],c:0,w:'More stroke and more pumps mean more oil to the rams, so a faster rudder.'},
+{q:'In this trainer, what does orange oil in the rams show?',a:['Low pressure','High pressure','No oil','A leak'],c:1,w:'Blue oil is at low pressure. Orange is at high pressure.'}
+];
+
+/* ---------------- 3D model ---------------- */
+const view3d=(function(){
+  const stub={ok:false,focus(){},setView(){},cam(){},pins(){},names(){},tick(){},onPick:null,onView:null};
+  let renderer;
+  try{
+    renderer=new THREE.WebGLRenderer({canvas:$('#gl'),antialias:true,alpha:true,powerPreference:'high-performance'});
+  }catch(e){
+    $('#stage').insertAdjacentHTML('beforeend','<p class="nogl">This device could not start 3D graphics. The parts guide, procedures, simulator and quiz still work.</p>');
+    return stub;
+  }
+  try{
+  const T=THREE,stage=$('#stage'),canvas=$('#gl');
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  renderer.setClearColor(0x000000,0);
+  renderer.localClippingEnabled=true;
+  const scene=new T.Scene();
+  const camera=new T.PerspectiveCamera(38,1,0.1,200);
+  const root=new T.Group();scene.add(root);
+  const V=(x,y,z)=>new T.Vector3(x,y,z);
+  const UP=V(0,1,0);
+  /* layout: x = starboard, y = up, z = aft. The rudder stock is at the origin. */
+  const YA=1.0,L=1.5,ZT=4.6,BODY=2.6,PL=3.7,RB=0.46,RP=0.28,PZ=8.4,PXS=[-2.6,2.6],CX=[0.85,-0.85],BMAX=0.35;
+  const PLN_AX=new T.Plane(V(0,-1,0),YA),PLN_TK=new T.Plane(V(0,-1,0),2.2);
+  const CLIP=[],CLIPMAP=new Map(),A={lamps:[],flows:[]};
+
+  scene.add(new T.HemisphereLight(0xe6f0f7,0x3a5666,1.0));
+  scene.add(new T.AmbientLight(0xffffff,0.4));
+  const key=new T.DirectionalLight(0xffffff,1.0);key.position.set(5,10,-6);scene.add(key);
+  const fill=new T.DirectionalLight(0xbcd6ea,0.6);fill.position.set(-6,5,10);scene.add(fill);
+  const rim=new T.DirectionalLight(0xffe2b8,0.35);rim.position.set(8,4,4);scene.add(rim);
+
+  function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new T.CanvasTexture(c);t.anisotropy=4;return t;}
+  const dotTex=canvasTex(64,64,(x,w,h)=>{const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.45,'rgba(255,255,255,0.7)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,w,h);});
+  const floorTex=canvasTex(1024,1024,(x,w,h)=>{
+    const g=x.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);
+    g.addColorStop(0,'rgba(60,112,152,0.6)');g.addColorStop(0.7,'rgba(30,72,102,0.35)');g.addColorStop(1,'rgba(20,50,75,0)');
+    x.fillStyle=g;x.fillRect(0,0,w,h);x.lineWidth=2;
+    for(let i=0;i<=28;i++){const p=i*w/28;x.strokeStyle=(i%7===0)?'rgba(190,225,245,0.38)':'rgba(190,225,245,0.15)';x.beginPath();x.moveTo(p,0);x.lineTo(p,h);x.stroke();x.beginPath();x.moveTo(0,p);x.lineTo(w,p);x.stroke();}
+    x.globalCompositeOperation='destination-in';
+    const m=x.createRadialGradient(w/2,h/2,w*0.1,w/2,h/2,w/2);m.addColorStop(0,'rgba(0,0,0,1)');m.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=m;x.fillRect(0,0,w,h);
+  });
+  const floor=new T.Mesh(new T.CircleGeometry(14,64),new T.MeshBasicMaterial({map:floorTex,transparent:true,depthWrite:false}));
+  floor.rotation.x=-Math.PI/2;floor.position.set(0,0.002,4.8);scene.add(floor);
+  const deck=new T.Mesh(new T.BoxGeometry(9.8,0.1,15.2),new T.MeshStandardMaterial({color:0x1b3a50,roughness:0.8,metalness:0.1,transparent:true,opacity:0.4,depthWrite:false}));
+  deck.position.set(0,-0.06,4.9);scene.add(deck);
+
+  /* ---- builders ---- */
+  function M(c,o){o=o||{};
+    const m=new T.MeshStandardMaterial({color:c,roughness:o.r!=null?o.r:0.55,metalness:o.m!=null?o.m:0.22,side:o.d?T.DoubleSide:T.FrontSide,transparent:!!o.t,opacity:o.o!=null?o.o:1});
+    if(o.e!=null){m.emissive=new T.Color(o.e);m.emissiveIntensity=o.ei!=null?o.ei:1;}
+    if(o.t)m.depthWrite=false;
+    if(o.clip){CLIP.push({m:m,pl:o.clip});CLIPMAP.set(m,o.clip);}
+    return m;}
+  function G(id,parent){const g=new T.Group();g.userData.part=id;(parent||root).add(g);return g;}
+  function add(g,geo,mat,x,y,z){const m=new T.Mesh(geo,mat);m.position.set(x||0,y||0,z||0);g.add(m);return m;}
+  const cyl=(a,b,h,s,open)=>new T.CylinderGeometry(a,b,h,s||24,1,!!open);
+  const box=(w,h,d)=>new T.BoxGeometry(w,h,d);
+  const sph=(r,s)=>new T.SphereGeometry(r,s||16,Math.max(8,Math.floor((s||16)/2)));
+  function unitCyl(r){const g=new T.CylinderGeometry(r,r,1,12);g.translate(0,0.5,0);return g;}
+  function cylZ(g,r,len,mat,x,y,z,open){const m=add(g,cyl(r,r,len,28,open),mat,x,y,z);m.rotation.x=Math.PI/2;return m;}
+  function cylX(g,r,len,mat,x,y,z){const m=add(g,cyl(r,r,len,16),mat,x,y,z);m.rotation.z=Math.PI/2;return m;}
+  const shell=m=>{m.userData.shellish=true;return m;};
+  const dyn=m=>{m.userData.dyn=true;return m;};
+  const _d=V(0,0,0);
+  function setRod(m,a,b){_d.copy(b).sub(a);const len=_d.length();m.position.copy(a);m.scale.set(1,Math.max(len,0.001),1);m.quaternion.setFromUnitVectors(UP,_d.divideScalar(len||1));}
+  function seg(g,a,b,r,mat){const d=b.clone().sub(a),len=d.length();if(len<1e-4)return;const m=new T.Mesh(cyl(r,r,len,12),mat);m.position.copy(a).add(b).multiplyScalar(0.5);m.quaternion.setFromUnitVectors(UP,d.normalize());g.add(m);}
+  function pipe(pts,r,mat){const g=new T.Group();root.add(g);for(let i=0;i<pts.length-1;i++)seg(g,pts[i],pts[i+1],r,mat);for(let i=1;i<pts.length-1;i++)add(g,sph(r*1.02,10),mat,pts[i].x,pts[i].y,pts[i].z);return g;}
+  function valve(g,x,y,z,o){
+    o=o||{};const vg=new T.Group();vg.position.set(x,y,z);g.add(vg);
+    const bm=()=>M(o.body||0x69757e,{m:0.35,r:0.5});
+    cylZ(vg,0.09,0.42,bm(),0,0,0);
+    add(vg,sph(0.14,14),bm());
+    add(vg,cyl(0.075,0.075,0.2,12),bm(),0,0.17,0);
+    [-1,1].forEach(k=>cylZ(vg,0.13,0.04,bm(),0,0,k*0.2));
+    const stem=new T.Group();stem.position.y=0.26;vg.add(stem);
+    add(stem,cyl(0.03,0.03,0.3,8),M(0xcfd8dc,{m:0.8,r:0.3}),0,0.1,0);
+    const wm=M(o.wheel||0xd62c2c,{m:0.2,r:0.5});
+    const wheel=add(stem,new T.TorusGeometry(0.16,0.022,8,20),wm,0,0.26,0);wheel.rotation.x=Math.PI/2;
+    const sp=add(stem,cyl(0.012,0.012,0.32,5),wm,0,0.26,0);sp.rotation.z=Math.PI/2;
+    return {g:vg,stem:stem};
+  }
+  function reliefValve(g,x,y,z){
+    const rg=new T.Group();rg.position.set(x,y,z);g.add(rg);
+    const bm=()=>M(0x7d6a5a,{m:0.35,r:0.5});
+    add(rg,sph(0.15,14),bm());
+    add(rg,cyl(0.13,0.13,0.26,14),bm(),0,0.26,0);
+    const lift=new T.Group();lift.position.y=0.4;rg.add(lift);
+    const sm=M(0xc23b2a,{m:0.3,r:0.45,e:0x000000,ei:1});
+    dyn(add(lift,cyl(0.11,0.11,0.5,14),sm,0,0.25,0));
+    add(lift,cyl(0.14,0.14,0.06,14),bm(),0,0.52,0);
+    add(lift,cyl(0.045,0.045,0.14,8),bm(),0,0.6,0);
+    return {g:rg,lift:lift,mat:sm};
+  }
+
+  /* ---- rudder, stock and tiller (these turn together) ---- */
+  const rudderRot=new T.Group();root.add(rudderRot);
+  const gRud=G('rudder',rudderRot);
+  add(gRud,cyl(0.3,0.3,5.0,24),M(0xb9c6ce,{m:0.7,r:0.3}),0,-0.9,0);
+  const bladeM=M(0x4f7a99,{m:0.35,r:0.5});
+  add(gRud,box(0.26,2.7,2.5),bladeM,0,-2.05,0.75);
+  add(gRud,cyl(0.15,0.15,2.7,16),bladeM,0,-2.05,-0.5);
+  add(gRud,cyl(0.34,0.34,0.12,20),M(0x9fb1bd,{m:0.6,r:0.35}),0,-3.46,0);
+
+  const gTil=G('tiller',rudderRot);
+  const tm=M(0x7b8a95,{m:0.5,r:0.45});
+  add(gTil,cyl(0.56,0.56,0.5,28),tm,0,YA,0);
+  add(gTil,box(2*L+0.55,0.4,0.5),tm,0,YA,0);
+  [-1,1].forEach(s=>{
+    add(gTil,cyl(0.27,0.27,0.6,20),tm,s*L,YA,0);
+    add(gTil,cyl(0.12,0.12,0.95,16),M(0xe0b020,{m:0.5,r:0.35}),s*L,YA+0.04,0);
+  });
+  add(gTil,box(0.22,0.26,1.0),tm,0,YA,0.5);
+  add(gTil,sph(0.1,12),M(0xe0b020,{m:0.5,r:0.35}),0,YA,0.95);
+  add(gTil,cyl(0.16,0.16,0.12,16),M(0x9fb1bd,{m:0.6,r:0.35}),0,YA+0.31,0);
+
+  /* ---- gland and carrier bearing (fixed) ---- */
+  const gBear=G('bearing',root);
+  const bm0=()=>M(0x56707f,{m:0.4,r:0.5});
+  add(gBear,cyl(0.74,0.82,0.5,32),bm0(),0,0.25,0);
+  add(gBear,cyl(0.92,0.92,0.1,32),bm0(),0,0.05,0);
+  for(let k=0;k<8;k++){const a=k*Math.PI/4;add(gBear,cyl(0.05,0.05,0.08,6),M(0xcfd8dc,{m:0.7,r:0.3}),0.84*Math.cos(a),0.14,0.84*Math.sin(a));}
+  add(gBear,cyl(0.5,0.5,0.14,24),M(0xc8a24a,{m:0.6,r:0.4}),0,0.57,0);
+  add(gBear,cyl(0.44,0.44,1.2,24),bm0(),0,-0.6,0);
+
+  /* ---- rudder angle scale (fixed) and pointer (turns with the stock) ---- */
+  const gInd=G('indicator',root);
+  const ring=add(gInd,new T.RingGeometry(1.0,1.75,72,1,-Math.PI/2-0.78,1.56),M(0x23363f,{d:true,r:0.8,m:0.1}),0,0.3,0);ring.rotation.x=-Math.PI/2;
+  function labelPlane(txt,x,z,col){
+    const tx=canvasTex(128,64,(c,w,h)=>{c.clearRect(0,0,w,h);c.fillStyle=col||'#e8f0f4';c.font='bold 44px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(txt,w/2,h/2);});
+    const p=new T.Mesh(new T.PlaneGeometry(0.34,0.17),new T.MeshBasicMaterial({map:tx,transparent:true,depthWrite:false}));
+    p.rotation.x=-Math.PI/2;p.position.set(x,0.312,z);gInd.add(p);
+  }
+  for(let d=-40;d<=40;d+=5){
+    const a=d*Math.PI/180,major=(d%10===0)||Math.abs(d)===35,red=Math.abs(d)>=35;
+    const len=major?0.26:0.14;
+    const tk=add(gInd,box(0.03,0.02,len),M(red?0xff5a4a:(major?0xe8f0f4:0x93a8b4),{r:0.7,m:0}),1.65*Math.sin(a),0.31,1.65*Math.cos(a));tk.rotation.y=a;
+  }
+  [10,20,30].forEach(d=>{const a=d*Math.PI/180;labelPlane(String(d),1.3*Math.sin(a),1.3*Math.cos(a));labelPlane(String(d),-1.3*Math.sin(a),1.3*Math.cos(a));});
+  labelPlane('S',1.3*Math.sin(0.78),1.3*Math.cos(0.78),'#7fe0a0');labelPlane('P',-1.3*Math.sin(0.78),1.3*Math.cos(0.78),'#ff9a8a');
+  const gPtr=G('indicator',rudderRot);
+  const redM=M(0xe03a2a,{r:0.5,m:0.2});
+  add(gPtr,box(0.08,0.06,1.3),redM,0,0.45,0.75);
+  const cone=add(gPtr,new T.ConeGeometry(0.1,0.24,12),redM,0,0.45,1.5);cone.rotation.x=Math.PI/2;
+
+  /* ---- rams: two plungers, each in a cylinder that pivots at its base ---- */
+  const gRams=G('rams',root);
+  const RAM=[];
+  [-1,1].forEach(s=>{
+    add(gRams,box(1.1,0.5,0.9),M(0x3f5666,{m:0.4,r:0.6}),s*L,0.25,ZT);
+    const cg=new T.Group();cg.position.set(s*L,YA,ZT);gRams.add(cg);
+    shell(cylZ(cg,RB,BODY,M(0x6e8796,{m:0.55,r:0.4,d:true,clip:PLN_AX}),0,0,-BODY/2,true));
+    shell(cylZ(cg,RB,0.16,M(0x56707f,{m:0.5,r:0.45,d:true,clip:PLN_AX}),0,0,0.08));
+    shell(cylZ(cg,RB+0.08,0.14,M(0x56707f,{m:0.5,r:0.45,d:true,clip:PLN_AX}),0,0,-0.07));
+    shell(cylZ(cg,RB+0.08,0.14,M(0x56707f,{m:0.5,r:0.45,d:true,clip:PLN_AX}),0,0,-BODY+0.07));
+    add(cg,cyl(0.05,0.05,0.2,8),M(0xcfd8dc,{m:0.7,r:0.3}),0,RB+0.08,-0.4);
+    cylZ(cg,RB+0.05,0.2,M(0xc8a24a,{m:0.6,r:0.4}),0,0,-BODY-0.02);
+    const og=new T.CylinderGeometry(RB-0.04,RB-0.04,1,28,1,false);og.rotateX(Math.PI/2);
+    const oilM=M(0x3a86c4,{o:0.9,t:true,e:0x3a86c4,ei:0.12,d:true,clip:PLN_AX});
+    const oil=dyn(add(cg,og,oilM,0,0,-0.5));
+    const pl=add(cg,cyl(RP,RP,PL,24),M(0xdfe7eb,{m:0.8,r:0.2}),0,0,-3);pl.rotation.x=Math.PI/2;
+    const clev=add(cg,box(0.54,0.5,0.34),M(0xe0b020,{m:0.5,r:0.35}),0,0,-4.6);
+    RAM.push({s:s,cg:cg,oil:oil,oilM:oilM,pl:pl,clev:clev});
+  });
+
+  /* ---- two variable-delivery pumps and their motors (axes run fore and aft) ---- */
+  const gPump=G('pump',root),gMot=G('motor',root);
+  const PUMP=[],MOT=[];
+  [0,1].forEach(i=>{
+    const xp=PXS[i];
+    const pg=new T.Group();pg.position.set(xp,YA,PZ);gPump.add(pg);
+    const cm=()=>M(0x5f8aa6,{m:0.5,r:0.4,d:true,clip:PLN_AX});
+    shell(cylZ(pg,0.72,1.7,cm(),0,0,0,true));
+    shell(cylZ(pg,0.74,0.1,cm(),0,0,-0.85));
+    shell(cylZ(pg,0.74,0.1,cm(),0,0,0.85));
+    add(pg,box(0.3,0.3,0.34),M(0xe8742f,{m:0.4,r:0.45}),0.36,0,-1.0);
+    add(pg,box(0.3,0.3,0.34),M(0x3a9bdc,{m:0.4,r:0.45}),-0.36,0,-1.0);
+    cylZ(pg,0.12,2.4,M(0x37424a,{m:0.7,r:0.4}),0,0,0.3);
+    const bar=new T.Group();bar.position.z=-0.35;pg.add(bar);
+    cylZ(bar,0.52,0.7,M(0x37424a,{m:0.5,r:0.5}),0,0,0);
+    const pist=[];
+    for(let k=0;k<7;k++){
+      const a=k*2*Math.PI/7;
+      const p=cylZ(bar,0.085,0.8,M(0xe6edf0,{m:0.8,r:0.25}),0.36*Math.cos(a),0.36*Math.sin(a),0.5);
+      pist.push({m:p,a:a});
+    }
+    const sw=new T.Group();sw.position.set(0,0,0.6);pg.add(sw);
+    cylZ(sw,0.55,0.1,M(0xd4a040,{m:0.6,r:0.35}),0,0,0);
+    cylX(sw,0.07,1.9,M(0x9fb1bd,{m:0.7,r:0.3}),0,0,0);
+    const ck=new T.Group();ck.position.set(CX[i],0,0.6);pg.add(ck);
+    add(ck,box(0.1,0.6,0.1),M(0xd4a040,{m:0.6,r:0.35}),0,0.3,0);
+    add(ck,sph(0.09,10),M(0xe0b020,{m:0.5,r:0.35}),0,0.6,0);
+    PUMP.push({pg:pg,bar:bar,pist:pist,sw:sw,ck:ck});
+
+    const mg=new T.Group();mg.position.set(xp,YA,10.4);gMot.add(mg);
+    const mc=()=>M(0x2e7d6a,{m:0.45,r:0.45,d:true,clip:PLN_AX});
+    shell(cylZ(mg,0.62,1.8,mc(),0,0,0,true));
+    shell(cylZ(mg,0.63,0.08,mc(),0,0,-0.9));
+    shell(cylZ(mg,0.6,0.3,mc(),0,0,1.05));
+    for(let k=0;k<7;k++)shell(cylZ(mg,0.67,0.05,M(0x23665a,{m:0.45,r:0.5,d:true,clip:PLN_AX}),0,0,-0.72+k*0.26,true));
+    cylZ(mg,0.52,1.2,M(0xb5651d,{m:0.4,r:0.5,d:true,clip:PLN_AX}),0,0,0,true);
+    const rot=new T.Group();mg.add(rot);
+    cylZ(rot,0.36,1.5,M(0x8d99a3,{m:0.6,r:0.4}),0,0,0);
+    for(let k=0;k<8;k++){const a=k*Math.PI/4;add(rot,box(0.05,0.05,1.5),M(0xd4a040,{m:0.6,r:0.35}),0.37*Math.cos(a),0.37*Math.sin(a),0);}
+    add(mg,box(0.5,0.3,0.5),M(0x1f6f68,{m:0.4,r:0.5}),0,0.8,0.1);
+    const lampM=new T.MeshStandardMaterial({color:0x14301f,emissive:new T.Color(0x22dd66),emissiveIntensity:0.05,roughness:0.4});
+    const lamp=dyn(add(mg,sph(0.07,10),lampM,0,0.99,0.1));
+    cylZ(gMot,0.5,0.3,M(0xe0b020,{m:0.2,r:0.5,d:true}),xp,YA,9.375,true);
+    MOT.push({rot:rot,lampM:lampM});
+  });
+
+  /* ---- run tank on legs between the pumps ---- */
+  const gTank=G('tank',root);
+  const TY=2.2,TW=1.3,TH=0.9,TD=1.6,TZ=9.0;
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(k=>add(gTank,cyl(0.06,0.06,TY-TH/2,10),M(0x56707f,{m:0.4,r:0.5}),k[0]*0.58,(TY-TH/2)/2,TZ+k[1]*0.7));
+  shell(add(gTank,box(TW,TH,TD),M(0x6b8fa3,{m:0.4,r:0.4,d:true,clip:PLN_TK}),0,TY,TZ));
+  const toG=new T.BoxGeometry(TW-0.08,1,TD-0.08);toG.translate(0,0.5,0);
+  const tOil=dyn(add(gTank,toG,M(0xd9a441,{m:0.2,r:0.4,o:0.92,t:true,d:true,clip:PLN_TK,e:0xd9a441,ei:0.1}),0,TY-TH/2+0.04,TZ));
+  add(gTank,cyl(0.07,0.07,0.16,10),M(0x9fb1bd,{m:0.6,r:0.4}),-0.3,TY+TH/2+0.04,TZ+0.3);
+  add(gTank,cyl(0.05,0.05,0.9,10),M(0xdfeaf0,{m:0.2,r:0.1,t:true,o:0.35}),0.45,TY,TZ-TD/2-0.1);
+  const gug=new T.CylinderGeometry(0.036,0.036,1,10);gug.translate(0,0.5,0);
+  const gOil=dyn(add(gTank,gug,M(0xd9a441,{m:0.2,r:0.4,e:0xd9a441,ei:0.25}),0.45,TY-0.4,TZ-TD/2-0.1));
+  add(gTank,box(0.14,0.1,0.14),M(0x9fb1bd,{m:0.6,r:0.4}),0.45,TY+0.47,TZ-TD/2-0.1);
+  add(gTank,box(0.14,0.1,0.14),M(0x9fb1bd,{m:0.6,r:0.4}),0.45,TY-0.47,TZ-TD/2-0.1);
+  const tkLampM=new T.MeshStandardMaterial({color:0x331a00,emissive:new T.Color(0xffa020),emissiveIntensity:0.05,roughness:0.4});
+  const tkLamp=dyn(add(gTank,sph(0.08,10),tkLampM,0.45,TY+TH/2+0.1,TZ+0.5));
+
+  /* ---- control gear: telemotor receiver, floating lever, hunting rod, pump control rods ---- */
+  const gCtl=G('control',root);
+  const cA=()=>M(0x2fa59a,{m:0.45,r:0.4}),cD=()=>M(0x1f6f68,{m:0.45,r:0.5});
+  cylZ(gCtl,0.2,0.6,cA(),0.7,YA,4.15);
+  add(gCtl,box(1.9,0.1,2.0),cD(),0,0.05,3.4);
+  [-0.7,0.7].forEach(x=>add(gCtl,cyl(0.05,0.05,YA-0.1,8),cD(),x,(YA+0.1)/2,3.0));
+  const rodM=M(0xd8e2e8,{m:0.7,r:0.3}),levM=M(0x2fe0cc,{m:0.5,r:0.35});
+  const mkRod=(r,mat)=>{const m=new T.Mesh(unitCyl(r),mat);gCtl.add(m);return m;};
+  const recRod=mkRod(0.055,rodM),levBar=mkRod(0.07,levM),huntRod=mkRod(0.05,rodM),ctlRod=[mkRod(0.045,rodM),mkRod(0.045,rodM)];
+  const ball=()=>add(gCtl,sph(0.1,10),M(0xe0b020,{m:0.5,r:0.35}),0,0,0);
+  const ballR=ball(),ballH=ball(),ballC=ball();
+
+  /* ---- pipes: A side goes to the starboard ram, B side to the port ram ---- */
+  const matA=M(0x7c8b96,{m:0.3,r:0.45,e:0x000000,ei:1}),matB=M(0x7c8b96,{m:0.3,r:0.45,e:0x000000,ei:1}),matS=M(0x3a9bdc,{m:0.3,r:0.45}),matN=M(0x7c8b96,{m:0.3,r:0.45});
+  const P=(x,y,z)=>V(x,y,z);
+  const PIPES={
+    P1A:[P(-2.24,1,7.45),P(-2.24,1,7.3),P(-2.24,0.5,7.3),P(-2.24,0.5,6.0)],
+    AL:[P(-2.24,0.5,6.0),P(1.5,0.5,6.0)],
+    P2A:[P(2.96,1,7.45),P(2.96,1,7.3),P(2.96,0.5,7.3),P(2.96,0.5,6.0)],
+    AR:[P(2.96,0.5,6.0),P(1.5,0.5,6.0)],
+    RA:[P(1.5,0.5,6.0),P(1.5,0.5,5.55),P(1.5,1,5.55),P(1.5,1,4.75)],
+    P1B:[P(-2.96,1,7.45),P(-2.96,1,6.9)],
+    BL:[P(-2.96,1,6.9),P(-1.5,1,6.9)],
+    P2B:[P(2.24,1,7.45),P(2.24,1,6.9)],
+    BR:[P(2.24,1,6.9),P(-1.5,1,6.9)],
+    RB:[P(-1.5,1,6.9),P(-1.5,1,4.75)],
+    BYP:[P(0.6,0.5,6.0),P(0.6,0.5,6.45),P(0.6,1,6.45),P(0.6,1,6.9)]
+  };
+  ['P1A','AL','P2A','AR','RA'].forEach(k=>pipe(PIPES[k],0.085,matA));
+  ['P1B','BL','P2B','BR','RB'].forEach(k=>pipe(PIPES[k],0.085,matB));
+  pipe(PIPES.BYP,0.07,matN);
+  pipe([P(-0.3,1.78,8.6),P(-0.3,1,8.6),P(-1.88,1,8.6)],0.07,matS);
+  pipe([P(0.3,1.78,8.6),P(0.3,1,8.6),P(1.88,1,8.6)],0.07,matS);
+
+  /* ---- valves (part) and relief valves (part) ---- */
+  const gVal=G('valves',root),gRel=G('relief',root);
+  valve(gVal,1.5,1.0,5.2);valve(gVal,-1.5,1.0,5.2);
+  valve(gVal,-2.24,0.5,6.7);valve(gVal,-2.96,1.0,7.17);valve(gVal,2.96,0.5,6.7);valve(gVal,2.24,1.0,7.17);
+  A.byp=valve(gVal,0.6,0.5,6.22,{wheel:0xe0b020,body:0x8a7a3a});
+  A.rel=[reliefValve(gRel,1.5,0.5,5.78),reliefValve(gRel,-1.5,1.0,6.2)];
+
+  /* ---- flow particles along the pipes ---- */
+  function addFlow(id){
+    const pts=PIPES[id],cum=[0];
+    for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+pts[i].distanceTo(pts[i-1]));
+    const len=cum[cum.length-1],n=Math.max(3,Math.round(len/0.5));
+    const geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(new Float32Array(n*3),3));
+    const mat=new T.PointsMaterial({size:0.5,map:dotTex,transparent:true,depthWrite:false,color:0xffffff,sizeAttenuation:true});
+    const obj=new T.Points(geo,mat);obj.frustumCulled=false;obj.visible=false;scene.add(obj);
+    A.flows.push({id:id,pts:pts,cum:cum,len:len,n:n,geo:geo,mat:mat,obj:obj,phase:Math.random()});
+  }
+  Object.keys(PIPES).forEach(addFlow);
+
+  /* ---- limit switches and rudder stops ---- */
+  const gStp=G('stops',root);
+  A.limLamps=[];
+  [-1,1].forEach(s=>{
+    add(gStp,box(0.4,0.5,0.4),M(0xd23a2a,{m:0.3,r:0.5}),s*1.46,YA,-1.28);
+    add(gStp,cyl(0.05,0.05,YA+0.55,8),M(0x56707f,{m:0.4,r:0.5}),s*1.6,(YA+0.55)/2,-0.9);
+    add(gStp,box(0.32,0.24,0.32),M(0xe0b020,{m:0.3,r:0.5}),s*1.4,YA+0.62,-0.9);
+    add(gStp,box(0.28,0.04,0.04),M(0x56707f,{m:0.4,r:0.5}),s*1.5,YA+0.62,-0.9);
+    const lm=new T.MeshStandardMaterial({color:0x331100,emissive:new T.Color(0xff6a2a),emissiveIntensity:0.05,roughness:0.4});
+    dyn(add(gStp,sph(0.06,10),lm,s*1.4,YA+0.8,-0.9));A.limLamps.push(lm);
+  });
+
+  /* ---- starter panel with a small display ---- */
+  const gSt=G('starter',root);
+  const cab=new T.Group();cab.position.set(4.3,0,6.3);cab.rotation.y=-Math.PI/2;gSt.add(cab);
+  add(cab,box(0.9,1.8,0.5),M(0x6b7c88,{m:0.35,r:0.5}),0,0.9,0);
+  const lcdC=document.createElement('canvas');lcdC.width=256;lcdC.height=160;
+  const lcdX=lcdC.getContext('2d'),lcdT=new T.CanvasTexture(lcdC);
+  const screen=add(cab,new T.PlaneGeometry(0.72,0.45),new T.MeshBasicMaterial({map:lcdT}),0,1.4,0.255);
+  A.lamps=[];
+  [[-0.27,0x22dd66,'p1'],[-0.09,0x22dd66,'p2'],[0.09,0xffa020,'oil'],[0.27,0xff3a2a,'alm']].forEach(l=>{
+    const lm=new T.MeshStandardMaterial({color:0x222222,emissive:new T.Color(l[1]),emissiveIntensity:0.05,roughness:0.4});
+    dyn(add(cab,sph(0.05,10),lm,l[0],1.0,0.26));A.lamps.push({m:lm,k:l[2]});
+  });
+  add(cab,cyl(0.06,0.06,0.06,12),M(0x222a30,{m:0.4,r:0.5}),-0.2,0.75,0.27).rotation.x=Math.PI/2;
+  add(cab,cyl(0.06,0.06,0.06,12),M(0x222a30,{m:0.4,r:0.5}),0.2,0.75,0.27).rotation.x=Math.PI/2;
+  function drawLCD(s){
+    const x=lcdX;x.fillStyle='#071d0e';x.fillRect(0,0,256,160);x.fillStyle='#5df08a';
+    x.font='bold 20px monospace';x.fillText('RUDDER',12,26);
+    x.font='bold 22px monospace';x.fillText(s.th>0.05?'STBD':s.th<-0.05?'PORT':'MIDSHIPS',130,26);
+    x.font='bold 54px monospace';x.fillText(Math.abs(s.th).toFixed(1)+'\u00b0',12,86);
+    x.font='bold 20px monospace';
+    x.fillText('P1 '+(s.run1?'RUN ':'STOP')+'  P2 '+(s.run2?'RUN ':'STOP'),12,118);
+    x.fillText('OIL '+Math.round(s.oil)+'%  '+(s.mode==='local'?'LOCAL':'FOLLOW'),12,146);
+    lcdT.needsUpdate=true;
+  }
+
+  /* ---- finalise meshes: part ids, base material state, pick list ---- */
+  const ALLM=[],PICK=[];
+  function partOf(o){while(o){if(o.isGroup&&o.userData&&o.userData.part)return o.userData.part;o=o.parent;}return null;}
+  root.traverse(o=>{
+    if(!o.isMesh)return;const id=partOf(o);if(!id)return;
+    const mat=o.material;o.userData.part=id;
+    o.userData.clipY=CLIPMAP.has(mat)?CLIPMAP.get(mat).constant:null;
+    o.userData.base={opacity:mat.opacity,transparent:mat.transparent,depthWrite:mat.depthWrite,emissive:mat.emissive?mat.emissive.clone():null,ei:mat.emissiveIntensity};
+    ALLM.push(o);PICK.push(o);
+  });
+
+  /* ---- view modes, ghosting, highlight ---- */
+  let viewMode='cut',focusId=null,FOCUSM=[];
+  const ACC=new T.Color(0xf2c230);
+  function refreshMaterials(){
+    const xr=viewMode==='xray';
+    for(const m of ALLM){
+      const b=m.userData.base,mat=m.material;let op=b.opacity,tr=b.transparent,dw=b.depthWrite;
+      if(xr&&m.userData.shellish){op=Math.min(op,0.14);tr=true;dw=false;}
+      if(focusId&&m.userData.part!==focusId){op*=0.18;tr=true;dw=false;}
+      if(mat.opacity!==op||mat.transparent!==tr){mat.opacity=op;mat.transparent=tr;mat.depthWrite=dw;mat.needsUpdate=true;}
+    }
+  }
+  function rebuildFocus(){
+    FOCUSM.forEach(m=>{const b=m.userData.base;if(b.emissive){m.material.emissive.copy(b.emissive);m.material.emissiveIntensity=b.ei;}});
+    FOCUSM=focusId?ALLM.filter(m=>m.userData.part===focusId&&m.userData.base.emissive&&!m.userData.dyn):[];
+  }
+  function setView(mode){
+    viewMode=mode;const on=mode==='cut';
+    CLIP.forEach(c=>{c.m.clippingPlanes=on?[c.pl]:null;c.m.needsUpdate=true;});
+    refreshMaterials();
+  }
+
+  /* ---- camera ---- */
+  const cam={tx:0.3,ty:0.5,tz:4.9,r:20,az:-150*Math.PI/180,el:22*Math.PI/180},goal=Object.assign({},cam);
+  let W=2,H=2,sway=true;const swayBase=cam.az;
+  function homeR(){const t=Math.tan(camera.fov*Math.PI/360),asp=W/H;return clamp(Math.max(5.2/t,5.4/(t*asp)),12,44);}
+  function fly(t,r,azDeg,elDeg){
+    goal.tx=t[0];goal.ty=t[1];goal.tz=t[2];goal.r=clamp(r,3,46);
+    let d=azDeg*Math.PI/180-cam.az;d=Math.atan2(Math.sin(d),Math.cos(d));goal.az=cam.az+d;goal.el=clamp(elDeg*Math.PI/180,-0.05,1.45);
+  }
+  function camPreset(name){
+    sway=false;
+    const m={front:[180,14],right:[90,14],back:[0,14],top:[0,82],home:[-150,22]}[name]||[-150,22];
+    fly([0.3,0.5,4.9],homeR(),m[0],m[1]);
+  }
+  function focus(id){
+    focusId=id||null;sway=false;
+    if(id){const p=PBY[id],k=Math.max(1,0.9/(W/H));fly(p.cam.t,p.cam.r*k,p.cam.az,p.cam.el);}
+    refreshMaterials();rebuildFocus();
+  }
+  function updateCamera(dt){
+    const k=reduce?1:1-Math.exp(-dt*7);
+    cam.tx+=(goal.tx-cam.tx)*k;cam.ty+=(goal.ty-cam.ty)*k;cam.tz+=(goal.tz-cam.tz)*k;cam.r+=(goal.r-cam.r)*k;cam.el+=(goal.el-cam.el)*k;cam.az+=(goal.az-cam.az)*k;
+    const ce=Math.cos(cam.el);
+    camera.position.set(cam.tx+cam.r*Math.sin(cam.az)*ce,cam.ty+cam.r*Math.sin(cam.el),cam.tz+cam.r*Math.cos(cam.az)*ce);
+    camera.lookAt(cam.tx,cam.ty,cam.tz);camera.updateMatrixWorld();
+  }
+  const _r=new T.Vector3(),_u=new T.Vector3(),_z=new T.Vector3();
+  function pan(dx,dy){
+    camera.matrixWorld.extractBasis(_r,_u,_z);const s=cam.r*0.0017;
+    goal.tx=clamp(goal.tx+(-_r.x*dx+_u.x*dy)*s,-8,8);goal.ty=clamp(goal.ty+(-_r.y*dx+_u.y*dy)*s,-4,7);goal.tz=clamp(goal.tz+(-_r.z*dx+_u.z*dy)*s,-4,14);
+  }
+  const ptrs=new Map();let down=null,pinchD=0,pinchMid=null;
+  canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  canvas.addEventListener('pointerdown',e=>{
+    try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+    ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(ptrs.size===1)down={x:e.clientX,y:e.clientY,t:performance.now(),m:0};
+    else{down=null;const v=Array.from(ptrs.values());pinchD=Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y);pinchMid={x:(v[0].x+v[1].x)/2,y:(v[0].y+v[1].y)/2};}
+    sway=false;
+  });
+  canvas.addEventListener('pointermove',e=>{
+    const p=ptrs.get(e.pointerId);if(!p)return;
+    const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+    if(ptrs.size===1){
+      if(down)down.m+=Math.abs(dx)+Math.abs(dy);
+      if((e.buttons&2)||e.shiftKey)pan(dx,dy);
+      else{goal.az-=dx*0.0065;goal.el=clamp(goal.el+dy*0.0055,-0.05,1.45);}
+    }else if(ptrs.size===2){
+      const v=Array.from(ptrs.values()),d=Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y),mid={x:(v[0].x+v[1].x)/2,y:(v[0].y+v[1].y)/2};
+      if(pinchD>0&&d>0)goal.r=clamp(goal.r*pinchD/d,3,46);
+      if(pinchMid)pan(mid.x-pinchMid.x,mid.y-pinchMid.y);
+      pinchD=d;pinchMid=mid;
+    }
+  });
+  const ray=new T.Raycaster(),ndc=new T.Vector2();
+  function pick(cx,cy){
+    const rc=canvas.getBoundingClientRect();
+    ndc.set((cx-rc.left)/rc.width*2-1,-((cy-rc.top)/rc.height)*2+1);ray.setFromCamera(ndc,camera);
+    const hits=ray.intersectObjects(PICK,false);
+    for(const h of hits){
+      const o=h.object;if(!o.visible)continue;
+      if(viewMode==='cut'&&o.userData.clipY!=null&&h.point.y>o.userData.clipY)continue;
+      if(viewMode==='xray'&&o.userData.shellish)continue;
+      return o.userData.part;
+    }
+    return null;
+  }
+  function endPtr(e){
+    const was=down;ptrs.delete(e.pointerId);if(ptrs.size<2)pinchD=0;
+    if(was&&e.type==='pointerup'&&was.m<8&&performance.now()-was.t<600){const id=pick(e.clientX,e.clientY);if(id&&api.onPick)api.onPick(id);}
+    if(ptrs.size===0)down=null;
+  }
+  canvas.addEventListener('pointerup',endPtr);canvas.addEventListener('pointercancel',endPtr);
+  canvas.addEventListener('wheel',e=>{e.preventDefault();sway=false;goal.r=clamp(goal.r*Math.exp(e.deltaY*0.0012),3,46);},{passive:false});
+  canvas.addEventListener('keydown',e=>{
+    const k=e.key;sway=false;
+    if(k==='ArrowLeft')goal.az-=0.12;else if(k==='ArrowRight')goal.az+=0.12;
+    else if(k==='ArrowUp')goal.el=clamp(goal.el+0.08,-0.05,1.45);else if(k==='ArrowDown')goal.el=clamp(goal.el-0.08,-0.05,1.45);
+    else if(k==='+'||k==='=')goal.r=clamp(goal.r*0.9,3,46);else if(k==='-')goal.r=clamp(goal.r*1.1,3,46);else return;
+    e.preventDefault();
+  });
+
+  /* ---- pins ---- */
+  const pinsEl=$('#pins'),pinEls={};let pinMode='all',pinId=null;
+  PARTS.forEach(p=>{
+    const b=document.createElement('button');b.type='button';b.className='pin';b.style.setProperty('--pc',GROUPS[p.g].c);b.setAttribute('aria-label',p.n);
+    b.innerHTML='<span class="dot"></span><span class="lab"></span>';b.lastChild.textContent=p.n;
+    b.addEventListener('click',e=>{e.stopPropagation();if(api.onPick)api.onPick(p.id);});
+    pinsEl.appendChild(b);pinEls[p.id]=b;
+  });
+  const _v=new T.Vector3();
+  function updatePins(){
+    if(pinMode==='none')return;
+    PARTS.forEach(p=>{
+      const el=pinEls[p.id];
+      if(!(pinMode==='all'||(pinMode==='one'&&p.id===pinId))){el.style.display='none';return;}
+      _v.set(p.pin[0],p.pin[1],p.pin[2]).project(camera);
+      if(_v.z>1||_v.z<-1){el.style.display='none';return;}
+      el.style.display='';el.style.opacity=1;el.style.pointerEvents='auto';
+      el.style.transform='translate('+((_v.x*0.5+0.5)*W).toFixed(1)+'px,'+((-_v.y*0.5+0.5)*H).toFixed(1)+'px)';
+      el.classList.toggle('on',p.id===focusId||(pinMode==='one'&&p.id===pinId));
+    });
+  }
+
+  /* ---- apply the simulation to the model ---- */
+  const COLD=new T.Color(0x7c8b96),HOT=new T.Color(0xff7a33),OILC=new T.Color(0x3a86c4),OILH=new T.Color(0xff6a2a);
+  const _a=V(0,0,0),_b=V(0,0,0),_c=V(0,0,0),_h=V(0,0,0),_r2=V(0,0,0),_tab=V(0,0,0);
+  A.bypV=0;A.lcdT=0;
+  function updateFlows(s,dt){
+    const q1=s.q1,q2=s.q2,ramOn=s.bypass?0:1;
+    const F={P1A:q1,AL:q1,P2A:q2,AR:q2,RA:(q1+q2)*ramOn,P1B:-q1,BL:-q1,P2B:-q2,BR:-q2,RB:-(q1+q2)*ramOn,BYP:(q1+q2)*(s.bypass?1:0)};
+    A.flows.forEach(f=>{
+      const q=F[f.id]||0;
+      if(Math.abs(q)<0.03){f.obj.visible=false;return;}
+      f.obj.visible=true;
+      f.phase+=dt*q*1.5/f.len;f.phase-=Math.floor(f.phase);
+      const pos=f.geo.attributes.position.array;
+      for(let i=0;i<f.n;i++){
+        let u=(f.phase+i/f.n)%1;if(u<0)u+=1;const dist=u*f.len;
+        let k=1;while(k<f.cum.length-1&&f.cum[k]<dist)k++;
+        const a=f.pts[k-1],b=f.pts[k],sl=(f.cum[k]-f.cum[k-1])||1,t=(dist-f.cum[k-1])/sl;
+        pos[i*3]=a.x+(b.x-a.x)*t;pos[i*3+1]=a.y+(b.y-a.y)*t+0.0;pos[i*3+2]=a.z+(b.z-a.z)*t;
+      }
+      f.geo.attributes.position.needsUpdate=true;
+      f.mat.color.setHex(q>0?0xffa266:0x7fc6ff);
+    });
+  }
+  function applySim(s,dt,tm){
+    const a=s.th*Math.PI/180,bt=clamp(s.stroke,-1,1)*BMAX;
+    rudderRot.rotation.y=a;
+    RAM.forEach(r=>{
+      const tx=r.s*L*Math.cos(a),tz=-r.s*L*Math.sin(a);
+      const dx=tx-r.s*L,dz=tz-ZT,d=Math.hypot(dx,dz);
+      r.cg.rotation.y=Math.atan2(-dx,-dz);
+      const ps=d-PL;
+      r.pl.position.z=-(d-PL/2);r.clev.position.z=-d;
+      r.oil.scale.z=Math.max(0.02,ps);r.oil.position.z=-ps/2;
+      const p=r.s>0?s.pA:s.pB,t=clamp((p-5)/130,0,1);
+      r.oilM.color.copy(OILC).lerp(OILH,t);r.oilM.emissive.copy(r.oilM.color);r.oilM.emissiveIntensity=0.1+0.35*t;
+    });
+    PUMP.forEach((u,i)=>{
+      u.sw.rotation.x=bt;u.ck.rotation.x=bt;
+      const run=(i===0?s.run1:s.run2)?1:0;
+      u.bar.rotation.z+=dt*run*14;
+      const tn=Math.tan(bt);
+      u.pist.forEach(p=>{p.m.position.z=0.5+tn*0.36*Math.sin(p.a+u.bar.rotation.z)*1.6;});
+    });
+    MOT.forEach((m,i)=>{
+      const run=(i===0?s.run1:s.run2)?1:0;
+      m.rot.rotation.z+=dt*run*30;
+      m.lampM.emissiveIntensity=run?1.4:0.05;
+    });
+    /* control gear */
+    _r2.set(0.7,YA,3.0+(s.ord/35));
+    _h.set(-0.7,YA,3.0-(s.th/35));
+    _tab.set(0.95*Math.sin(a),YA,0.95*Math.cos(a));
+    _a.set(0.7,YA,3.85);
+    setRod(recRod,_a,_r2);setRod(levBar,_h,_r2);setRod(huntRod,_tab,_h);
+    _c.copy(_h).add(_r2).multiplyScalar(0.5);
+    ballR.position.copy(_r2);ballH.position.copy(_h);ballC.position.copy(_c);
+    [0,1].forEach(i=>{
+      _b.set(PXS[i]+CX[i],YA+0.6*Math.cos(bt),PZ+0.6+0.6*Math.sin(bt));
+      setRod(ctlRod[i],_c,_b);
+    });
+    /* valves and relief valves */
+    const e=Math.min(1,dt*4);A.bypV+=((s.bypass?1:0)-A.bypV)*e;
+    A.byp.stem.position.y=0.26+0.1*A.bypV;A.byp.stem.rotation.y=A.bypV*3;
+    A.rel.forEach(r=>{r.lift.position.y=0.4+0.07*s.relief;r.mat.emissive.setHex(s.relief?0xff3a1a:0x000000);r.mat.emissiveIntensity=s.relief?0.9:0;});
+    /* oil level */
+    const lv=clamp(s.oil/100,0,1);
+    tOil.scale.y=Math.max(0.01,lv*(TH-0.1));gOil.scale.y=Math.max(0.01,lv*0.8);
+    tkLampM.emissiveIntensity=s.oil<SIM.C.LOW?(1.0+0.6*Math.sin(tm*8)):0.05;
+    /* limit lamps, panel lamps */
+    A.limLamps.forEach(m=>{m.emissiveIntensity=s.limLamp?1.5:0.05;});
+    const al=SIM.alarms(s),bad=al.some(x=>x.sev==='bad');
+    A.lamps.forEach(l=>{
+      let on=false;
+      if(l.k==='p1')on=s.run1;else if(l.k==='p2')on=s.run2;else if(l.k==='oil')on=s.oil<SIM.C.LOW;else if(l.k==='alm')on=bad&&Math.sin(tm*7)>-0.2;
+      l.m.emissiveIntensity=on?1.5:0.05;
+    });
+    A.lcdT+=dt;if(A.lcdT>0.25){A.lcdT=0;drawLCD(s);}
+    /* pipe colours follow the pressure on each side */
+    const tA=clamp((s.pA-5)/130,0,1),tB=clamp((s.pB-5)/130,0,1);
+    matA.color.copy(COLD).lerp(HOT,tA);matA.emissive.setRGB(0.5*tA,0.15*tA,0.05*tA);
+    matB.color.copy(COLD).lerp(HOT,tB);matB.emissive.setRGB(0.5*tB,0.15*tB,0.05*tB);
+    updateFlows(s,dt);
+  }
+
+  function resize(){
+    const r=stage.getBoundingClientRect(),w=Math.max(2,Math.floor(r.width)),h=Math.max(2,Math.floor(r.height));
+    if(w===W&&h===H)return;W=w;H=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+  }
+  if(window.ResizeObserver)new ResizeObserver(resize).observe(stage);else window.addEventListener('resize',resize);
+  resize();
+  cam.r=goal.r=homeR();
+  setView('cut');rebuildFocus();drawLCD(sim);
+
+  const api={ok:true,onPick:null,onView:null,focus:focus,setView:setView,cam:camPreset,
+    names(on){document.body.classList.toggle('names',!!on);},
+    pins(mode,id){pinMode=mode;pinId=id||null;pinsEl.classList.toggle('hide',mode==='none');},
+    tick(dt,tm){
+      resize();
+      if(sway&&!reduce)goal.az=swayBase+0.2*Math.sin(tm*0.5);
+      updateCamera(dt);
+      applySim(sim,dt,tm);
+      if(focusId&&FOCUSM.length){const k=reduce?0.4:0.45+0.25*Math.sin(tm*4.2);FOCUSM.forEach(m=>{const b=m.userData.base;m.material.emissive.copy(b.emissive).lerp(ACC,k);m.material.emissiveIntensity=Math.max(b.ei,1);});}
+      renderer.render(scene,camera);
+      updatePins();
+    }};
+  return api;
+  }catch(err){
+    console.error(err);
+    $('#stage').insertAdjacentHTML('beforeend','<p class="nogl">The 3D view hit a problem and was turned off. The guide, procedures, simulator and quiz still work.</p>');
+    return stub;
+  }
+})();
+
+/* ---------------- UI ---------------- */
+const UI={tab:'parts',filter:'all',sel:null,proc:'predep',step:0,quiz:null};
+const appEl=$('#app'),panel=$('#panel');
+const toastEl=$('#toast');let toastT=0;
+function toast(msg,sev){toastEl.textContent=msg;toastEl.className='show '+(sev||'info');clearTimeout(toastT);toastT=setTimeout(()=>{toastEl.className='';},3600);}
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}return a;};
+
+/* bottom sheet (mobile) */
+const mqDesk=window.matchMedia('(min-width:640px) and (min-aspect-ratio:1/1)');
+let stops=[84,300,500];
+function calcStops(){const H=appEl.clientHeight||700;stops=[84,Math.round(H*0.48),Math.round(H*0.84)];}
+function sheetH(){return panel.getBoundingClientRect().height;}
+function setSheet(h,anim){
+  if(mqDesk.matches){panel.style.height='';return;}
+  calcStops();h=clamp(h,stops[0],stops[2]);
+  panel.classList.toggle('snap',!!anim);panel.style.height=h+'px';
+}
+function expandIfCollapsed(){if(!mqDesk.matches&&sheetH()<150)setSheet(stops[1],true);}
+const grab=$('#grab');let drag=null;
+grab.addEventListener('pointerdown',e=>{if(mqDesk.matches)return;try{grab.setPointerCapture(e.pointerId);}catch(_){}drag={y:e.clientY,h:sheetH(),m:0};panel.classList.remove('snap');});
+grab.addEventListener('pointermove',e=>{if(!drag)return;const dy=drag.y-e.clientY;drag.m=Math.max(drag.m,Math.abs(dy));setSheet(drag.h+dy,false);});
+function endDrag(){
+  if(!drag)return;const d=drag;drag=null;calcStops();const h=sheetH();
+  if(d.m<6){setSheet(h<150?stops[1]:stops[0],true);}
+  else{let best=stops[0];stops.forEach(s=>{if(Math.abs(s-h)<Math.abs(best-h))best=s;});setSheet(best,true);}
+}
+grab.addEventListener('pointerup',endDrag);grab.addEventListener('pointercancel',endDrag);
+grab.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSheet(sheetH()<150?stops[1]:stops[0],true);}});
+window.addEventListener('resize',()=>{if(mqDesk.matches)panel.style.height='';else setSheet(sheetH(),false);});
+
+/* tabs */
+function setTab(t){
+  UI.tab=t;
+  $$('#tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
+  ['parts','steps','run','quiz'].forEach(k=>{$('#v-'+k).hidden=(k!==t);});
+  if(t==='parts'){renderParts();view3d.pins('all');view3d.focus(UI.sel);}
+  else if(t==='steps'){renderSteps();applyStepFocus();}
+  else if(t==='run'){view3d.pins('none');view3d.focus(null);view3d.cam('home');updateRun();}
+  else{view3d.pins('none');view3d.focus(null);}
+}
+$$('#tabs button').forEach(b=>b.addEventListener('click',()=>{expandIfCollapsed();setTab(b.dataset.tab);}));
+
+/* parts guide */
+function selectPart(id){
+  UI.sel=id;
+  if(UI.tab!=='parts')setTab('parts');
+  else{renderParts();view3d.focus(id);}
+  const v=$('#v-parts');v.scrollTop=0;
+}
+function renderParts(){
+  const v=$('#v-parts');
+  if(UI.sel){renderDetail(v);return;}
+  const chips=[['all','All']].concat(Object.keys(GROUPS).map(k=>[k,GROUPS[k].n]));
+  let h='<div class="chips" role="group" aria-label="Filter parts">'+chips.map(c=>'<button class="chip" data-f="'+c[0]+'" aria-pressed="'+(UI.filter===c[0])+'">'+c[1]+'</button>').join('')+'</div>';
+  h+='<p class="muted small">Tap a part in the 3D model or pick one below.</p>';
+  h+='<div class="legend" aria-label="Oil colours in the model">'+[['#ff7a33','High-pressure oil'],['#59b8ff','Low-pressure oil'],['#3a9bdc','Make-up line'],['#7c8b96','Idle pipe']].map(x=>'<span><s style="background:'+x[0]+';box-shadow:0 0 0 1px var(--line)"></s>'+x[1]+'</span>').join('')+'</div>';
+  h+='<ul class="plist">'+PARTS.filter(p=>UI.filter==='all'||p.g===UI.filter).map(p=>'<li><button class="prow" data-id="'+p.id+'" style="--gc:'+GROUPS[p.g].c+'"><b>'+p.n+'</b><small>'+GROUPS[p.g].n+'</small></button></li>').join('')+'</ul>';
+  v.innerHTML=h;
+}
+function renderDetail(v){
+  const p=PBY[UI.sel],g=GROUPS[p.g];
+  let list=PARTS.filter(x=>UI.filter==='all'||x.g===UI.filter);
+  let i=list.findIndex(x=>x.id===p.id);if(i<0){list=PARTS;i=list.findIndex(x=>x.id===p.id);}
+  const prev=list[(i-1+list.length)%list.length],next=list[(i+1)%list.length];
+  let h='<button class="back" data-act="back">&larr; All parts</button>';
+  h+='<span class="gtag" style="--gc:'+g.c+'">'+g.n+'</span><h2>'+p.n+'</h2>';
+  h+='<h3>What it does</h3><p>'+p.what+'</p><h3>How it works</h3><p>'+p.how+'</p>';
+  h+='<h3>Key points</h3><ul class="facts">'+p.facts.map(f=>'<li>'+f+'</li>').join('')+'</ul>';
+  h+='<div class="watch"><b>Watch for</b>'+p.watch+'</div>';
+  h+='<div class="pnav"><button class="btn" data-id="'+prev.id+'">&larr; '+prev.n+'</button><button class="btn" data-id="'+next.id+'">'+next.n+' &rarr;</button></div>';
+  v.innerHTML=h;
+}
+$('#v-parts').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.f){UI.filter=b.dataset.f;renderParts();}
+  else if(b.dataset.id){selectPart(b.dataset.id);}
+  else if(b.dataset.act==='back'){UI.sel=null;renderParts();view3d.focus(null);view3d.cam('home');$('#v-parts').scrollTop=0;}
+});
+
+/* procedures */
+const curProc=()=>PROCS.find(p=>p.id===UI.proc);
+function applyStepFocus(){
+  const st=curProc().steps[UI.step];
+  view3d.pins('one',st.part);view3d.focus(st.part);
+}
+function renderSteps(){
+  const v=$('#v-steps'),pr=curProc(),st=pr.steps[UI.step],last=UI.step===pr.steps.length-1;
+  let h='<div class="procs" role="group" aria-label="Procedure">'+PROCS.map(p=>'<button class="chip" data-p="'+p.id+'" aria-pressed="'+(p.id===UI.proc)+'">'+p.n+'</button>').join('')+'</div>';
+  h+='<div class="stepno">Step '+(UI.step+1)+' of '+pr.steps.length+'</div><div class="prog"><i style="width:'+((UI.step+1)/pr.steps.length*100)+'%"></i></div>';
+  h+='<h2>'+st.t+'</h2><p>'+st.b+'</p><p class="muted"><b>Why:</b> '+st.why+'</p>';
+  if(st.caut)h+='<div class="caution"><b>Caution. </b>'+st.caut+'</div>';
+  if(st.chk)h+='<div class="chk" id="chk"><span class="tick"></span><span>'+st.chkL+'</span></div>';
+  h+='<div class="row">'+(st.doF?'<button class="btn pri" data-a="do">'+st.doL+'</button>':'')+'<button class="btn sm" data-a="show">Show in 3D</button></div>';
+  h+='<div class="pnav"><button class="btn" data-a="prev"'+(UI.step===0?' disabled':'')+'>Back</button><button class="btn pri" data-a="next">'+(last?'Done':'Next')+'</button></div>';
+  h+='<p class="muted small" style="margin-top:14px">Typical values for training. Always follow your ship\'s manuals and procedures.</p>';
+  v.innerHTML=h;v.scrollTop=0;
+}
+function updateStepChk(){
+  if(UI.tab!=='steps')return;
+  const st=curProc().steps[UI.step],el=$('#chk');
+  if(st.chk&&el)el.classList.toggle('ok',!!st.chk(sim));
+}
+$('#v-steps').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const pr=curProc(),st=pr.steps[UI.step];
+  if(b.dataset.p){UI.proc=b.dataset.p;UI.step=0;renderSteps();applyStepFocus();}
+  else if(b.dataset.a==='next'){if(UI.step<pr.steps.length-1)UI.step++;else{UI.step=0;toast('Procedure complete. Try it in the Simulator.','ok');}renderSteps();applyStepFocus();}
+  else if(b.dataset.a==='prev'){if(UI.step>0)UI.step--;renderSteps();applyStepFocus();}
+  else if(b.dataset.a==='show'){applyStepFocus();}
+  else if(b.dataset.a==='do'&&st.doF){st.doF(sim);updateStepChk();}
+});
+
+
+/* simulator */
+function polar(cx,cy,r,deg){const a=deg*Math.PI/180;return [cx+Math.sin(a)*r,cy-Math.cos(a)*r];}
+function arcPath(cx,cy,r,d0,d1,col,w){
+  const p0=polar(cx,cy,r,d0),p1=polar(cx,cy,r,d1);
+  return '<path d="M'+p0[0].toFixed(1)+' '+p0[1].toFixed(1)+' A'+r+' '+r+' 0 '+((d1-d0)>180?1:0)+' 1 '+p1[0].toFixed(1)+' '+p1[1].toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+w+'"/>';
+}
+const rdg=a=>a*1.5;
+function dialSVG(){
+  let s='<svg viewBox="0 0 160 110" role="img" aria-label="Rudder angle" style="color:var(--ink);font-family:var(--font-disp)">';
+  s+=arcPath(80,88,58,rdg(-40),rdg(-35),'#d83a3a',9)+arcPath(80,88,58,rdg(-35),rdg(35),'#2fae6a',9)+arcPath(80,88,58,rdg(35),rdg(40),'#d83a3a',9);
+  [-30,-20,-10,0,10,20,30].forEach(v=>{const p=polar(80,88,46,rdg(v));s+='<text x="'+p[0].toFixed(1)+'" y="'+(p[1]+3.5).toFixed(1)+'" text-anchor="middle" font-size="11" fill="currentColor">'+Math.abs(v)+'</text>';});
+  s+='<text x="26" y="74" font-size="12" fill="#ff9a8a" text-anchor="middle">PORT</text><text x="134" y="74" font-size="12" fill="#7fe0a0" text-anchor="middle">STBD</text>';
+  s+='<g id="needle"><line x1="80" y1="88" x2="80" y2="36" stroke="#d62020" stroke-width="3" stroke-linecap="round"/></g><circle cx="80" cy="88" r="5" fill="currentColor"/>';
+  s+='<text id="dialv" x="80" y="108" text-anchor="middle" font-size="22" font-weight="600" fill="currentColor">0.0</text></svg>';
+  return s;
+}
+function lvlSVG(){
+  const y=p=>122-p*1.14,z=(a,b,c)=>'<rect x="8" y="'+y(b).toFixed(1)+'" width="20" height="'+((b-a)*1.14).toFixed(1)+'" fill="'+c+'"/>';
+  let s='<svg viewBox="0 0 76 130" role="img" aria-label="Run tank oil level" style="color:var(--ink);font-family:var(--font-disp)">';
+  s+=z(0,15,'#d83a3a')+z(15,40,'#e0a020')+z(40,90,'#2fae6a')+z(90,100,'#e0a020');
+  s+='<rect x="8" y="8" width="20" height="114" fill="none" stroke="currentColor" stroke-width="1.5"/>';
+  s+='<g id="lvptr"><polygon points="31,0 43,-6 43,6" fill="currentColor"/></g>';
+  s+='<text id="lvv" x="46" y="4" font-size="20" font-weight="600" fill="currentColor">75</text></svg>';
+  return s;
+}
+const seg=(label,id,opts)=>'<div class="ctl"><span>'+label+'</span><div class="seg" data-ctl="'+id+'" role="group" aria-label="'+label+'">'+opts.map(o=>'<button data-v="'+o[0]+'" aria-pressed="false">'+o[1]+'</button>').join('')+'</div></div>';
+function buildRun(){
+  const v=$('#v-run');
+  let h='<div class="gauges"><div class="gbox">'+dialSVG()+'<div class="cap">Rudder angle, degrees</div></div><div class="gbox">'+lvlSVG()+'<div class="cap">Run tank oil, %</div></div></div>';
+  h+='<div class="temps"><div><b id="t-a">5</b><span>Ram A bar</span></div><div><b id="t-b">5</b><span>Ram B bar</span></div><div><b id="t-q">0</b><span>Stroke %</span></div><div><b id="t-r">0.0</b><span>Rate &deg;/s</span></div></div>';
+  h+='<p id="tstat" class="small muted" style="margin:-2px 0 8px"></p>';
+  h+=seg('Control','mode',[['follow','Follow-up'],['local','Local lever']]);
+  h+='<div class="ctl" id="ctl-helm"><label for="helm">Helm order</label><input type="range" id="helm" min="-35" max="35" step="1" value="0"><output id="helmv">0&deg;</output></div>';
+  h+='<div class="ctl" id="ctl-lever"><label for="lever">Lever (port / stbd)</label><input type="range" id="lever" min="-100" max="100" step="5" value="0"><output id="leverv">0</output></div>';
+  h+='<div class="row"><button class="btn sm" id="midBtn">Midships</button><button class="btn sm" id="hoBtn">Hard-over test</button></div>';
+  h+=seg('Pump 1','p1',[['1','Run'],['0','Stop']]);
+  h+=seg('Pump 2','p2',[['1','Run'],['0','Stop']]);
+  h+=seg('Bypass valve','byp',[['0','Shut'],['1','Open']]);
+  h+='<div class="ctl"><label for="kn">Ship speed</label><input type="range" id="kn" min="0" max="22" step="1" value="15"><output id="knv">15 kn</output></div>';
+  h+='<div class="row"><button class="btn sm" id="topBtn">Top up oil</button><button class="btn sm" id="resetBtn">Reset trip</button></div>';
+  h+='<h3>Alarms</h3><ul class="alist" id="alist"></ul>';
+  h+='<h3>Inject a fault</h3><div class="row"><button class="btn sm" data-fault="pump1" aria-pressed="false">Pump 1 trips</button><button class="btn sm" data-fault="leak" aria-pressed="false">Oil leak</button><button class="btn sm" data-fault="ctl" aria-pressed="false">Control fails</button><button class="btn sm" data-fault="limit" aria-pressed="false">Limit switch fails</button><button class="btn sm" data-act="shock">Heavy sea shock</button></div>';
+  h+='<h3>Start from</h3><div class="row"><button class="btn sm" data-preset="stopped">Pumps stopped</button><button class="btn sm" data-preset="normal">One pump running</button><button class="btn sm" data-preset="both">Both pumps running</button></div>';
+  h+=seg('Training speed','speed',[['1','\u00d71'],['3','\u00d73'],['6','\u00d76']]);
+  h+='<p class="muted small" style="margin-top:12px">Pressures, rates and settings are typical values for this trainer. Use your own ship\'s manuals for real work.</p>';
+  v.innerHTML=h;
+}
+$('#v-run').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const sg=b.closest('.seg');
+  if(sg&&b.dataset.v!==undefined){
+    const id=sg.dataset.ctl,val=b.dataset.v;
+    if(id==='mode')SIM.act.mode(sim,val);
+    else if(id==='p1')SIM.act.pump(sim,1,val==='1');
+    else if(id==='p2')SIM.act.pump(sim,2,val==='1');
+    else if(id==='byp')SIM.act.bypass(sim,val==='1');
+    else if(id==='speed')sim.speed=+val;
+    updateRun();return;
+  }
+  if(b.dataset.fault){SIM.act.fault(sim,b.dataset.fault,!sim.faults[b.dataset.fault]);updateRun();return;}
+  if(b.dataset.act==='shock'){SIM.act.shock(sim);return;}
+  if(b.dataset.preset){SIM.preset(sim,b.dataset.preset);toast(b.dataset.preset==='stopped'?'Both pumps stopped':b.dataset.preset==='both'?'Both pumps running':'Pump 1 running','info');updateRun();return;}
+  if(b.id==='midBtn'){if(sim.mode==='follow')SIM.act.helm(sim,0);else SIM.act.lever(sim,0);updateRun();return;}
+  if(b.id==='hoBtn'){SIM.act.hardOver(sim);return;}
+  if(b.id==='topBtn'){SIM.act.topUp(sim);return;}
+  if(b.id==='resetBtn'){SIM.act.resetTrip(sim);updateRun();}
+});
+$('#v-run').addEventListener('input',e=>{
+  const id=e.target.id;
+  if(id==='helm'){SIM.act.helm(sim,+e.target.value);$('#helmv').textContent=e.target.value+'\u00b0';}
+  else if(id==='lever'){SIM.act.lever(sim,+e.target.value/100);$('#leverv').textContent=e.target.value;}
+  else if(id==='kn'){SIM.act.knots(sim,+e.target.value);$('#knv').textContent=e.target.value+' kn';}
+});
+// releasing the lever slider returns it to the middle, like a spring-loaded lever
+$('#v-run').addEventListener('change',e=>{
+  if(e.target.id==='lever'){e.target.value=0;SIM.act.lever(sim,0);$('#leverv').textContent='0';}
+});
+function updateRun(){
+  if(UI.tab!=='run')return;
+  const v=$('#v-run');
+  $('#needle').setAttribute('transform','rotate('+rdg(clamp(sim.th,-40,40)).toFixed(1)+' 80 88)');
+  $('#dialv').textContent=Math.abs(sim.th).toFixed(1)+'\u00b0 '+(sim.th>0.05?'S':sim.th<-0.05?'P':'');
+  const ly=122-clamp(sim.oil,0,100)*1.14;
+  $('#lvptr').setAttribute('transform','translate(0 '+ly.toFixed(1)+')');
+  const lv=$('#lvv');lv.textContent=Math.round(sim.oil);lv.setAttribute('y',(ly+7).toFixed(1));
+  $('#t-a').textContent=Math.round(sim.pA);$('#t-b').textContent=Math.round(sim.pB);
+  $('#t-q').textContent=Math.round(Math.abs(sim.stroke)*100);$('#t-r').textContent=Math.abs(sim.rate).toFixed(1);
+  const ts=$('#tstat');
+  if(sim.test.st>0)ts.textContent=sim.test.st===1?'Hard-over test: going to 35\u00b0 stbd first':'Hard-over test timing: '+sim.test.t.toFixed(1)+' s (limit 28 s)';
+  else if(sim.test.last!==null){ts.textContent='Last hard-over test: '+sim.test.last.toFixed(1)+' s. '+(sim.test.ok?'Pass':'Too slow')+' (limit 28 s)';ts.style.color=sim.test.ok?'var(--ok)':'var(--bad)';}
+  else{ts.textContent=SIM.status(sim);ts.style.color='var(--ink2)';}
+  const state={mode:sim.mode,p1:sim.p1?'1':'0',p2:sim.p2?'1':'0',byp:sim.bypass?'1':'0',speed:String(sim.speed)};
+  $$('.seg[data-ctl]',v).forEach(sg=>{$$('button',sg).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===state[sg.dataset.ctl])));});
+  $$('[data-fault]',v).forEach(b=>b.setAttribute('aria-pressed',String(!!sim.faults[b.dataset.fault])));
+  $('#ctl-helm').style.display=sim.mode==='follow'?'':'none';
+  $('#ctl-lever').style.display=sim.mode==='local'?'':'none';
+  const hs=$('#helm');if(document.activeElement!==hs){hs.value=Math.round(sim.ord);$('#helmv').textContent=Math.round(sim.ord)+'\u00b0';}
+  $('#resetBtn').disabled=!sim.trip;
+  $('#hoBtn').disabled=sim.test.st>0;
+  const al=SIM.alarms(sim);
+  $('#alist').innerHTML=al.length?al.map(a=>'<li class="'+(a.sev==='bad'?'bad':'')+'">'+a.text+'</li>').join(''):'<li class="none">No alarms</li>';
+}
+
+/* quiz */
+function startQuiz(){UI.quiz={order:shuffle(QUIZ.map((q,i)=>i)).slice(0,8),i:0,score:0,picked:null,opts:null};renderQuiz();}
+function renderQuiz(){
+  const v=$('#v-quiz'),Q=UI.quiz;let h='';
+  if(!Q){
+    h='<h2>Check what you know</h2><p>Eight questions drawn from the parts guide and procedures. You get an explanation after every answer.</p><div class="row"><button class="btn pri" data-q="start">Start quiz</button></div>';
+  }else if(Q.i>=Q.order.length){
+    const msg=Q.score>=7?'Strong result. Try the fault drills in the Simulator next.':Q.score>=5?'A solid base. Revisit the parts you missed.':'Worth another pass through Parts and Procedures.';
+    h='<p class="muted">Quiz complete</p><div class="score">'+Q.score+' / '+Q.order.length+'</div><p>'+msg+'</p><div class="row"><button class="btn pri" data-q="start">Try again</button><button class="btn" data-q="parts">Back to parts</button></div>';
+  }else{
+    const q=QUIZ[Q.order[Q.i]];
+    if(!Q.opts)Q.opts=shuffle(q.a.map((t,k)=>({t:t,ok:k===q.c})));
+    h='<div class="stepno">Question '+(Q.i+1)+' of '+Q.order.length+'</div><div class="prog"><i style="width:'+((Q.i+1)/Q.order.length*100)+'%"></i></div><h3 style="font-size:20px;margin-top:6px">'+q.q+'</h3>';
+    h+=Q.opts.map((o,k)=>{let c='opt';if(Q.picked!==null){if(o.ok)c+=' right';else if(k===Q.picked)c+=' wrong';}return '<button class="'+c+'" data-k="'+k+'"'+(Q.picked!==null?' disabled':'')+'>'+o.t+'</button>';}).join('');
+    if(Q.picked!==null){
+      const ok=Q.opts[Q.picked].ok;
+      h+='<div class="card"><b>'+(ok?'Correct.':'Not quite.')+'</b> '+q.w+'</div><div class="row"><button class="btn pri" data-q="next">'+(Q.i===Q.order.length-1?'See result':'Next question')+'</button></div>';
+    }
+  }
+  v.innerHTML=h;
+}
+$('#v-quiz').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;const Q=UI.quiz;
+  if(b.dataset.q==='start'){startQuiz();$('#v-quiz').scrollTop=0;}
+  else if(b.dataset.q==='parts'){UI.quiz=null;setTab('parts');}
+  else if(b.dataset.q==='next'){Q.i++;Q.picked=null;Q.opts=null;renderQuiz();$('#v-quiz').scrollTop=0;}
+  else if(b.dataset.k!==undefined&&Q&&Q.picked===null){Q.picked=+b.dataset.k;if(Q.opts[Q.picked].ok)Q.score++;renderQuiz();}
+});
+
+/* stage controls */
+function setViewButtons(m){$$('#viewseg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===m)));}
+$$('#viewseg button').forEach(b=>b.addEventListener('click',()=>{view3d.setView(b.dataset.view);setViewButtons(b.dataset.view);}));
+view3d.onView=setViewButtons;
+$$('#cams button[data-cam]').forEach(b=>b.addEventListener('click',()=>view3d.cam(b.dataset.cam)));
+$('#namesBtn').addEventListener('click',e=>{const b=e.currentTarget,on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(on));view3d.names(on);});
+view3d.onPick=id=>{expandIfCollapsed();selectPart(id);};
+$('#alarmBanner').addEventListener('click',()=>{expandIfCollapsed();setTab('run');});
+
+
+function updateHUD(){
+  const C=SIM.C,al=SIM.alarms(sim),th=sim.th,pm=Math.max(sim.pA,sim.pB);
+  $('#r-a').textContent=Math.abs(th).toFixed(1);$('#r-au').textContent=th>0.05?'\u00b0 S':th<-0.05?'\u00b0 P':'\u00b0';
+  $('#r-p').textContent=Math.round(pm);$('#r-o').textContent=Math.round(sim.oil);
+  $('#pr').classList.toggle('warn',sim.limLamp);
+  $('#pp').classList.toggle('bad',pm>=C.RELIEF-1);$('#pp').classList.toggle('warn',pm>=C.WORK&&pm<C.RELIEF-1);
+  $('#po').classList.toggle('bad',sim.oil<C.LL);$('#po').classList.toggle('warn',sim.oil>=C.LL&&sim.oil<C.LOW);
+  $('#state').textContent=SIM.status(sim);
+  const top=al.find(a=>a.sev==='bad')||al[0],bn=$('#alarmBanner');
+  if(top){bn.hidden=false;bn.className=top.sev;bn.textContent=top.text+(al.length>1?'  (+'+(al.length-1)+' more)':'');}else bn.hidden=true;
+}
+
+/* main loop */
+let last=performance.now(),hudT=0,ok3d=true;
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=Math.min(0.05,Math.max(0,(now-last)/1000));last=now;
+  SIM.step(sim,dt);
+  while(sim.events.length){const e=sim.events.shift();toast(e.msg,e.sev);}
+  if(ok3d){try{view3d.tick(dt,now/1000);}catch(err){ok3d=false;console.error(err);}}
+  hudT+=dt;if(hudT>0.15){hudT=0;updateHUD();updateRun();updateStepChk();}
+}
+buildRun();renderParts();renderSteps();renderQuiz();
+setSheet(Math.round((appEl.clientHeight||700)*0.48),false);
+setTab('parts');updateHUD();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
