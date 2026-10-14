@@ -80,7 +80,7 @@ window.addEventListener("pageshow",drawProgress);
     transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
     opacity:0;transform:translateY(12px);animation:rise .5s ease forwards;
   }
-  a.card:nth-child(1){animation-delay:.05s}a.card:nth-child(2){animation-delay:.14s}a.card:nth-child(3){animation-delay:.23s}a.card:nth-child(4){animation-delay:.32s}a.card:nth-child(5){animation-delay:.41s}
+  a.card:nth-child(1){animation-delay:.05s}a.card:nth-child(2){animation-delay:.14s}a.card:nth-child(3){animation-delay:.23s}a.card:nth-child(4){animation-delay:.32s}a.card:nth-child(5){animation-delay:.41s}a.card:nth-child(6){animation-delay:.5s}a.card:nth-child(7){animation-delay:.59s}
   @keyframes rise{to{opacity:1;transform:none}}
   /* coloured edge that glows */
   a.card::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:var(--c,var(--accent));box-shadow:0 0 14px var(--c,var(--accent))}
@@ -139,10 +139,20 @@ window.addEventListener("pageshow",drawProgress);
   <div class="eyebrow">Ship training</div>
   <h1>Marine Trainers</h1>
   <p class="sub">Choose a system to study</p>
-  <div class="count"><b>5</b><span>Systems</span></div>
+  <div class="count"><b>7</b><span>Systems</span></div>
 </header>
 
 <main class="list">
+  <a class="card" data-id="engineroom" href="engineroom.html" style="--c:#a98bff">
+    <div class="row">
+      <div class="ico"><svg viewBox="0 0 24 24"><path d="M3 15h18l-2 4H5z"/><path d="M6 15V9h5v6M13 15V6h5v9"/><path d="M15 3v3"/></svg></div>
+      <div>
+        <div class="title">Engine room explorer</div>
+        <div class="desc">A 3D cutaway of a ship's engine room. See where each machine sits, and tap to learn.</div>
+        <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+    </div>
+  </a>
   <a class="card" data-id="boiler" href="boiler.html" style="--c:#f0b429">
     <div class="row">
       <div class="ico"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="13" rx="6" ry="7"/><path d="M9 6V3M12 6V2M15 6V3"/></svg></div>
@@ -192,6 +202,16 @@ window.addEventListener("pageshow",drawProgress);
       <div>
         <div class="title">Oily water separator trainer</div>
         <div class="desc">Bilge water separator: the 15 ppm rule, coalescer, alarms, and safe operation.</div>
+        <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+    </div>
+  </a>
+  <a class="card" data-id="mainengine" href="mainengine.html" style="--c:#ff7a5c">
+    <div class="row">
+      <div class="ico"><svg viewBox="0 0 24 24"><path d="M4 18h16M6 18V9h3v9M10.5 18V6h3v12M15 18V9h3v9"/><path d="M12 3v3"/></svg></div>
+      <div>
+        <div class="title">Main diesel engine trainer</div>
+        <div class="desc">Slow-speed two-stroke engine: six cylinders, every system, and a live animation.</div>
         <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
       </div>
     </div>

@@ -1,5 +1,5 @@
-const CACHE = "marine-trainers-v5";
-const FILES = ["./", "./index.html", "./boiler.html", "./compressor.html", "./purifier.html", "./steering.html", "./ows.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
+const CACHE = "marine-trainers-v7";
+const FILES = ["./", "./index.html", "./boiler.html", "./compressor.html", "./purifier.html", "./steering.html", "./ows.html", "./engineroom.html", "./mainengine.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
 });

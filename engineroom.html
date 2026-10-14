@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Engine Room Explorer</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#245676">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script>
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --stage-a:#245676; --stage-b:#0b2131;
+  --bg:#e7edf0; --panel:#f3f6f7; --card:#ffffff; --ink:#10222d; --ink2:#4d616d; --line:#cbd6dc; --chip:#e3eaee;
+  --accent:#f2c230; --accent-ink:#1b1708;
+  --ok:#17804f; --warn:#a96a00; --bad:#c32f2f; --info:#1f6fa8;
+  --c-comb:#e8742f; --c-water:#3a9bdc; --c-mount:#e0b020; --c-feed:#3fae7c;
+  --font-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-disp:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#08141b; --panel:#112430; --card:#17303f; --ink:#e8f0f4; --ink2:#a0b4c0; --line:#28475a; --chip:#1e3a4b;
+    --ok:#4fd197; --warn:#f0b445; --bad:#ff7070; --info:#6cb8ee;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#08141b; --panel:#112430; --card:#17303f; --ink:#e8f0f4; --ink2:#a0b4c0; --line:#28475a; --chip:#1e3a4b;
+  --ok:#4fd197; --warn:#f0b445; --bad:#ff7070; --info:#6cb8ee;
+}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:linear-gradient(var(--stage-a) 50%,var(--panel) 50%)}
+body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--font-body);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+*,*::before,*::after{box-sizing:inherit}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#app{height:100%;display:flex;flex-direction:column}
+#stage{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:radial-gradient(120% 90% at 50% 40%,var(--stage-a),var(--stage-b))}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.nogl{position:absolute;inset:auto 16px 16px;margin:0;padding:12px 14px;background:rgba(0,0,0,.55);color:#fff;border-radius:8px}
+
+/* stage overlays */
+#top{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:10px 10px 0;pointer-events:none;color:#eaf3f8}
+#top>*{pointer-events:auto}
+.brand{display:flex;flex-direction:column;line-height:1.05;text-shadow:0 1px 8px rgba(0,0,0,.45)}
+.brand strong{font:700 24px/1 var(--font-disp);letter-spacing:.01em}
+.brand span{font-size:14.5px;opacity:.82;margin-top:3px}
+.seg{display:inline-flex;background:rgba(8,26,38,.62);border:1px solid rgba(190,225,245,.22);border-radius:9px;padding:2px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.seg button{border:0;background:transparent;color:inherit;padding:6px 10px;border-radius:7px;font-size:14px;font-weight:500;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+#top .seg{color:#dcecf5}
+#readout{position:absolute;left:10px;right:64px;top:58px;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none}
+.pill{display:flex;align-items:baseline;gap:5px;background:rgba(8,26,38,.66);border:1px solid rgba(190,225,245,.2);color:#eaf3f8;border-radius:8px;padding:3px 9px 4px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.pill i{font-style:normal;font-size:14px;opacity:.8}
+.pill b{font:600 22px/1 var(--font-disp);font-variant-numeric:tabular-nums}
+.pill u{text-decoration:none;font-size:14px;opacity:.8}
+.pill.warn{border-color:#f0b445;background:rgba(120,78,0,.7)}
+.pill.bad{border-color:#ff7070;background:rgba(130,20,20,.75)}
+#state{flex-basis:100%;font-size:15.5px;color:#dff0f8;text-shadow:0 1px 6px rgba(0,0,0,.6);padding-left:2px}
+#cams{position:absolute;right:10px;top:58px;display:flex;flex-direction:column;gap:6px}
+#cams button{width:46px;min-height:36px;border:1px solid rgba(190,225,245,.22);background:rgba(8,26,38,.62);color:#dcecf5;border-radius:8px;font-size:13px;padding:4px 0;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#cams button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+#alarmBanner{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;max-width:calc(100% - 24px);border:0;border-radius:9px;padding:8px 14px;font-weight:600;font-size:15px;color:#fff;box-shadow:0 4px 18px rgba(0,0,0,.4)}
+#alarmBanner.warn{background:#9a6200}
+#alarmBanner.bad{background:#b52a2a}
+#toast{position:absolute;left:50%;transform:translateX(-50%) translateY(6px);bottom:56px;max-width:calc(100% - 24px);background:rgba(8,26,38,.9);color:#eaf3f8;border:1px solid rgba(190,225,245,.25);border-left:4px solid var(--info);border-radius:8px;padding:8px 12px;font-size:14.5px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;text-align:left}
+#toast.show{opacity:1;transform:translateX(-50%)}
+#toast.ok{border-left-color:#4fd197}#toast.warn{border-left-color:#f0b445}#toast.bad{border-left-color:#ff7070}
+
+/* pins */
+#pins{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#pins.hide{display:none}
+.pin{position:absolute;left:0;top:0;width:30px;height:30px;margin:-15px 0 0 -15px;padding:0;border:0;background:none;pointer-events:auto;display:grid;place-items:center;will-change:transform,opacity}
+.pin .dot{width:13px;height:13px;border-radius:50%;background:var(--pc,#fff);border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.4)}
+.pin .lab{position:absolute;left:22px;top:50%;transform:translateY(-50%);white-space:nowrap;background:rgba(8,26,38,.9);color:#fff;font-size:13.5px;padding:2px 8px;border-radius:5px;display:none;pointer-events:none}
+body.names .pin .lab,.pin.on .lab{display:block}
+.pin.on{z-index:3}
+.pin.on .dot{transform:scale(1.45);background:var(--accent);box-shadow:0 0 0 3px rgba(242,194,48,.35),0 2px 8px rgba(0,0,0,.5)}
+@media (prefers-reduced-motion:no-preference){.pin.on .dot{animation:ping 1.8s ease-out infinite}}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(242,194,48,.7)}100%{box-shadow:0 0 0 14px rgba(242,194,48,0)}}
+
+/* panel */
+#panel{flex:0 0 auto;height:48%;display:flex;flex-direction:column;background:var(--panel);color:var(--ink);border-radius:16px 16px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.25);position:relative;z-index:5;min-height:0}
+#panel.snap{transition:height .22s ease}
+#grab{flex:0 0 22px;display:grid;place-items:center;touch-action:none;cursor:ns-resize}
+#grab i{width:42px;height:5px;border-radius:3px;background:var(--line)}
+#tabs{flex:0 0 auto;display:flex;border-bottom:1px solid var(--line);padding:0 6px}
+#tabs button{flex:1;border:0;background:none;padding:8px 2px 9px;font:600 18px/1.1 var(--font-disp);color:var(--ink2);border-bottom:3px solid transparent;margin-bottom:-1px;min-height:44px}
+#tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+#body{flex:1 1 0;min-height:0;position:relative}
+.view{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;padding:12px 14px 22px;-webkit-overflow-scrolling:touch}
+.view[hidden]{display:none}
+h2{font:700 30px/1.05 var(--font-disp);margin:2px 0 4px}
+h3{font:600 19px/1.2 var(--font-body);margin:16px 0 4px}
+p{margin:0 0 8px}
+.muted{color:var(--ink2)}
+.small{font-size:15.5px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin:0 -14px 6px;padding-left:14px;padding-right:14px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:6px 13px;font-size:15px;min-height:36px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:15px;color:var(--ink2);margin:2px 0 10px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend s{width:18px;height:6px;border-radius:3px;display:inline-block}
+.plist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.prow{width:100%;text-align:left;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-left:6px solid var(--gc,#999);border-radius:8px;min-height:48px}
+.prow b{font-weight:600;flex:1}
+.prow small{color:var(--ink2);font-size:15px}
+.prow:active{background:var(--chip)}
+.back{border:0;background:none;color:var(--info);padding:4px 0;font-weight:600;font-size:16.5px;min-height:36px}
+.gtag{display:inline-block;border-radius:999px;padding:3px 11px;font-size:15px;background:var(--chip);border-left:5px solid var(--gc,#999);margin-bottom:6px}
+.facts{margin:6px 0 0;padding-left:20px}
+.facts li{margin:3px 0}
+.watch{margin-top:12px;padding:10px 12px;border-radius:8px;background:rgba(242,194,48,.18);border-left:5px solid var(--accent)}
+.watch b{display:block;margin-bottom:2px}
+.pnav{display:flex;gap:8px;margin-top:16px}
+.btn{flex:1;border:1px solid var(--line);background:var(--card);border-radius:9px;padding:10px 12px;font-weight:600;min-height:46px}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.sm{flex:0 0 auto;padding:7px 12px;min-height:40px;font-size:16.5px}
+.btn:disabled{opacity:.45;cursor:default}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+
+/* steps */
+.procs{display:flex;gap:6px;overflow-x:auto;margin:0 -14px 10px;padding:0 14px 4px;scrollbar-width:none}
+.procs::-webkit-scrollbar{display:none}
+.prog{height:6px;border-radius:3px;background:var(--chip);overflow:hidden;margin:2px 0 8px}
+.prog i{display:block;height:100%;background:var(--accent);transition:width .25s}
+.stepno{font:600 16.5px var(--font-body);color:var(--ink2)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:10px}
+.chk{display:flex;align-items:center;gap:9px;margin-top:10px;padding:9px 11px;border-radius:8px;background:var(--chip);font-size:16.5px}
+.chk .tick{width:20px;height:20px;border-radius:50%;border:2px solid var(--ink2);flex:0 0 auto;display:grid;place-items:center;font-size:13px;line-height:1}
+.chk.ok .tick{background:var(--ok);border-color:var(--ok);color:#fff}
+.chk.ok .tick::after{content:"✓"}
+.caution{margin-top:10px;padding:10px 13px;border-radius:8px;background:rgba(195,47,47,.12);border-left:5px solid var(--bad);font-size:16.5px}
+
+/* simulator */
+.gauges{display:grid;grid-template-columns:1.3fr .7fr;gap:10px;align-items:stretch}
+.gbox{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gbox svg{width:100%;height:auto;max-height:150px}
+.gbox .cap{font-size:15px;color:var(--ink2);margin-top:2px}
+.temps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
+.temps div{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px;text-align:center}
+.temps b{display:block;font:600 22px/1.1 var(--font-disp);font-variant-numeric:tabular-nums}
+.temps span{font-size:14px;color:var(--ink2)}
+.seqrow{display:flex;gap:4px;margin:6px 0 12px}
+.seqrow span{flex:1;text-align:center;font-size:14.5px;padding:5px 2px;border-radius:6px;background:var(--chip);color:var(--ink2)}
+.seqrow span.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.seqrow span.bad{background:var(--bad);color:#fff;font-weight:600}
+.ctl{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.ctl:first-of-type{border-top:0}
+.ctl label,.ctl>span{font-weight:500;flex:1}
+.ctl .seg{background:var(--chip);border-color:var(--line);backdrop-filter:none}
+.ctl .seg button{color:var(--ink);min-height:38px;padding:6px 12px}
+.ctl .seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.ctl input[type=range]{flex:0 0 150px;accent-color:#c99a00;height:32px}
+.ctl output{width:44px;text-align:right;font-variant-numeric:tabular-nums}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.alist{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:5px}
+.alist li{padding:8px 11px;border-radius:7px;font-size:16.5px;border-left:5px solid var(--warn);background:rgba(240,180,69,.16)}
+.alist li.bad{border-left-color:var(--bad);background:rgba(195,47,47,.14)}
+.alist li.none{border-left-color:var(--ok);background:rgba(23,128,79,.12)}
+
+/* quiz */
+.opt{display:block;width:100%;text-align:left;margin-top:8px;padding:11px 13px;border-radius:9px;border:1px solid var(--line);background:var(--card);min-height:48px}
+.opt.right{border-color:var(--ok);background:rgba(23,128,79,.14)}
+.opt.wrong{border-color:var(--bad);background:rgba(195,47,47,.13)}
+.opt:disabled{cursor:default}
+.score{font:700 54px/1 var(--font-disp);margin:6px 0}
+
+@media (min-width:640px) and (min-aspect-ratio:1/1){
+  #app{flex-direction:row}
+  #panel{width:min(46vw,430px);height:100%!important;border-radius:0;order:2;box-shadow:-6px 0 24px rgba(0,0,0,.22)}
+  #grab{display:none}
+  #tabs{padding-top:8px}
+  #alarmBanner{bottom:16px}
+  #toast{bottom:64px}
+}
+@media (max-width:420px){.brand strong{font-size:21px}.seg button{padding:6px 8px;font-size:13.5px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.ctl input[type=range]{flex:0 0 150px}
+.note{font-size:15px;color:var(--ink2);margin:6px 0 0}
+</style>
+</head>
+<body>
+<div id="app">
+  <main id="stage">
+    <canvas id="gl" aria-label="Interactive 3D cutaway of a ship's engine room. Drag to rotate, pinch or scroll to zoom, tap a machine to learn about it." tabindex="0"></canvas>
+    <div id="pins"></div>
+    <header id="top">
+      <div class="brand"><strong>Engine room</strong><span>Typical single-screw ship</span></div>
+      <div class="seg" id="viewseg" role="group" aria-label="View style">
+        <button data-view="cut" aria-pressed="true">Cutaway</button>
+        <button data-view="xray" aria-pressed="false">X-ray</button>
+        <button data-view="ext" aria-pressed="false">Outside</button>
+      </div>
+    </header>
+    <div id="readout" aria-live="off">
+      <div class="pill" id="pr"><i>Level</i><b id="r-a">All</b><u id="r-au"></u></div>
+      <div class="pill" id="pp"><i>Seen</i><b id="r-p">0</b><u>of 7</u></div>
+      <div class="pill" id="po" hidden><i></i><b id="r-o"></b><u></u></div>
+      <div id="state"></div>
+    </div>
+    <div id="cams" role="group" aria-label="Camera">
+      <button data-cam="front">Side</button>
+      <button data-cam="right">Bow</button>
+      <button data-cam="back">Stern</button>
+      <button data-cam="top">Plan</button>
+      <button id="namesBtn" aria-pressed="false">Names</button>
+    </div>
+    <button id="alarmBanner" hidden></button>
+    <div id="toast" role="status" aria-live="polite"></div>
+  </main>
+  <section id="panel" aria-label="Learning panel">
+    <div id="grab" role="button" aria-label="Resize panel" tabindex="0"><i></i></div>
+    <nav id="tabs" role="tablist" aria-label="Sections">
+      <button role="tab" data-tab="parts" aria-selected="true">Machines</button>
+      <button role="tab" data-tab="steps" aria-selected="false">Tours</button>
+      <button role="tab" data-tab="run" aria-selected="false">Levels</button>
+      <button role="tab" data-tab="quiz" aria-selected="false">Quiz</button>
+    </nav>
+    <div id="body">
+      <section class="view" id="v-parts" role="tabpanel"></section>
+      <section class="view" id="v-steps" role="tabpanel" hidden></section>
+      <section class="view" id="v-run" role="tabpanel" hidden></section>
+      <section class="view" id="v-quiz" role="tabpanel" hidden></section>
+    </div>
+  </section>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $=(s,e)=>(e||document).querySelector(s);
+const $$=(s,e)=>Array.from((e||document).querySelectorAll(s));
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const reduce=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+/* this page has no simulator: small stand-ins keep the shared panel code happy */
+const SIM={act:{},alarms:()=>[],status:()=>''};
+const sim={events:[]};
+
+/* ---------------- content ---------------- */
+const GROUPS={prop:{n:'Propulsion & steering',c:'#59b8ff'},power:{n:'Power & steam',c:'#e8a23a'},aux:{n:'Air, oil & water',c:'#2fa59a'}};
+const PARTS=[
+{id:'engine',n:'Main engine, shaft & propeller',g:'prop',lv:null,link:'mainengine.html',pin:[10.2,10.9,0],cam:{t:[11,5,0],r:32,az:22,el:14},
+ what:"The main engine turns the propeller. On most large ships it is a slow-speed two-stroke diesel that stands on the tank top and rises through several decks.",
+ how:"The crankshaft drives the propeller shaft, which runs aft along the bottom of the engine room and out through the stern tube to the propeller. The thrust block passes the push of the propeller to the ship. Exhaust gas leaves the turbocharger and goes up the casing to the funnel. The cylinder covers are at the top, so engineers work on the upper platform to overhaul them.",
+ facts:['It stands on the tank top, the lowest level','The shaft runs aft to the propeller','Exhaust goes up the funnel casing to the funnel'],
+ watch:'Keep clear of the shaft and the engine when it may turn. Lock it out before any work.'},
+{id:'gens',n:'Diesel generators',g:'power',lv:2,soon:true,pin:[9.5,10.6,-5.2],cam:{t:[9.5,8.5,-5.2],r:24,az:28,el:18},
+ what:"Diesel engines that drive alternators to make the ship\u2019s electricity.",
+ how:"Most ships have three generator sets on the middle platform, beside the main engine. Usually one or two run and one is standby. They feed the main switchboard, which supplies the pumps, compressors, purifiers, steering gear and everything else. Each set has its own fuel, lube oil and cooling water systems.",
+ facts:['Usually three sets: one or two running, one on standby','They feed the main switchboard','Each set has its own cooling and lube oil systems'],
+ watch:'Losing every generator is a blackout. Know how to start the standby set quickly.'},
+{id:'boiler',n:'Auxiliary boiler',g:'power',lv:3,link:'boiler.html',pin:[21,14.4,-5.8],cam:{t:[21,12.5,-5.8],r:20,az:25,el:20},
+ what:"Makes steam for heating the fuel and the accommodation, and for other services, especially when the ship is in port.",
+ how:"It stands on the upper platform next to the funnel casing, so the exhaust duct to the funnel is short. Steam heats the fuel oil and lube oil, and serves the accommodation and domestic services. At sea an exhaust gas boiler may do much of this work using heat from the main engine.",
+ facts:['Near the casing so the exhaust duct is short','Steam heats fuel oil and the accommodation','The full trainer has the parts, procedures and a simulator'],
+ watch:'Never let the water level fall below the safe mark. Check the gauge glasses at the start of every watch.'},
+{id:'compressor',n:'Starting air compressors & receivers',g:'aux',lv:2,link:'compressor.html',pin:[21,11.2,5.2],cam:{t:[21.5,10,5.8],r:20,az:20,el:20},
+ what:"Compressors fill the starting air receivers with air at about 30 bar. The air is used to start the main and auxiliary engines.",
+ how:"Two compressors stand on the middle platform and the two receivers (air bottles) are above them on the upper platform. A pipe takes the air from the receivers to the main engine. When the engine is started, air goes into the cylinders and turns it over until the fuel takes.",
+ facts:['About 30 bar in the receivers','Two compressors and two receivers, so there is a spare','Receivers are drained of water regularly'],
+ watch:'Drain the water from the receivers. Oil and water in an air system can cause corrosion, fires and explosions.'},
+{id:'purifier',n:'Fuel & lube oil purifiers',g:'aux',lv:2,link:'purifier.html',pin:[6,10.2,5.4],cam:{t:[6,9,5.4],r:18,az:25,el:20},
+ what:"Centrifuges that clean fuel oil and lube oil by spinning out water and dirt.",
+ how:"The purifiers stand on the middle platform at the forward end, near the settling and service tanks one level above. Fuel is cleaned before it goes to the engine. Lube oil is cleaned all the time while the engine runs. The sludge they remove goes to the sludge tank.",
+ facts:['Close to the fuel and lube oil tanks','Fuel purifiers keep water and dirt out of the engine','Sludge goes to the sludge tank, never overboard'],
+ watch:'A purifier spins very fast. Never open it until the bowl has stopped completely.'},
+{id:'ows',n:'Oily water separator & bilge tank',g:'aux',lv:1,link:'ows.html',pin:[19,6.9,-5.8],cam:{t:[19,3.5,-5.8],r:18,az:30,el:22},
+ what:"Cleans the bilge water so it can go overboard with less than 15 ppm of oil.",
+ how:"It stands on the lower platform at the side of the engine room, above the bilge holding tank. Oily water from the bilges collects in the tank. The separator takes it, removes the oil, and checks the water with the oil content meter. Clean water goes overboard when allowed. The oil goes to the sludge tank.",
+ facts:['Near the bilge holding tank','The limit is 15 ppm, set by MARPOL','The overboard valve is kept shut in port'],
+ watch:'Never discharge oily water by any route that skips the separator.'},
+{id:'steering',n:'Steering gear room & rudder',g:'prop',lv:3,link:'steering.html',pin:[30.5,13.0,0],cam:{t:[31,8,0],r:24,az:25,el:20},
+ what:"Turns the rudder. It has its own room at the stern, above the rudder.",
+ how:"The steering gear room is aft of the engine room, right above the rudder stock. The tiller is fixed to the top of the stock and two hydraulic rams push it. The rudder is under the stern, just behind the propeller. The pumps and rams are in this room, and the bridge controls them from far away.",
+ facts:['At the stern, above the rudder','Two pumps, with one on standby','The room has a phone to the bridge for emergency steering'],
+ watch:'Keep out of the steering gear room while the gear is working. The rams move with great force.'}
+];
+const PBY={};PARTS.forEach(p=>{PBY[p.id]=p;});
+
+const PROCS=[
+{id:'layout',n:'Walk through the ship',steps:[
+ {t:'Start at the bottom: the main engine',b:'The main engine stands on the tank top, the lowest level. It is tall, so its top reaches the upper platform. The shaft runs from its aft end to the propeller.',why:'The engine is low because it is heavy, and because the propeller shaft is near the bottom of the ship.',part:'engine'},
+ {t:'The generators',b:'Next to the engine, on the middle platform, are the diesel generators. They make the ship\u2019s electricity.',why:'They are close to the engine room centre, near the switchboard and the fuel, lube oil and cooling systems.',part:'gens'},
+ {t:'The purifiers',b:'At the forward end of the middle platform are the fuel and lube oil purifiers. The service tanks are above them.',why:'They sit near the tanks they serve, so the pipes are short.',part:'purifier'},
+ {t:'The air compressors and receivers',b:'Aft on the starboard side are the starting air compressors. The air receivers stand above them.',why:'The receivers are near the compressors, and a short pipe takes the air to the engine.',part:'compressor'},
+ {t:'The oily water separator',b:'On the lower platform, on the port side, is the oily water separator. The bilge holding tank is below it.',why:'The bilge water runs down to the lowest level, so the separator is low, near the tank.',part:'ows'},
+ {t:'The auxiliary boiler',b:'On the upper platform, next to the funnel casing, is the auxiliary boiler.',why:'It needs an exhaust duct to the funnel, so it is placed as close as possible.',part:'boiler'},
+ {t:'The steering gear room',b:'At the very stern, above the rudder, is the steering gear room. It is separate from the engine room.',why:'The rudder stock comes straight up into this room, so the gear can turn it.',part:'steering'}
+]},
+{id:'air',n:'Follow the starting air',steps:[
+ {t:'Compressors make the air',b:'The two starting air compressors on the middle platform squeeze air up to about 30 bar.',why:'Compressed air is a store of energy that can turn a large engine over.',part:'compressor'},
+ {t:'Receivers store it',b:'The air goes up a pipe to the two receivers on the upper platform. They hold enough air for several starts.',why:'Two receivers mean one can be isolated if there is a fault.',part:'compressor'},
+ {t:'Air goes to the engine',b:'A pipe runs from the receivers to the top of the main engine. When you start the engine, air is let into the cylinders to turn it over.',why:'Once the engine is turning, fuel is injected and the engine takes over.',part:'engine'}
+]},
+{id:'fuel',n:'Follow the fuel',steps:[
+ {t:'Purify the fuel',b:'Fuel from the settling tank is cleaned by the purifier on the middle platform.',why:'Water and dirt in the fuel would harm the engine.',part:'purifier'},
+ {t:'Clean fuel goes up to the service tank',b:'The clean fuel is pumped to the service tank on the upper platform.',why:'The service tank gives the engine a steady, clean supply.',part:'purifier'},
+ {t:'Fuel goes to the engine',b:'From the service tank, fuel goes down to the main engine and the generators.',why:'It is heated by steam from the boiler before it is burned.',part:'engine'},
+ {t:'Steam heats the fuel',b:'The auxiliary boiler makes the steam that heats the fuel.',why:'Heavy fuel is thick when cold, and must be warm to flow and burn well.',part:'boiler'}
+]},
+{id:'bilge',n:'Follow the bilge water',steps:[
+ {t:'Bilge water collects',b:'Leaks and drips from the machinery run into the bilges and are pumped to the bilge holding tank on the tank top.',why:'The bilge tank collects all the oily water in one place.',part:'ows'},
+ {t:'The separator cleans it',b:'The oily water separator on the lower platform takes the water and removes the oil.',why:'The oil goes to the sludge tank. The water is checked for oil before it leaves the ship.',part:'ows'},
+ {t:'The meter checks the water',b:'An oil content meter measures the oil. Below 15 ppm, and only at sea, the water can go overboard.',why:'If it is above 15 ppm, the water goes back to the bilge tank.',part:'ows'},
+ {t:'See the full trainer',b:'Open the oily water separator trainer to practise starting it, handling the 15 ppm alarm, and cleaning the coalescer.',why:'The trainer has a simulator with faults to find.',part:'ows'}
+]}
+];
+
+const QUIZ=[
+{q:'Where does the main engine stand?',a:['On the tank top, the lowest level','On the upper platform','On the main deck','In the steering gear room'],c:0,w:'The engine is heavy and the propeller shaft is near the bottom of the ship, so it stands on the tank top.'},
+{q:'Where does the propeller shaft go from the engine?',a:['Forward to the bow','Aft to the propeller, through the stern tube','Up to the funnel','Down to the keel tanks'],c:1,w:'The shaft runs aft along the bottom of the engine room and out through the stern tube.'},
+{q:'Where does the exhaust from the main engine go?',a:['Overboard through the hull','Up the funnel casing to the funnel','Into the bilge tank','Into the steering gear room'],c:1,w:'The exhaust leaves the turbocharger and goes up the casing.'},
+{q:'Why is the auxiliary boiler near the funnel casing?',a:['So the exhaust duct is short','To keep it cool','To be near the bilges','To be near the propeller'],c:0,w:'The boiler needs an exhaust duct to the funnel, so it is placed as close as possible.'},
+{q:'Where is the steering gear room?',a:['At the stern, above the rudder','At the bow','Beside the main engine','On the tank top'],c:0,w:'The rudder stock comes up into this room, so the room is right above the rudder.'},
+{q:'Which machine is usually next to the bilge holding tank?',a:['The oily water separator','The auxiliary boiler','The main engine','The air compressor'],c:0,w:'Bilge water runs to the lowest level, so the separator is low and close to the tank.'},
+{q:'What are the starting air receivers?',a:['Bottles of compressed air for starting the engines','Fuel tanks','Cooling water tanks','Bilge tanks'],c:0,w:'They hold air at about 30 bar, used to start the main and auxiliary engines.'},
+{q:'How many generator sets does a ship usually have?',a:['One','Two','Three','Ten'],c:2,w:'Usually three: one or two running, and one on standby.'},
+{q:'Which is the lowest level in the engine room?',a:['The tank top','The lower platform','The middle platform','The upper platform'],c:0,w:'The tank top is the floor above the double bottom tanks.'},
+{q:'What do the generators feed?',a:['The main switchboard','The fuel tanks','The propeller directly','The funnel'],c:0,w:'The switchboard supplies the pumps, compressors, purifiers, steering gear and all other electrical equipment.'},
+{q:'The purifiers are placed near which items?',a:['The fuel and lube oil tanks','The propeller','The funnel','The anchors'],c:0,w:'They sit near the tanks they serve, so the pipes are short.'},
+{q:'Where does the separated oil from the oily water separator go?',a:['To the sludge tank','Overboard','Into the sea chest','Into the boiler water'],c:0,w:'It must never go overboard. It is burned in an approved incinerator or landed ashore.'},
+{q:'Why are two starting air compressors fitted?',a:['One is a spare','They make less noise','They cool the engine','They heat the fuel'],c:0,w:'Having two means the ship can still make starting air if one fails.'},
+{q:'What does the thrust block do?',a:['Passes the push of the propeller to the ship','Cools the shaft','Measures the speed','Steers the ship'],c:0,w:'The propeller pushes on the shaft, and the thrust block passes that push to the hull.'},
+{q:'Where is the rudder?',a:['Under the stern, just behind the propeller','At the bow','Beside the main engine','On the funnel'],c:0,w:'The rudder hangs under the stern, behind the propeller, where the water flow is strongest.'},
+{q:'What lies below the tank top?',a:['Double bottom tanks','The funnel casing','The steering gear room','The main deck'],c:0,w:'The double bottom holds fuel, lube oil, water and other tanks.'}
+];
+
+/* ---------------- 3D engine room ---------------- */
+const view3d=(function(){
+  const stub={ok:false,focus(){},setView(){},cam(){},level(){},pins(){},names(){},tick(){},onPick:null,onView:null};
+  let renderer;
+  try{
+    renderer=new THREE.WebGLRenderer({canvas:$('#gl'),antialias:true,alpha:true,powerPreference:'high-performance'});
+  }catch(e){
+    $('#stage').insertAdjacentHTML('beforeend','<p class="nogl">This device could not start 3D graphics. The machine guide, tours, levels and quiz still work.</p>');
+    return stub;
+  }
+  try{
+  const T=THREE,stage=$('#stage'),canvas=$('#gl');
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  renderer.setClearColor(0x000000,0);
+  const scene=new T.Scene();
+  const camera=new T.PerspectiveCamera(38,1,0.1,400);
+  const root=new T.Group();scene.add(root);
+  const V=(x,y,z)=>new T.Vector3(x,y,z);
+  const UP=V(0,1,0);
+  /* x runs along the ship (bow at 0, stern towards +x), y is up, z is across the ship (+z is starboard). */
+  const LEVELS=[{n:'Tank top',y:0},{n:'Lower platform',y:3.6},{n:'Middle platform',y:7.2},{n:'Upper platform',y:10.8},{n:'Main deck',y:14.4}];
+  const CLIPMAP=new Map(),LEVELOBJ=[],DECKS=[],hullMats=[];
+  let hullSB=null;
+
+  scene.add(new T.HemisphereLight(0xe6f0f7,0x3a5666,1.0));
+  scene.add(new T.AmbientLight(0xffffff,0.45));
+  const key=new T.DirectionalLight(0xffffff,1.0);key.position.set(-10,30,25);scene.add(key);
+  const fill=new T.DirectionalLight(0xbcd6ea,0.55);fill.position.set(30,12,-20);scene.add(fill);
+
+  function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new T.CanvasTexture(c);t.anisotropy=4;return t;}
+  const floorTex=canvasTex(1024,1024,(x,w,h)=>{
+    const g=x.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);
+    g.addColorStop(0,'rgba(60,112,152,0.55)');g.addColorStop(0.7,'rgba(30,72,102,0.3)');g.addColorStop(1,'rgba(20,50,75,0)');
+    x.fillStyle=g;x.fillRect(0,0,w,h);x.lineWidth=2;
+    for(let i=0;i<=34;i++){const p=i*w/34;x.strokeStyle=(i%5===0)?'rgba(190,225,245,0.32)':'rgba(190,225,245,0.12)';x.beginPath();x.moveTo(p,0);x.lineTo(p,h);x.stroke();x.beginPath();x.moveTo(0,p);x.lineTo(w,p);x.stroke();}
+    x.globalCompositeOperation='destination-in';
+    const m=x.createRadialGradient(w/2,h/2,w*0.1,w/2,h/2,w/2);m.addColorStop(0,'rgba(0,0,0,1)');m.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=m;x.fillRect(0,0,w,h);
+  });
+  const floor=new T.Mesh(new T.CircleGeometry(34,64),new T.MeshBasicMaterial({map:floorTex,transparent:true,depthWrite:false}));
+  floor.rotation.x=-Math.PI/2;floor.position.set(16,-1.9,0);scene.add(floor);
+
+  /* ---- builders ---- */
+  function M(c,o){o=o||{};
+    const m=new T.MeshStandardMaterial({color:c,roughness:o.r!=null?o.r:0.55,metalness:o.m!=null?o.m:0.25,side:o.d?T.DoubleSide:T.FrontSide,transparent:!!o.t,opacity:o.o!=null?o.o:1});
+    if(o.e!=null){m.emissive=new T.Color(o.e);m.emissiveIntensity=o.ei!=null?o.ei:1;}
+    if(o.t)m.depthWrite=false;
+    return m;}
+  function G(id,level){
+    const g=new T.Group();if(id)g.userData.part=id;g.userData.level=(level==null?null:level);root.add(g);
+    if(level!=null)LEVELOBJ.push({g:g,level:level});return g;}
+  function add(g,geo,mat,x,y,z){const m=new T.Mesh(geo,mat);m.position.set(x||0,y||0,z||0);g.add(m);return m;}
+  const cyl=(a,b,h,s,open)=>new T.CylinderGeometry(a,b,h,s||24,1,!!open);
+  const box=(w,h,d)=>new T.BoxGeometry(w,h,d);
+  const sph=(r,s)=>new T.SphereGeometry(r,s||16,Math.max(8,Math.floor((s||16)/2)));
+  function cylX(g,r,len,mat,x,y,z){const m=add(g,cyl(r,r,len,24),mat,x,y,z);m.rotation.z=Math.PI/2;return m;}
+  function cylZ(g,r,len,mat,x,y,z){const m=add(g,cyl(r,r,len,24),mat,x,y,z);m.rotation.x=Math.PI/2;return m;}
+  const steel=()=>M(0x9fb1bd,{m:0.65,r:0.35});
+  function seg(g,a,b,r,mat){const d=b.clone().sub(a),len=d.length();if(len<1e-4)return;const m=new T.Mesh(cyl(r,r,len,12),mat);m.position.copy(a).add(b).multiplyScalar(0.5);m.quaternion.setFromUnitVectors(UP,d.normalize());g.add(m);}
+  function pipe(g,pts,r,mat){for(let i=0;i<pts.length-1;i++)seg(g,pts[i],pts[i+1],r,mat);for(let i=1;i<pts.length-1;i++)add(g,sph(r*1.02,10),mat,pts[i].x,pts[i].y,pts[i].z);}
+  function label(g,txt,x,y,z,ry,w,h,col,px){
+    const tx=canvasTex(512,96,(c,cw,ch)=>{c.clearRect(0,0,cw,ch);c.fillStyle=col||'#e8f0f4';c.font='bold '+(px||44)+'px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(txt,cw/2,ch/2);});
+    const p=new T.Mesh(new T.PlaneGeometry(w||4,h||0.75),new T.MeshBasicMaterial({map:tx,transparent:true,depthWrite:false}));
+    p.position.set(x,y,z);p.rotation.y=ry||0;g.add(p);return p;
+  }
+
+  /* ---- hull, decks, double bottom ---- */
+  const gHull=G(null,null);
+  function hullPlate(w,h,d,x,y,z,base,col){
+    const mat=new T.MeshStandardMaterial({color:col||0x6f8fa4,roughness:0.6,metalness:0.2,transparent:true,opacity:base,depthWrite:false});
+    const m=add(gHull,box(w,h,d),mat,x,y,z);hullMats.push({mat:mat,base:base});return m;}
+  hullPlate(26,16.2,0.15,13,6.3,-8,0.2);
+  hullSB=hullPlate(26,16.2,0.15,13,6.3,8,0.2);
+  hullPlate(0.15,16.2,16,0,6.3,0,0.22);
+  hullPlate(0.15,16.2,16,26,6.3,0,0.22);
+  hullPlate(7,12.6,10,29.5,4.5,0,0.14);
+  hullPlate(26,1.7,16,13,-0.95,0,0.4,0x35566a);
+  label(gHull,'DOUBLE BOTTOM TANKS',13,-1.0,8.1,0,9,0.9,'#9fc3d6',40);
+
+  const deckG=[];
+  LEVELS.forEach((L,i)=>{
+    const g=G(null,i);deckG.push(g);
+    const mat=new T.MeshStandardMaterial({color:i===0?0x24414f:0x34586b,roughness:0.7,metalness:0.2,transparent:true,opacity:0.42,depthWrite:false});
+    DECKS.push({level:i,mat:mat});
+    const piece=(x0,x1,z0,z1)=>add(g,box(x1-x0,0.18,z1-z0),mat,(x0+x1)/2,L.y-0.09,(z0+z1)/2);
+    if(i===0)piece(0,26,-8,8);
+    else if(i===4){piece(0,18.4,-8,8);piece(18.4,26,-8,-3.8);piece(18.4,26,3.8,8);}
+    else{piece(0,26,-8,-2.4);piece(0,26,2.4,8);piece(0,2.6,-2.4,2.4);piece(18,26,-2.4,2.4);}
+    label(g,L.n.toUpperCase(),3.4,L.y+0.04,7.4,0,5.2,0.9,'#cfe6f3',40).rotation.x=-Math.PI/2;
+  });
+  /* steering gear room floor at the upper platform level, and its roof */
+  {const g=deckG[3],mat=DECKS[3].mat;add(g,box(9.5,0.18,10),mat,30.75,10.71,0);
+   const g4=deckG[4];add(g4,box(9.5,0.18,10),DECKS[4].mat,30.75,14.31,0);}
+
+  /* ---- funnel casing (top level) ---- */
+  const gCas=G(null,4);
+  const casM=new T.MeshStandardMaterial({color:0x8aa3b3,roughness:0.6,metalness:0.2,transparent:true,opacity:0.22,depthWrite:false});
+  add(gCas,box(7.4,13.2,7.6),casM,22.1,17.4,0);
+  add(gCas,box(4.6,3.5,5.2),M(0xe8eef2,{m:0.2,r:0.6}),22.1,25.75,0);
+  add(gCas,box(4.62,0.8,5.22),M(0x2a6f99,{m:0.2,r:0.6}),22.1,26.2,0);
+  add(gCas,box(4.0,0.2,4.6),M(0x1b2a33,{m:0.2,r:0.6}),22.1,27.55,0);
+
+  /* ---- main engine, shaft, propeller (always visible) ---- */
+  const gEng=G('engine',null);
+  const eb=()=>M(0x2f5f7f,{m:0.4,r:0.5}),ec=()=>M(0x4f86a8,{m:0.4,r:0.5}),ed=()=>M(0x23414f,{m:0.3,r:0.6});
+  add(gEng,box(14,1.2,3.4),ed(),10,0.6,0);
+  add(gEng,box(14,3.0,2.8),eb(),10,2.7,0);
+  add(gEng,box(14,3.2,2.2),ec(),10,5.8,0);
+  for(let i=0;i<6;i++){
+    const x=4.2+i*2.3;
+    add(gEng,cyl(0.95,0.95,2.6,28),M(0x3a7aa0,{m:0.4,r:0.5}),x,8.7,0);
+    add(gEng,cyl(0.72,0.78,0.5,24),steel(),x,10.2,0);
+    add(gEng,cyl(0.25,0.25,0.45,12),M(0xd9822b,{m:0.4,r:0.5}),x,10.6,0);
+  }
+  cylX(gEng,0.6,13.6,M(0x7fb0cf,{m:0.4,r:0.5}),10,6.0,1.9);
+  cylX(gEng,0.55,13.6,M(0x8a949b,{m:0.3,r:0.6}),10,9.1,-1.7);
+  cylX(gEng,1.0,2.0,M(0xc9d4db,{m:0.5,r:0.4}),18.3,9.0,-0.2);
+  add(gEng,sph(0.95,18),M(0xb7c4cd,{m:0.5,r:0.4}),19.4,9.0,-0.2);
+  cylX(gEng,1.25,0.5,M(0x1b2a33,{m:0.3,r:0.5}),17.3,2.2,0);
+  cylX(gEng,0.42,11.6,steel(),23.0,2.2,0);
+  add(gEng,box(1.4,1.1,1.6),M(0x3f5666,{m:0.4,r:0.6}),20.5,1.0,0);
+  add(gEng,box(1.4,1.1,1.6),M(0x3f5666,{m:0.4,r:0.6}),25.0,1.0,0);
+  cylX(gEng,0.6,1.2,M(0x56707f,{m:0.4,r:0.5}),26.8,2.2,0);
+  const exM=M(0x8a949b,{m:0.3,r:0.6});
+  pipe(gEng,[V(18.9,9.6,-0.2),V(18.9,11.4,0),V(22.1,11.4,0),V(22.1,27.0,0)],0.55,exM);
+  const prop=new T.Group();prop.position.set(28.6,2.2,0);gEng.add(prop);
+  cylX(prop,0.5,1.0,M(0xc8a24a,{m:0.7,r:0.35}),0,0,0);
+  for(let k=0;k<4;k++){const b=add(prop,box(0.14,1.7,0.75),M(0xd8b455,{m:0.7,r:0.3}),0,0,0);const a=k*Math.PI/2;b.position.set(0,Math.cos(a)*1.15,Math.sin(a)*1.15);b.rotation.x=a;}
+
+  /* ---- generators (middle platform, port side) ---- */
+  const gGen=G('gens',2);
+  [4.5,9.5,14.5].forEach(x=>{
+    const z=-5.2,y0=7.2;
+    add(gGen,box(4.4,0.5,1.7),M(0x3f5666,{m:0.4,r:0.6}),x,y0+0.25,z);
+    add(gGen,box(2.4,1.6,1.4),M(0xd9822b,{m:0.35,r:0.5}),x-0.9,y0+1.3,z);
+    for(let k=0;k<4;k++)add(gGen,box(0.4,0.3,0.9),M(0xe6a050,{m:0.35,r:0.5}),x-1.6+k*0.55,y0+2.25,z);
+    cylX(gGen,0.75,1.6,M(0x2a6f99,{m:0.4,r:0.5}),x+1.4,y0+1.25,z);
+    cylX(gGen,0.3,0.7,steel(),x-0.2,y0+2.5,z+0.7);
+  });
+
+  /* ---- auxiliary boiler (upper platform, port side, next to the casing) ---- */
+  const gBoi=G('boiler',3);
+  {const x=21,z=-5.8,y0=10.8;
+   add(gBoi,cyl(1.4,1.4,0.25,28),M(0x3f5666,{m:0.4,r:0.6}),x,y0+0.12,z);
+   add(gBoi,cyl(1.3,1.3,2.8,32),M(0xdfe7ee,{m:0.25,r:0.45}),x,y0+1.65,z);
+   add(gBoi,cyl(1.34,1.34,0.35,32),M(0x2a6f99,{m:0.3,r:0.5}),x,y0+1.0,z);
+   const dome=add(gBoi,sph(1.3,24),M(0xdfe7ee,{m:0.25,r:0.45}),x,y0+3.05,z);dome.scale.y=0.3;
+   cylX(gBoi,0.5,1.2,M(0x2a6f99,{m:0.4,r:0.5}),x-1.7,y0+1.6,z);
+   cylX(gBoi,0.28,0.9,M(0x8a949b,{m:0.3,r:0.6}),x-0.2,y0+1.2,z+1.45).rotation.y=0;
+   add(gBoi,box(0.14,1.1,0.1),M(0xbfe6f7,{m:0.1,r:0.2,t:true,o:0.7}),x+1.0,y0+2.0,z+1.05);
+   cylZ(gBoi,0.32,1.1,M(0x8a949b,{m:0.3,r:0.6}),x,y0+2.6,z+1.75);}
+
+  /* ---- starting air compressors (middle platform) and receivers (upper platform), starboard aft ---- */
+  const gCmp=G('compressor',2),gRcv=G('compressor',3);
+  [19.2,23.0].forEach(x=>{
+    const z=5.2,y0=7.2;
+    add(gCmp,box(3.4,0.4,1.4),M(0x3f5666,{m:0.4,r:0.6}),x-0.4,y0+0.2,z);
+    add(gCmp,box(1.4,0.9,1.0),M(0x3a7fb5,{m:0.4,r:0.5}),x,y0+0.85,z);
+    [-0.3,0.3].forEach((dx,k)=>add(gCmp,cyl(0.32-0.08*k,0.32-0.08*k,1.1,20),M(0x5a9bcf,{m:0.4,r:0.5}),x+dx,y0+1.85,z));
+    cylZ(gCmp,0.6,0.14,M(0x1b2a33,{m:0.3,r:0.5}),x+0.95,y0+1.0,z+0.2);
+    cylX(gCmp,0.5,1.3,M(0x2e7d6a,{m:0.4,r:0.5}),x-1.4,y0+0.95,z);
+  });
+  [20.4,23.2].forEach(x=>{
+    const z=6.4,y0=10.8;
+    add(gRcv,cyl(0.55,0.55,3.0,24),M(0xb5452e,{m:0.35,r:0.5}),x,y0+1.5,z);
+    const d=add(gRcv,sph(0.55,16),M(0xb5452e,{m:0.35,r:0.5}),x,y0+3.0,z);d.scale.y=0.5;
+    add(gRcv,cyl(0.1,0.1,0.35,10),M(0xd62c2c,{m:0.2,r:0.5}),x,y0+3.4,z);
+  });
+
+  /* ---- purifiers (middle platform, forward) and service tanks (above them) ---- */
+  const gPur=G('purifier',2);
+  [4.6,7.4].forEach((x,k)=>{
+    const z=5.4,y0=7.2;
+    add(gPur,box(1.6,0.4,1.6),M(0x3f5666,{m:0.4,r:0.6}),x,y0+0.2,z);
+    add(gPur,cyl(0.62,0.62,1.2,32),M(0xdfe7ee,{m:0.25,r:0.45}),x,y0+1.0,z);
+    const d=add(gPur,sph(0.62,20),M(0xdfe7ee,{m:0.25,r:0.45}),x,y0+1.6,z);d.scale.y=0.55;
+    add(gPur,cyl(0.64,0.64,0.18,32),M(k?0xd9822b:0x2a6f99,{m:0.3,r:0.5}),x,y0+0.7,z);
+    add(gPur,box(0.5,0.8,0.5),M(0x2e7d6a,{m:0.4,r:0.5}),x+0.75,y0+0.8,z-0.2);
+  });
+  const gSvc=G(null,3);
+  add(gSvc,box(6.4,2.6,3.0),M(0x7d95a5,{m:0.4,r:0.5,t:true,o:0.45,d:true}),6.4,12.1,5.8);
+  label(gSvc,'SERVICE TANKS',6.4,13.7,5.8,0,3.4,0.6,'#cfe6f3',38);
+
+  /* ---- oily water separator (lower platform, port aft) and bilge holding tank (tank top) ---- */
+  const gOws=G('ows',1),gBil=G('ows',0);
+  {const x=19,z=-5.8,y0=3.6;
+   add(gOws,box(2.2,0.25,2.0),M(0x3f5666,{m:0.4,r:0.6}),x,y0+0.12,z);
+   add(gOws,cyl(0.62,0.62,2.2,32),M(0x7d95a5,{m:0.5,r:0.4}),x,y0+1.4,z);
+   const d=add(gOws,sph(0.62,20),M(0x7d95a5,{m:0.5,r:0.4}),x,y0+2.5,z);d.scale.y=0.45;
+   add(gOws,cyl(0.64,0.64,0.2,32),M(0x4fbf8a,{m:0.3,r:0.5}),x,y0+1.2,z);
+   add(gOws,box(0.7,1.0,0.5),M(0x6b7c88,{m:0.35,r:0.5}),x+1.3,y0+0.85,z+0.2);
+   cylX(gOws,0.3,0.9,M(0x2e7d6a,{m:0.4,r:0.5}),x-1.35,y0+0.55,z+0.4);
+   add(gBil,box(4.2,1.8,2.6),M(0x6b8fa3,{m:0.4,r:0.4,t:true,o:0.5,d:true}),x,0.9,-5.7);
+   label(gBil,'BILGE TANK',x,2.1,-4.45,0,3.0,0.55,'#cfe6f3',36);}
+
+  /* ---- steering gear room (upper platform level, right at the stern) and rudder ---- */
+  const gSte=G('steering',3);
+  {const sx=30.5,y0=10.8;
+   const rm=()=>M(0x7a8c98,{m:0.5,r:0.4}),tm=()=>M(0x2a6f99,{m:0.4,r:0.5});
+   add(gSte,cyl(0.3,0.3,7.6,20),M(0xb9c6ce,{m:0.7,r:0.3}),sx,y0+1.0-1.9,0);
+   add(gSte,cyl(0.7,0.7,1.2,24),M(0x56707f,{m:0.4,r:0.5}),sx,y0+0.5,0);
+   add(gSte,box(3.0,2.6,0.34),M(0x4f7a99,{m:0.35,r:0.5}),sx+0.6,1.7,0);
+   add(gSte,box(0.5,0.45,3.8),rm(),sx,y0+0.85,0);
+   add(gSte,cyl(0.56,0.56,0.55,24),rm(),sx,y0+0.85,0);
+   [-1,1].forEach(s=>{
+     cylX(gSte,0.4,2.0,tm(),33.3,y0+0.85,s*1.6);
+     cylX(gSte,0.26,2.4,steel(),31.9,y0+0.85,s*1.6);
+     add(gSte,box(0.5,0.5,0.5),M(0xe0b020,{m:0.5,r:0.35}),30.8,y0+0.85,s*1.6);
+     add(gSte,box(1.3,0.9,1.0),M(0x3f5666,{m:0.4,r:0.6}),33.9,y0+0.45,s*3.6);
+     cylZ(gSte,0.35,0.9,M(0x2e7d6a,{m:0.4,r:0.5}),33.9,y0+1.25,s*3.6);
+   });
+   add(gSte,box(1.4,1.0,2.0),M(0x6b8fa3,{m:0.4,r:0.4,t:true,o:0.55,d:true}),34.6,y0+2.3,0);
+   const rb=add(gSte,box(3.0,5.6,0.34),M(0x4f7a99,{m:0.35,r:0.5}),sx+0.6,2.2,0);rb.position.y=2.2;}
+
+  /* ---- pipes (always shown): starting air, fuel, bilge ---- */
+  const gPipes=G(null,null);
+  const P=(x,y,z)=>V(x,y,z);
+  const mAir=M(0x7fc6ff,{m:0.3,r:0.5}),mFuel=M(0xe0a020,{m:0.3,r:0.5}),mBilge=M(0x756a52,{m:0.3,r:0.5});
+  pipe(gPipes,[P(19.6,8.9,5.2),P(19.6,10.4,5.2),P(20.4,10.4,6.4),P(20.4,10.8,6.4)],0.1,mAir);
+  pipe(gPipes,[P(20.4,13.9,6.4),P(20.4,14.05,6.4),P(15.7,14.05,6.4),P(15.7,14.05,0.9),P(15.7,10.9,0.9)],0.12,mAir);
+  pipe(gPipes,[P(23.2,13.9,6.4),P(23.2,14.05,6.4),P(20.4,14.05,6.4)],0.12,mAir);
+  pipe(gPipes,[P(4.6,9.2,5.4),P(4.6,10.95,5.4)],0.1,mFuel);
+  pipe(gPipes,[P(6.4,11.3,4.4),P(6.4,11.3,1.0),P(4.2,11.3,0.9),P(4.2,10.9,0.9)],0.12,mFuel);
+  pipe(gPipes,[P(18.2,1.8,-5.7),P(18.2,4.0,-5.7)],0.1,mBilge);
+  pipe(gPipes,[P(20.3,4.7,-5.8),P(20.3,4.7,-8.1)],0.1,mBilge);
+
+    function levelOf(o){while(o){if(o.userData&&o.userData.level!==undefined)return o.userData.level;o=o.parent;}return null;}
+  /* ---- finalise meshes: part ids, base material state, pick list ---- */
+  const ALLM=[],PICK=[];
+  function partOf(o){while(o){if(o.isGroup&&o.userData&&o.userData.part)return o.userData.part;o=o.parent;}return null;}
+  root.traverse(o=>{
+    if(!o.isMesh)return;const id=partOf(o);if(!id)return;
+    const mat=o.material;o.userData.part=id;o.userData.lvl=levelOf(o);
+    o.userData.clipZ=CLIPMAP.has(mat)?CLIPMAP.get(mat).constant:null;
+    o.userData.base={opacity:mat.opacity,transparent:mat.transparent,depthWrite:mat.depthWrite,emissive:mat.emissive?mat.emissive.clone():null,ei:mat.emissiveIntensity};
+    ALLM.push(o);PICK.push(o);
+  });
+
+  /* ---- view modes, levels, ghosting, highlight ---- */
+  let viewMode='cut',focusId=null,FOCUSM=[],levelSel=null;
+  const ACC=new T.Color(0xf2c230);
+  function refreshMaterials(){
+    const xr=viewMode==='xray';
+    for(const m of ALLM){
+      const b=m.userData.base,mat=m.material;let op=b.opacity,tr=b.transparent,dw=b.depthWrite;
+      const lv=m.userData.lvl;
+      if(xr){op*=0.55;tr=true;}
+      if(levelSel!==null&&lv!=null&&lv<levelSel){op*=0.55;tr=true;}
+      if(focusId&&m.userData.part!==focusId){op*=0.16;tr=true;dw=false;}
+      if(mat.opacity!==op||mat.transparent!==tr){mat.opacity=op;mat.transparent=tr;mat.depthWrite=dw;mat.needsUpdate=true;}
+    }
+  }
+  function rebuildFocus(){
+    FOCUSM.forEach(m=>{const b=m.userData.base;if(b.emissive){m.material.emissive.copy(b.emissive);m.material.emissiveIntensity=b.ei;}});
+    FOCUSM=focusId?ALLM.filter(m=>m.userData.part===focusId&&m.userData.base.emissive&&!m.userData.dyn):[];
+  }
+  function applyDecks(){
+    DECKS.forEach(d=>{
+      let op=d.level===4?0.2:0.42;
+      if(levelSel!==null&&d.level<levelSel)op*=0.5;
+      if(viewMode==='xray')op*=0.4;
+      d.mat.opacity=op;
+    });
+    hullMats.forEach(h=>{h.mat.opacity=viewMode==='xray'?h.base*0.3:h.base;});
+    hullSB.visible=viewMode!=='cut';
+    if(hullSB.visible&&viewMode==='ext')hullMats[1].mat.opacity=0.5;
+  }
+  function setView(mode){viewMode=mode;applyDecks();refreshMaterials();}
+  function levelCam(){
+    sway=false;
+    if(levelSel===null){camPreset('home');return;}
+    const por=(W/H)<0.9;
+    fly([14,LEVELS[levelSel].y+0.8,0],homeR()*0.72,por?50:14,40);
+  }
+  function setLevel(sel,doFly){
+    levelSel=(sel===null||sel===undefined||sel==='all')?null:+sel;
+    LEVELOBJ.forEach(o=>{o.g.visible=levelSel===null||o.level<=levelSel;});
+    applyDecks();refreshMaterials();
+    if(doFly!==false)levelCam();
+  }
+
+  /* ---- camera ---- */
+  const cam={tx:15,ty:8,tz:0,r:60,az:18*Math.PI/180,el:16*Math.PI/180},goal=Object.assign({},cam);
+  let W=2,H=2,sway=true,swayBase=0;
+  function homeR(){const t=Math.tan(camera.fov*Math.PI/360),asp=W/H;const por=asp<0.9;return clamp(Math.max(13/t,(por?15:19)/(t*asp)),12,150);}
+  function fly(t,r,azDeg,elDeg){
+    goal.tx=t[0];goal.ty=t[1];goal.tz=t[2];goal.r=clamp(r,4,150);
+    let d=azDeg*Math.PI/180-cam.az;d=Math.atan2(Math.sin(d),Math.cos(d));goal.az=cam.az+d;goal.el=clamp(elDeg*Math.PI/180,-0.05,1.45);
+  }
+  function camPreset(name){
+    sway=false;
+    const por=(W/H)<0.9;
+    const m={front:[0,8],right:[-90,10],back:[90,10],top:[0,80],home:por?[55,20]:[18,16]}[name]||(por?[55,20]:[18,16]);
+    fly([15,8,0],homeR(),m[0],m[1]);
+  }
+  function focus(id){
+    focusId=id||null;sway=false;
+    if(id){const p=PBY[id],k=Math.max(1,0.9/(W/H));fly(p.cam.t,p.cam.r*k,p.cam.az,p.cam.el);}
+    refreshMaterials();rebuildFocus();
+  }
+  function updateCamera(dt){
+    const k=reduce?1:1-Math.exp(-dt*7);
+    cam.tx+=(goal.tx-cam.tx)*k;cam.ty+=(goal.ty-cam.ty)*k;cam.tz+=(goal.tz-cam.tz)*k;cam.r+=(goal.r-cam.r)*k;cam.el+=(goal.el-cam.el)*k;cam.az+=(goal.az-cam.az)*k;
+    const ce=Math.cos(cam.el);
+    camera.position.set(cam.tx+cam.r*Math.sin(cam.az)*ce,cam.ty+cam.r*Math.sin(cam.el),cam.tz+cam.r*Math.cos(cam.az)*ce);
+    camera.lookAt(cam.tx,cam.ty,cam.tz);camera.updateMatrixWorld();
+  }
+  const _r=new T.Vector3(),_u=new T.Vector3(),_z=new T.Vector3();
+  function pan(dx,dy){
+    camera.matrixWorld.extractBasis(_r,_u,_z);const s=cam.r*0.0017;
+    goal.tx=clamp(goal.tx+(-_r.x*dx+_u.x*dy)*s,-6,40);goal.ty=clamp(goal.ty+(-_r.y*dx+_u.y*dy)*s,-4,26);goal.tz=clamp(goal.tz+(-_r.z*dx+_u.z*dy)*s,-12,12);
+  }
+  const ptrs=new Map();let down=null,pinchD=0,pinchMid=null;
+  canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  canvas.addEventListener('pointerdown',e=>{
+    try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+    ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(ptrs.size===1)down={x:e.clientX,y:e.clientY,t:performance.now(),m:0};
+    else{down=null;const v=Array.from(ptrs.values());pinchD=Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y);pinchMid={x:(v[0].x+v[1].x)/2,y:(v[0].y+v[1].y)/2};}
+    sway=false;
+  });
+  canvas.addEventListener('pointermove',e=>{
+    const p=ptrs.get(e.pointerId);if(!p)return;
+    const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+    if(ptrs.size===1){
+      if(down)down.m+=Math.abs(dx)+Math.abs(dy);
+      if((e.buttons&2)||e.shiftKey)pan(dx,dy);
+      else{goal.az-=dx*0.0065;goal.el=clamp(goal.el+dy*0.0055,-0.05,1.45);}
+    }else if(ptrs.size===2){
+      const v=Array.from(ptrs.values()),d=Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y),mid={x:(v[0].x+v[1].x)/2,y:(v[0].y+v[1].y)/2};
+      if(pinchD>0&&d>0)goal.r=clamp(goal.r*pinchD/d,4,150);
+      if(pinchMid)pan(mid.x-pinchMid.x,mid.y-pinchMid.y);
+      pinchD=d;pinchMid=mid;
+    }
+  });
+  function shown(o){while(o){if(o.visible===false)return false;o=o.parent;}return true;}
+  const ray=new T.Raycaster(),ndc=new T.Vector2();
+  function pick(cx,cy){
+    const rc=canvas.getBoundingClientRect();
+    ndc.set((cx-rc.left)/rc.width*2-1,-((cy-rc.top)/rc.height)*2+1);ray.setFromCamera(ndc,camera);
+    const hits=ray.intersectObjects(PICK,false);
+    for(const h of hits){
+      const o=h.object;if(!o.visible||!shown(o))continue;
+      return o.userData.part;
+    }
+    return null;
+  }
+  function endPtr(e){
+    const was=down;ptrs.delete(e.pointerId);if(ptrs.size<2)pinchD=0;
+    if(was&&e.type==='pointerup'&&was.m<8&&performance.now()-was.t<600){const id=pick(e.clientX,e.clientY);if(id&&api.onPick)api.onPick(id);}
+    if(ptrs.size===0)down=null;
+  }
+  canvas.addEventListener('pointerup',endPtr);canvas.addEventListener('pointercancel',endPtr);
+  canvas.addEventListener('wheel',e=>{e.preventDefault();sway=false;goal.r=clamp(goal.r*Math.exp(e.deltaY*0.0012),4,150);},{passive:false});
+  canvas.addEventListener('keydown',e=>{
+    const k=e.key;sway=false;
+    if(k==='ArrowLeft')goal.az-=0.12;else if(k==='ArrowRight')goal.az+=0.12;
+    else if(k==='ArrowUp')goal.el=clamp(goal.el+0.08,-0.05,1.45);else if(k==='ArrowDown')goal.el=clamp(goal.el-0.08,-0.05,1.45);
+    else if(k==='+'||k==='=')goal.r=clamp(goal.r*0.9,4,150);else if(k==='-')goal.r=clamp(goal.r*1.1,4,150);else return;
+    e.preventDefault();
+  });
+
+  /* ---- pins ---- */
+  const pinsEl=$('#pins'),pinEls={};let pinMode='all',pinId=null;
+  PARTS.forEach(p=>{
+    const b=document.createElement('button');b.type='button';b.className='pin';b.style.setProperty('--pc',GROUPS[p.g].c);b.setAttribute('aria-label',p.n);
+    b.innerHTML='<span class="dot"></span><span class="lab"></span>';b.lastChild.textContent=p.n;
+    b.addEventListener('click',e=>{e.stopPropagation();if(api.onPick)api.onPick(p.id);});
+    pinsEl.appendChild(b);pinEls[p.id]=b;
+  });
+  const _v=new T.Vector3();
+  function updatePins(){
+    if(pinMode==='none')return;
+    PARTS.forEach(p=>{
+      const el=pinEls[p.id];
+      if(!(pinMode==='all'||(pinMode==='one'&&p.id===pinId))){el.style.display='none';return;}
+      if(levelSel!==null&&p.lv!=null&&p.lv>levelSel){el.style.display='none';return;}
+      _v.set(p.pin[0],p.pin[1],p.pin[2]).project(camera);
+      if(_v.z>1||_v.z<-1){el.style.display='none';return;}
+      el.style.display='';el.style.opacity=1;el.style.pointerEvents='auto';
+      el.style.transform='translate('+((_v.x*0.5+0.5)*W).toFixed(1)+'px,'+((-_v.y*0.5+0.5)*H).toFixed(1)+'px)';
+      el.classList.toggle('on',p.id===focusId||(pinMode==='one'&&p.id===pinId));
+    });
+  }
+
+    function resize(){
+    const r=stage.getBoundingClientRect(),w=Math.max(2,Math.floor(r.width)),h=Math.max(2,Math.floor(r.height));
+    if(w===W&&h===H)return;W=w;H=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+  }
+  if(window.ResizeObserver)new ResizeObserver(resize).observe(stage);else window.addEventListener('resize',resize);
+  resize();
+  camPreset('home');Object.assign(cam,goal);swayBase=cam.az;sway=true;
+  setView('cut');rebuildFocus();
+
+  const api={ok:true,onPick:null,onView:null,focus:focus,setView:setView,cam:camPreset,level:setLevel,
+    names(on){document.body.classList.toggle('names',!!on);},
+    pins(mode,id){pinMode=mode;pinId=id||null;pinsEl.classList.toggle('hide',mode==='none');},
+    tick(dt,tm){
+      resize();
+      if(sway&&!reduce)goal.az=swayBase+0.2*Math.sin(tm*0.5);
+      updateCamera(dt);
+      prop.rotation.x+=dt*0.5;
+      if(focusId&&FOCUSM.length){const k=reduce?0.4:0.45+0.25*Math.sin(tm*4.2);FOCUSM.forEach(m=>{const b=m.userData.base;m.material.emissive.copy(b.emissive).lerp(ACC,k);m.material.emissiveIntensity=Math.max(b.ei,1);});}
+      renderer.render(scene,camera);
+      updatePins();
+    }};
+  return api;
+  }catch(err){
+    console.error(err);
+    $('#stage').insertAdjacentHTML('beforeend','<p class="nogl">The 3D view hit a problem and was turned off. The guide, procedures, simulator and quiz still work.</p>');
+    return stub;
+  }
+})();
+
+/* ---------------- UI ---------------- */
+const UI={tab:'parts',filter:'all',sel:null,proc:'layout',step:0,quiz:null};
+const appEl=$('#app'),panel=$('#panel');
+const toastEl=$('#toast');let toastT=0;
+function toast(msg,sev){toastEl.textContent=msg;toastEl.className='show '+(sev||'info');clearTimeout(toastT);toastT=setTimeout(()=>{toastEl.className='';},3600);}
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}return a;};
+
+/* bottom sheet (mobile) */
+const mqDesk=window.matchMedia('(min-width:640px) and (min-aspect-ratio:1/1)');
+let stops=[84,300,500];
+function calcStops(){const H=appEl.clientHeight||700;stops=[84,Math.round(H*0.48),Math.round(H*0.84)];}
+function sheetH(){return panel.getBoundingClientRect().height;}
+function setSheet(h,anim){
+  if(mqDesk.matches){panel.style.height='';return;}
+  calcStops();h=clamp(h,stops[0],stops[2]);
+  panel.classList.toggle('snap',!!anim);panel.style.height=h+'px';
+}
+function expandIfCollapsed(){if(!mqDesk.matches&&sheetH()<150)setSheet(stops[1],true);}
+const grab=$('#grab');let drag=null;
+grab.addEventListener('pointerdown',e=>{if(mqDesk.matches)return;try{grab.setPointerCapture(e.pointerId);}catch(_){}drag={y:e.clientY,h:sheetH(),m:0};panel.classList.remove('snap');});
+grab.addEventListener('pointermove',e=>{if(!drag)return;const dy=drag.y-e.clientY;drag.m=Math.max(drag.m,Math.abs(dy));setSheet(drag.h+dy,false);});
+function endDrag(){
+  if(!drag)return;const d=drag;drag=null;calcStops();const h=sheetH();
+  if(d.m<6){setSheet(h<150?stops[1]:stops[0],true);}
+  else{let best=stops[0];stops.forEach(s=>{if(Math.abs(s-h)<Math.abs(best-h))best=s;});setSheet(best,true);}
+}
+grab.addEventListener('pointerup',endDrag);grab.addEventListener('pointercancel',endDrag);
+grab.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSheet(sheetH()<150?stops[1]:stops[0],true);}});
+window.addEventListener('resize',()=>{if(mqDesk.matches)panel.style.height='';else setSheet(sheetH(),false);});
+
+/* tabs */
+function setTab(t){
+  UI.tab=t;
+  $$('#tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
+  ['parts','steps','run','quiz'].forEach(k=>{$('#v-'+k).hidden=(k!==t);});
+  if(t==='parts'){renderParts();view3d.pins('all');view3d.focus(UI.sel);}
+  else if(t==='steps'){renderSteps();applyStepFocus();}
+  else if(t==='run'){view3d.pins('none');view3d.focus(null);view3d.cam('home');updateRun();}
+  else{view3d.pins('none');view3d.focus(null);}
+}
+$$('#tabs button').forEach(b=>b.addEventListener('click',()=>{expandIfCollapsed();setTab(b.dataset.tab);}));
+
+/* parts guide */
+/* ---- learning progress, saved on this phone for the menu bars ---- */
+const MT_PROG={
+  id:'engineroom',
+  total:PARTS.length+QUIZ.length,
+  mark(item){
+    try{
+      const doneAll=JSON.parse(localStorage.getItem('marineTrainers.done')||'{}')||{};
+      const mine=new Set(doneAll[this.id]||[]);
+      if(mine.has(item))return;
+      mine.add(item);doneAll[this.id]=[...mine];
+      localStorage.setItem('marineTrainers.done',JSON.stringify(doneAll));
+      const prog=JSON.parse(localStorage.getItem('marineTrainers.progress')||'{}')||{};
+      prog[this.id]=Math.min(100,Math.round(mine.size/this.total*100));
+      localStorage.setItem('marineTrainers.progress',JSON.stringify(prog));
+    }catch(e){}
+  }
+};
+function selectPart(id){
+  if(id)MT_PROG.mark('part:'+id);
+  UI.sel=id;
+  if(UI.tab!=='parts')setTab('parts');
+  else{renderParts();view3d.focus(id);}
+  const v=$('#v-parts');v.scrollTop=0;
+}
+function renderParts(){
+  const v=$('#v-parts');
+  if(UI.sel){renderDetail(v);return;}
+  const chips=[['all','All']].concat(Object.keys(GROUPS).map(k=>[k,GROUPS[k].n]));
+  let h='<div class="chips" role="group" aria-label="Filter parts">'+chips.map(c=>'<button class="chip" data-f="'+c[0]+'" aria-pressed="'+(UI.filter===c[0])+'">'+c[1]+'</button>').join('')+'</div>';
+  h+='<p class="muted small">Tap a machine in the 3D model or pick one below. Layouts differ between ships. This is a typical single-screw ship with an aft engine room.</p>';
+  h+='<div class="legend" aria-label="Pipe colours in the model">'+[['#7fc6ff','Starting air'],['#e0a020','Fuel'],['#756a52','Bilge water'],['#8a949b','Exhaust']].map(x=>'<span><s style="background:'+x[0]+';box-shadow:0 0 0 1px var(--line)"></s>'+x[1]+'</span>').join('')+'</div>';
+  h+='<ul class="plist">'+PARTS.filter(p=>UI.filter==='all'||p.g===UI.filter).map(p=>'<li><button class="prow" data-id="'+p.id+'" style="--gc:'+GROUPS[p.g].c+'"><b>'+p.n+'</b><small>'+GROUPS[p.g].n+'</small></button></li>').join('')+'</ul>';
+  v.innerHTML=h;
+}
+function renderDetail(v){
+  const p=PBY[UI.sel],g=GROUPS[p.g];
+  let list=PARTS.filter(x=>UI.filter==='all'||x.g===UI.filter);
+  let i=list.findIndex(x=>x.id===p.id);if(i<0){list=PARTS;i=list.findIndex(x=>x.id===p.id);}
+  const prev=list[(i-1+list.length)%list.length],next=list[(i+1)%list.length];
+  let h='<button class="back" data-act="back">&larr; All machines</button>';
+  h+='<span class="gtag" style="--gc:'+g.c+'">'+g.n+'</span><h2>'+p.n+'</h2>';
+  h+='<h3>What it does</h3><p>'+p.what+'</p><h3>How it works</h3><p>'+p.how+'</p>';
+  h+='<h3>Key points</h3><ul class="facts">'+p.facts.map(f=>'<li>'+f+'</li>').join('')+'</ul>';
+  h+='<div class="watch"><b>Watch for</b>'+p.watch+'</div>';
+  h+=p.link?'<a class="btn" href="'+p.link+'" style="display:block;text-align:center;text-decoration:none;margin-top:14px">Open the full trainer</a>':'<p class="muted small" style="margin-top:12px">There is no full trainer for this machine yet.</p>';
+  h+='<div class="pnav"><button class="btn" data-id="'+prev.id+'">&larr; '+prev.n+'</button><button class="btn" data-id="'+next.id+'">'+next.n+' &rarr;</button></div>';
+  v.innerHTML=h;
+}
+$('#v-parts').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.f){UI.filter=b.dataset.f;renderParts();}
+  else if(b.dataset.id){selectPart(b.dataset.id);}
+  else if(b.dataset.act==='back'){UI.sel=null;renderParts();view3d.focus(null);view3d.cam('home');$('#v-parts').scrollTop=0;}
+});
+
+/* procedures */
+const curProc=()=>PROCS.find(p=>p.id===UI.proc);
+function applyStepFocus(){
+  const st=curProc().steps[UI.step];
+  view3d.pins('one',st.part);view3d.focus(st.part);
+}
+function renderSteps(){
+  const v=$('#v-steps'),pr=curProc(),st=pr.steps[UI.step],last=UI.step===pr.steps.length-1;
+  let h='<div class="procs" role="group" aria-label="Procedure">'+PROCS.map(p=>'<button class="chip" data-p="'+p.id+'" aria-pressed="'+(p.id===UI.proc)+'">'+p.n+'</button>').join('')+'</div>';
+  h+='<div class="stepno">Step '+(UI.step+1)+' of '+pr.steps.length+'</div><div class="prog"><i style="width:'+((UI.step+1)/pr.steps.length*100)+'%"></i></div>';
+  h+='<h2>'+st.t+'</h2><p>'+st.b+'</p><p class="muted"><b>Why:</b> '+st.why+'</p>';
+  if(st.caut)h+='<div class="caution"><b>Caution. </b>'+st.caut+'</div>';
+  if(st.chk)h+='<div class="chk" id="chk"><span class="tick"></span><span>'+st.chkL+'</span></div>';
+  h+='<div class="row">'+(st.doF?'<button class="btn pri" data-a="do">'+st.doL+'</button>':'')+'<button class="btn sm" data-a="show">Show in 3D</button></div>';
+  h+='<div class="pnav"><button class="btn" data-a="prev"'+(UI.step===0?' disabled':'')+'>Back</button><button class="btn pri" data-a="next">'+(last?'Done':'Next')+'</button></div>';
+  h+='<p class="muted small" style="margin-top:14px">Layouts differ between ships. Use your own ship\'s plans and manuals.</p>';
+  v.innerHTML=h;v.scrollTop=0;
+}
+function updateStepChk(){
+  if(UI.tab!=='steps')return;
+  const st=curProc().steps[UI.step],el=$('#chk');
+  if(st.chk&&el)el.classList.toggle('ok',!!st.chk(sim));
+}
+$('#v-steps').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const pr=curProc(),st=pr.steps[UI.step];
+  if(b.dataset.p){UI.proc=b.dataset.p;UI.step=0;renderSteps();applyStepFocus();}
+  else if(b.dataset.a==='next'){if(UI.step<pr.steps.length-1)UI.step++;else{UI.step=0;toast('Tour complete. Open a machine\'s full trainer to go deeper.','ok');}renderSteps();applyStepFocus();}
+  else if(b.dataset.a==='prev'){if(UI.step>0)UI.step--;renderSteps();applyStepFocus();}
+  else if(b.dataset.a==='show'){applyStepFocus();}
+  else if(b.dataset.a==='do'&&st.doF){st.doF(sim);updateStepChk();}
+});
+
+
+/* levels */
+const LEVEL_INFO=[
+ {i:4,n:'Main deck & casing',w:'The funnel casing, the funnel, and the roof of the engine room.'},
+ {i:3,n:'Upper platform',w:'The auxiliary boiler, the starting air receivers, the service tanks, and the steering gear room at the stern.'},
+ {i:2,n:'Middle platform',w:'The generators, the starting air compressors, and the purifiers.'},
+ {i:1,n:'Lower platform',w:'The oily water separator.'},
+ {i:0,n:'Tank top',w:'The foot of the main engine, the propeller shaft, and the bilge holding tank. Double bottom tanks are below.'}
+];
+let LV='all';
+function buildRun(){
+  let h='<p class="muted small">Choose a level to see that deck and the decks below it. The levels above are hidden.</p>';
+  h+='<div class="plist">';
+  h+='<button class="prow" data-level="all" style="--gc:#59b8ff"><span>All levels</span><small>Whole engine room</small></button>';
+  LEVEL_INFO.forEach(L=>{h+='<button class="prow" data-level="'+L.i+'" style="--gc:#e8a23a"><span>'+L.n+'</span><small>'+L.w+'</small></button>';});
+  h+='</div>';
+  $('#v-run').innerHTML=h;
+}
+$('#v-run').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b||b.dataset.level===undefined)return;
+  LV=b.dataset.level;view3d.level(LV);updateRun();updateHUD();
+});
+function updateRun(){
+  if(UI.tab!=='run')return;
+  $$('#v-run .prow').forEach(b=>b.classList.toggle('on',b.dataset.level===String(LV)));
+}
+
+/* quiz */
+function startQuiz(){UI.quiz={order:shuffle(QUIZ.map((q,i)=>i)).slice(0,8),i:0,score:0,picked:null,opts:null};renderQuiz();}
+function renderQuiz(){
+  const v=$('#v-quiz'),Q=UI.quiz;let h='';
+  if(!Q){
+    h='<h2>Check what you know</h2><p>Eight questions drawn from the machine guide and the tours. You get an explanation after every answer.</p><div class="row"><button class="btn pri" data-q="start">Start quiz</button></div>';
+  }else if(Q.i>=Q.order.length){
+    const msg=Q.score>=7?'Strong result. Now try the full trainers for each machine.':Q.score>=5?'A solid base. Revisit the parts you missed.':'Worth another pass through the Machines and Tours.';
+    h='<p class="muted">Quiz complete</p><div class="score">'+Q.score+' / '+Q.order.length+'</div><p>'+msg+'</p><div class="row"><button class="btn pri" data-q="start">Try again</button><button class="btn" data-q="parts">Back to parts</button></div>';
+  }else{
+    const q=QUIZ[Q.order[Q.i]];
+    if(!Q.opts)Q.opts=shuffle(q.a.map((t,k)=>({t:t,ok:k===q.c})));
+    h='<div class="stepno">Question '+(Q.i+1)+' of '+Q.order.length+'</div><div class="prog"><i style="width:'+((Q.i+1)/Q.order.length*100)+'%"></i></div><h3 style="font-size:20px;margin-top:6px">'+q.q+'</h3>';
+    h+=Q.opts.map((o,k)=>{let c='opt';if(Q.picked!==null){if(o.ok)c+=' right';else if(k===Q.picked)c+=' wrong';}return '<button class="'+c+'" data-k="'+k+'"'+(Q.picked!==null?' disabled':'')+'>'+o.t+'</button>';}).join('');
+    if(Q.picked!==null){
+      const ok=Q.opts[Q.picked].ok;
+      h+='<div class="card"><b>'+(ok?'Correct.':'Not quite.')+'</b> '+q.w+'</div><div class="row"><button class="btn pri" data-q="next">'+(Q.i===Q.order.length-1?'See result':'Next question')+'</button></div>';
+    }
+  }
+  v.innerHTML=h;
+}
+$('#v-quiz').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;const Q=UI.quiz;
+  if(b.dataset.q==='start'){startQuiz();$('#v-quiz').scrollTop=0;}
+  else if(b.dataset.q==='parts'){UI.quiz=null;setTab('parts');}
+  else if(b.dataset.q==='next'){Q.i++;Q.picked=null;Q.opts=null;renderQuiz();$('#v-quiz').scrollTop=0;}
+  else if(b.dataset.k!==undefined&&Q&&Q.picked===null){Q.picked=+b.dataset.k;if(Q.opts[Q.picked].ok){Q.score++;MT_PROG.mark('q'+Q.order[Q.i]);}renderQuiz();}
+});
+
+/* stage controls */
+function setViewButtons(m){$$('#viewseg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===m)));}
+$$('#viewseg button').forEach(b=>b.addEventListener('click',()=>{view3d.setView(b.dataset.view);setViewButtons(b.dataset.view);}));
+view3d.onView=setViewButtons;
+$$('#cams button[data-cam]').forEach(b=>b.addEventListener('click',()=>view3d.cam(b.dataset.cam)));
+$('#namesBtn').addEventListener('click',e=>{const b=e.currentTarget,on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(on));view3d.names(on);});
+view3d.onPick=id=>{expandIfCollapsed();selectPart(id);};
+$('#alarmBanner').addEventListener('click',()=>{expandIfCollapsed();setTab('run');});
+
+
+function seenCount(){
+  try{const d=JSON.parse(localStorage.getItem('marineTrainers.done')||'{}')||{};return (d.engineroom||[]).filter(x=>x.indexOf('part:')===0).length;}catch(e){return 0;}
+}
+function updateHUD(){
+  const name=LV==='all'?'All':LEVEL_INFO.find(L=>String(L.i)===String(LV)).n;
+  $('#r-a').textContent=name;
+  $('#r-p').textContent=Math.min(seenCount(),PARTS.length);
+  $('#state').textContent=LV==='all'?'Tap a machine to learn about it':'Showing '+name.toLowerCase()+' and the levels below';
+}
+
+/* main loop */
+let last=performance.now(),hudT=0,ok3d=true;
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=Math.min(0.05,Math.max(0,(now-last)/1000));last=now;
+  if(ok3d){try{view3d.tick(dt,now/1000);}catch(err){ok3d=false;console.error(err);}}
+  hudT+=dt;if(hudT>0.3){hudT=0;updateHUD();updateRun();updateStepChk();}
+}
+buildRun();renderParts();renderSteps();renderQuiz();
+setSheet(Math.round((appEl.clientHeight||700)*0.48),false);
+setTab('parts');updateHUD();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

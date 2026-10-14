@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Main Diesel Engine Trainer</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#245676">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script>
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --stage-a:#245676; --stage-b:#0b2131;
+  --bg:#e7edf0; --panel:#f3f6f7; --card:#ffffff; --ink:#10222d; --ink2:#4d616d; --line:#cbd6dc; --chip:#e3eaee;
+  --accent:#f2c230; --accent-ink:#1b1708;
+  --ok:#17804f; --warn:#a96a00; --bad:#c32f2f; --info:#1f6fa8;
+  --c-comb:#e8742f; --c-water:#3a9bdc; --c-mount:#e0b020; --c-feed:#3fae7c;
+  --font-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-disp:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#08141b; --panel:#112430; --card:#17303f; --ink:#e8f0f4; --ink2:#a0b4c0; --line:#28475a; --chip:#1e3a4b;
+    --ok:#4fd197; --warn:#f0b445; --bad:#ff7070; --info:#6cb8ee;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#08141b; --panel:#112430; --card:#17303f; --ink:#e8f0f4; --ink2:#a0b4c0; --line:#28475a; --chip:#1e3a4b;
+  --ok:#4fd197; --warn:#f0b445; --bad:#ff7070; --info:#6cb8ee;
+}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:linear-gradient(var(--stage-a) 50%,var(--panel) 50%)}
+body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--font-body);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+*,*::before,*::after{box-sizing:inherit}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#app{height:100%;display:flex;flex-direction:column}
+#stage{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:radial-gradient(120% 90% at 50% 40%,var(--stage-a),var(--stage-b))}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.nogl{position:absolute;inset:auto 16px 16px;margin:0;padding:12px 14px;background:rgba(0,0,0,.55);color:#fff;border-radius:8px}
+
+/* stage overlays */
+#top{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:10px 10px 0;pointer-events:none;color:#eaf3f8}
+#top>*{pointer-events:auto}
+.brand{display:flex;flex-direction:column;line-height:1.05;text-shadow:0 1px 8px rgba(0,0,0,.45)}
+.brand strong{font:700 24px/1 var(--font-disp);letter-spacing:.01em}
+.brand span{font-size:14.5px;opacity:.82;margin-top:3px}
+.seg{display:inline-flex;background:rgba(8,26,38,.62);border:1px solid rgba(190,225,245,.22);border-radius:9px;padding:2px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.seg button{border:0;background:transparent;color:inherit;padding:6px 10px;border-radius:7px;font-size:14px;font-weight:500;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+#top .seg{color:#dcecf5}
+#readout{position:absolute;left:10px;right:64px;top:58px;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none}
+.pill{display:flex;align-items:baseline;gap:5px;background:rgba(8,26,38,.66);border:1px solid rgba(190,225,245,.2);color:#eaf3f8;border-radius:8px;padding:3px 9px 4px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.pill i{font-style:normal;font-size:14px;opacity:.8}
+.pill b{font:600 22px/1 var(--font-disp);font-variant-numeric:tabular-nums}
+.pill u{text-decoration:none;font-size:14px;opacity:.8}
+.pill.warn{border-color:#f0b445;background:rgba(120,78,0,.7)}
+.pill.bad{border-color:#ff7070;background:rgba(130,20,20,.75)}
+#state{flex-basis:100%;font-size:15.5px;color:#dff0f8;text-shadow:0 1px 6px rgba(0,0,0,.6);padding-left:2px}
+#cams{position:absolute;right:10px;top:58px;display:flex;flex-direction:column;gap:6px}
+#cams button{width:46px;min-height:36px;border:1px solid rgba(190,225,245,.22);background:rgba(8,26,38,.62);color:#dcecf5;border-radius:8px;font-size:13px;padding:4px 0;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#cams button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+#alarmBanner{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;max-width:calc(100% - 24px);border:0;border-radius:9px;padding:8px 14px;font-weight:600;font-size:15px;color:#fff;box-shadow:0 4px 18px rgba(0,0,0,.4)}
+#alarmBanner.warn{background:#9a6200}
+#alarmBanner.bad{background:#b52a2a}
+#toast{position:absolute;left:50%;transform:translateX(-50%) translateY(6px);bottom:56px;max-width:calc(100% - 24px);background:rgba(8,26,38,.9);color:#eaf3f8;border:1px solid rgba(190,225,245,.25);border-left:4px solid var(--info);border-radius:8px;padding:8px 12px;font-size:14.5px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;text-align:left}
+#toast.show{opacity:1;transform:translateX(-50%)}
+#toast.ok{border-left-color:#4fd197}#toast.warn{border-left-color:#f0b445}#toast.bad{border-left-color:#ff7070}
+
+/* pins */
+#pins{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#pins.hide{display:none}
+.pin{position:absolute;left:0;top:0;width:30px;height:30px;margin:-15px 0 0 -15px;padding:0;border:0;background:none;pointer-events:auto;display:grid;place-items:center;will-change:transform,opacity}
+.pin .dot{width:13px;height:13px;border-radius:50%;background:var(--pc,#fff);border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.4)}
+.pin .lab{position:absolute;left:22px;top:50%;transform:translateY(-50%);white-space:nowrap;background:rgba(8,26,38,.9);color:#fff;font-size:13.5px;padding:2px 8px;border-radius:5px;display:none;pointer-events:none}
+body.names .pin .lab,.pin.on .lab{display:block}
+.pin.on{z-index:3}
+.pin.on .dot{transform:scale(1.45);background:var(--accent);box-shadow:0 0 0 3px rgba(242,194,48,.35),0 2px 8px rgba(0,0,0,.5)}
+@media (prefers-reduced-motion:no-preference){.pin.on .dot{animation:ping 1.8s ease-out infinite}}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(242,194,48,.7)}100%{box-shadow:0 0 0 14px rgba(242,194,48,0)}}
+
+/* panel */
+#panel{flex:0 0 auto;height:48%;display:flex;flex-direction:column;background:var(--panel);color:var(--ink);border-radius:16px 16px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.25);position:relative;z-index:5;min-height:0}
+#panel.snap{transition:height .22s ease}
+#grab{flex:0 0 22px;display:grid;place-items:center;touch-action:none;cursor:ns-resize}
+#grab i{width:42px;height:5px;border-radius:3px;background:var(--line)}
+#tabs{flex:0 0 auto;display:flex;border-bottom:1px solid var(--line);padding:0 6px}
+#tabs button{flex:1;border:0;background:none;padding:8px 2px 9px;font:600 18px/1.1 var(--font-disp);color:var(--ink2);border-bottom:3px solid transparent;margin-bottom:-1px;min-height:44px}
+#tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+#body{flex:1 1 0;min-height:0;position:relative}
+.view{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;padding:12px 14px 22px;-webkit-overflow-scrolling:touch}
+.view[hidden]{display:none}
+h2{font:700 30px/1.05 var(--font-disp);margin:2px 0 4px}
+h3{font:600 19px/1.2 var(--font-body);margin:16px 0 4px}
+p{margin:0 0 8px}
+.muted{color:var(--ink2)}
+.small{font-size:15.5px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin:0 -14px 6px;padding-left:14px;padding-right:14px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:6px 13px;font-size:15px;min-height:36px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:15px;color:var(--ink2);margin:2px 0 10px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend s{width:18px;height:6px;border-radius:3px;display:inline-block}
+.plist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.prow{width:100%;text-align:left;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-left:6px solid var(--gc,#999);border-radius:8px;min-height:48px}
+.prow b{font-weight:600;flex:1}
+.prow small{color:var(--ink2);font-size:15px}
+.prow:active{background:var(--chip)}
+.back{border:0;background:none;color:var(--info);padding:4px 0;font-weight:600;font-size:16.5px;min-height:36px}
+.gtag{display:inline-block;border-radius:999px;padding:3px 11px;font-size:15px;background:var(--chip);border-left:5px solid var(--gc,#999);margin-bottom:6px}
+.facts{margin:6px 0 0;padding-left:20px}
+.facts li{margin:3px 0}
+.watch{margin-top:12px;padding:10px 12px;border-radius:8px;background:rgba(242,194,48,.18);border-left:5px solid var(--accent)}
+.watch b{display:block;margin-bottom:2px}
+.pnav{display:flex;gap:8px;margin-top:16px}
+.btn{flex:1;border:1px solid var(--line);background:var(--card);border-radius:9px;padding:10px 12px;font-weight:600;min-height:46px}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.sm{flex:0 0 auto;padding:7px 12px;min-height:40px;font-size:16.5px}
+.btn:disabled{opacity:.45;cursor:default}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+
+/* steps */
+.procs{display:flex;gap:6px;overflow-x:auto;margin:0 -14px 10px;padding:0 14px 4px;scrollbar-width:none}
+.procs::-webkit-scrollbar{display:none}
+.prog{height:6px;border-radius:3px;background:var(--chip);overflow:hidden;margin:2px 0 8px}
+.prog i{display:block;height:100%;background:var(--accent);transition:width .25s}
+.stepno{font:600 16.5px var(--font-body);color:var(--ink2)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:10px}
+.chk{display:flex;align-items:center;gap:9px;margin-top:10px;padding:9px 11px;border-radius:8px;background:var(--chip);font-size:16.5px}
+.chk .tick{width:20px;height:20px;border-radius:50%;border:2px solid var(--ink2);flex:0 0 auto;display:grid;place-items:center;font-size:13px;line-height:1}
+.chk.ok .tick{background:var(--ok);border-color:var(--ok);color:#fff}
+.chk.ok .tick::after{content:"✓"}
+.caution{margin-top:10px;padding:10px 13px;border-radius:8px;background:rgba(195,47,47,.12);border-left:5px solid var(--bad);font-size:16.5px}
+
+/* simulator */
+.gauges{display:grid;grid-template-columns:1.3fr .7fr;gap:10px;align-items:stretch}
+.gbox{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gbox svg{width:100%;height:auto;max-height:150px}
+.gbox .cap{font-size:15px;color:var(--ink2);margin-top:2px}
+.temps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
+.temps div{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px;text-align:center}
+.temps b{display:block;font:600 22px/1.1 var(--font-disp);font-variant-numeric:tabular-nums}
+.temps span{font-size:14px;color:var(--ink2)}
+.seqrow{display:flex;gap:4px;margin:6px 0 12px}
+.seqrow span{flex:1;text-align:center;font-size:14.5px;padding:5px 2px;border-radius:6px;background:var(--chip);color:var(--ink2)}
+.seqrow span.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.seqrow span.bad{background:var(--bad);color:#fff;font-weight:600}
+.ctl{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.ctl:first-of-type{border-top:0}
+.ctl label,.ctl>span{font-weight:500;flex:1}
+.ctl .seg{background:var(--chip);border-color:var(--line);backdrop-filter:none}
+.ctl .seg button{color:var(--ink);min-height:38px;padding:6px 12px}
+.ctl .seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.ctl input[type=range]{flex:0 0 150px;accent-color:#c99a00;height:32px}
+.ctl output{width:44px;text-align:right;font-variant-numeric:tabular-nums}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.alist{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:5px}
+.alist li{padding:8px 11px;border-radius:7px;font-size:16.5px;border-left:5px solid var(--warn);background:rgba(240,180,69,.16)}
+.alist li.bad{border-left-color:var(--bad);background:rgba(195,47,47,.14)}
+.alist li.none{border-left-color:var(--ok);background:rgba(23,128,79,.12)}
+
+/* quiz */
+.opt{display:block;width:100%;text-align:left;margin-top:8px;padding:11px 13px;border-radius:9px;border:1px solid var(--line);background:var(--card);min-height:48px}
+.opt.right{border-color:var(--ok);background:rgba(23,128,79,.14)}
+.opt.wrong{border-color:var(--bad);background:rgba(195,47,47,.13)}
+.opt:disabled{cursor:default}
+.score{font:700 54px/1 var(--font-disp);margin:6px 0}
+
+@media (min-width:640px) and (min-aspect-ratio:1/1){
+  #app{flex-direction:row}
+  #panel{width:min(46vw,430px);height:100%!important;border-radius:0;order:2;box-shadow:-6px 0 24px rgba(0,0,0,.22)}
+  #grab{display:none}
+  #tabs{padding-top:8px}
+  #alarmBanner{bottom:16px}
+  #toast{bottom:64px}
+}
+@media (max-width:420px){.brand strong{font-size:21px}.seg button{padding:6px 8px;font-size:13.5px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.ctl input[type=range]{flex:0 0 150px}
+.note{font-size:15px;color:var(--ink2);margin:6px 0 0}
+</style>
+</head>
+<body>
+<div id="app">
+  <main id="stage">
+    <canvas id="gl" aria-label="Interactive 3D model of a ship's slow-speed two-stroke main diesel engine. Drag to rotate, pinch or scroll to zoom, tap a part to learn about it." tabindex="0"></canvas>
+    <div id="pins"></div>
+    <header id="top">
+      <div class="brand"><strong>Main diesel engine</strong><span>Slow-speed two-stroke, six cylinders</span></div>
+      <div class="seg" id="viewseg" role="group" aria-label="View style">
+        <button data-view="cut" aria-pressed="true">Cutaway</button>
+        <button data-view="xray" aria-pressed="false">X-ray</button>
+        <button data-view="ext" aria-pressed="false">Outside</button>
+      </div>
+    </header>
+    <div id="readout" aria-live="off">
+      <div class="pill" id="pr"><i>Speed</i><b id="r-a">0</b><u id="r-au">rpm</u></div>
+      <div class="pill" id="pp"><i>Crank</i><b id="r-p">0</b><u>°</u></div>
+      <div class="pill" id="po" hidden><i></i><b id="r-o"></b><u></u></div>
+      <div id="state"></div>
+    </div>
+    <div id="cams" role="group" aria-label="Camera">
+      <button data-cam="front">Front</button>
+      <button data-cam="right">Aft</button>
+      <button data-cam="back">Back</button>
+      <button data-cam="top">Top</button>
+      <button id="namesBtn" aria-pressed="false">Names</button>
+    </div>
+    <button id="alarmBanner" hidden></button>
+    <div id="toast" role="status" aria-live="polite"></div>
+  </main>
+  <section id="panel" aria-label="Learning panel">
+    <div id="grab" role="button" aria-label="Resize panel" tabindex="0"><i></i></div>
+    <nav id="tabs" role="tablist" aria-label="Sections">
+      <button role="tab" data-tab="parts" aria-selected="true">Parts</button>
+      <button role="tab" data-tab="steps" aria-selected="false">Procedures</button>
+      <button role="tab" data-tab="run" aria-selected="false">Engine</button>
+      <button role="tab" data-tab="quiz" aria-selected="false">Quiz</button>
+    </nav>
+    <div id="body">
+      <section class="view" id="v-parts" role="tabpanel"></section>
+      <section class="view" id="v-steps" role="tabpanel" hidden></section>
+      <section class="view" id="v-run" role="tabpanel" hidden></section>
+      <section class="view" id="v-quiz" role="tabpanel" hidden></section>
+    </div>
+  </section>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $=(s,e)=>(e||document).querySelector(s);
+const $$=(s,e)=>Array.from((e||document).querySelectorAll(s));
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const reduce=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+/* engine animation state. There is no alarm simulator on this page yet, so small stand-ins keep the shared panel code happy. */
+const SIM={act:{},alarms:()=>[],status:()=>''};
+const sim={events:[]};
+const ENG={frac:0,dir:1,theta:0,fire:true};
+const FIRING=[1,5,3,4,2,6];
+const KORD=[0,4,2,3,1,5];
+function cycleDeg(cyl){return (((ENG.theta*180/Math.PI-KORD[cyl]*60)%360)+360)%360;}
+function phaseOf(d){
+  if(d<8||d>=352)return 'Top dead centre: fuel burning';
+  if(d<95)return 'Expansion: the burning gas pushes the piston down';
+  if(d<111)return 'Exhaust valve opens: blowdown';
+  if(d<249)return 'Scavenging: air flows in and pushes the exhaust out';
+  if(d<262)return 'Exhaust valve closes';
+  if(d<345)return 'Compression: the piston squeezes the air';
+  return 'Fuel injection near top dead centre';
+}
+
+/* ---------------- content ---------------- */
+const GROUPS={frame:{n:'Structure & moving parts',c:'#59b8ff'},fuel:{n:'Fuel',c:'#e0a020'},air:{n:'Air & exhaust',c:'#2fa59a'},serv:{n:'Cooling, oil & control',c:'#a98bff'}};
+const PARTS=[
+{id:'bedplate',n:'Bedplate & frame box',g:'frame',pin:[4.3,1.0,2.3],cam:{t:[8,3,0],r:20,az:20,el:18},
+ what:"The bedplate is the heavy base of the engine. The frame box stands on it and holds the crosshead guides.",
+ how:"The bedplate holds the main bearings that carry the crankshaft, and it bolts down to the ship\u2019s structure. The frame box above it holds the crosshead guides and encloses the crankcase. Long tie rods hold the bedplate, frame box and cylinder block together. Doors in the frame let engineers inspect the crankcase.",
+ facts:['The main bearings sit in the bedplate','Tie rods hold the engine together','Crankcase doors give access for inspection'],
+ watch:'A crankcase can hold an explosive oil mist. Never open a door until the engine has cooled and the procedure says it is safe.'},
+{id:'crank',n:'Crankshaft, thrust block & shaft',g:'frame',pin:[19.6,3.6,0],cam:{t:[18,2,0],r:16,az:30,el:20},
+ what:"The crankshaft turns the up-and-down push of the pistons into rotation.",
+ how:"Each cylinder has a crank throw: two webs and a crank pin. The connecting rod fits on the crank pin. The shaft turns in the main bearings and drives the propeller shaft. The flywheel smooths the turning and carries the turning gear ring. The thrust block takes the push of the propeller and passes it to the ship.",
+ facts:['One crank throw for each cylinder','The flywheel carries the turning gear ring','The thrust block passes the propeller thrust to the ship'],
+ watch:'Keep clear of the shaft and flywheel when the engine may turn. Lock out the turning gear before you work.'},
+{id:'liner',n:'Cylinder liners & covers',g:'frame',pin:[10.8,8.4,0.9],cam:{t:[8.2,8,0],r:12,az:20,el:12},
+ what:"The liner is the sleeve the piston runs in. The cover closes the top of the cylinder.",
+ how:"A water jacket keeps the liner cool. Scavenge ports around the lower liner let air in when the piston is near the bottom. The cover holds the exhaust valve, the fuel valves and the starting air valve. Piston rings seal the gap between piston and liner. Cylinder oil is fed to the liner through quills.",
+ facts:['The scavenge ports are in the lower liner','The cover holds the exhaust valve, fuel valves and air start valve','Cooling water surrounds both liner and cover'],
+ watch:'Measure liner wear on the schedule. A worn liner lets gas past the rings and the engine loses power.'},
+{id:'piston',n:'Piston, piston rod & crosshead',g:'frame',pin:[8.2,7.6,0.7],cam:{t:[8.2,5.5,0],r:12,az:15,el:10},
+ what:"The burning gas pushes the piston down. The rod carries that push down to the crosshead.",
+ how:"Piston rings seal the gap to the liner. The piston rod passes through a stuffing box that keeps the cylinder space and the crankcase apart. The crosshead is at the bottom of the rod and slides between guides, so the side thrust from the connecting rod does not act on the piston or liner.",
+ facts:['Piston rings seal the cylinder','The stuffing box keeps cylinder and crankcase apart','Crosshead guides take the side thrust'],
+ watch:'Check the ring wear and the condition of the stuffing box at overhauls.'},
+{id:'conrod',n:'Connecting rod',g:'frame',pin:[8.2,3.4,0.5],cam:{t:[8.2,3,0],r:9,az:10,el:8},
+ what:"Links the crosshead to the crank pin.",
+ how:"The small end fits on the crosshead pin and the big end fits on the crank pin. As the crank turns, the rod swings, and the crosshead moves straight up and down in its guides. Oil under pressure feeds the bearings at both ends.",
+ facts:['Small end at the crosshead, big end at the crank pin','The rod swings while the crosshead moves straight','Lube oil under pressure feeds both ends'],
+ watch:'Bearing trouble often shows in the oil first. Check the oil analysis and the pressures.'},
+{id:'fuelinj',n:'Fuel pumps & fuel valves',g:'fuel',pin:[5.7,6.2,2.5],cam:{t:[6,6,1.5],r:14,az:12,el:12},
+ what:"Each cylinder has a fuel pump and fuel valves that inject a measured amount of fuel at the right moment.",
+ how:"A cam on the camshaft pushes the fuel pump plunger. The plunger sends high-pressure fuel along a pipe to the fuel valves in the cover. The valves spray the fuel into the hot compressed air, and it ignites. The governor moves the pump rack to change how much fuel is sent. Modern engines may use electronically controlled injection instead.",
+ facts:['Cam, plunger, pipe, then fuel valve','The governor moves the rack to set the amount of fuel','Fuel is injected near top dead centre'],
+ watch:'A sticking fuel valve or a leaking pipe is a fire risk. Check the high-pressure pipes and their shields.'},
+{id:'fuelsvc',n:'Fuel service & heating',g:'fuel',pin:[-1.4,2.3,3.0],cam:{t:[-1,1.5,2.5],r:11,az:25,el:18},
+ what:"The equipment that gets the fuel ready for the engine.",
+ how:"Clean fuel from the service tank goes to a booster unit. Circulating pumps give it the right pressure, and a heater warms heavy fuel oil so that it is thin enough to flow and spray well. Filters catch dirt, and a viscosity controller keeps the temperature right.",
+ facts:['Heating lowers the viscosity of heavy fuel','Filters protect the pumps and valves','A viscosity controller keeps the temperature right'],
+ watch:'Hot fuel under pressure makes any leak dangerous. Check the pipe joints and keep the spray shields in place.'},
+{id:'scav',n:'Scavenge air receiver & ports',g:'air',pin:[9.5,8.0,2.1],cam:{t:[9,7,2],r:16,az:20,el:14},
+ what:"A long duct that holds compressed air ready to flush each cylinder.",
+ how:"Air from the turbocharger passes through the air cooler and into this receiver. When the piston moves down past the scavenge ports, the air rushes into the cylinder and pushes the exhaust out through the exhaust valve. This is called scavenging. Drains at the bottom collect water and oil.",
+ facts:['Air flows in through ports in the lower liner','Exhaust leaves through the valve in the cover','The scavenge space drains must be kept clear'],
+ watch:'Oil can build up in the scavenge space and cause a scavenge fire. Check the drains and the temperatures.'},
+{id:'tc',n:'Turbocharger & air cooler',g:'air',pin:[19.5,11.6,-1.0],cam:{t:[19.5,9,0],r:13,az:35,el:20},
+ what:"The turbocharger uses exhaust gas to push more air into the engine. The air cooler makes that air denser.",
+ how:"Exhaust gas spins the turbine wheel. A shaft joins it to the compressor wheel, which draws in air and compresses it. Compressing heats the air, so the air cooler cools it before it enters the scavenge receiver. Cooler air is denser, so the cylinders get more oxygen and can burn more fuel.",
+ facts:['Exhaust gas drives the turbine','The compressor on the same shaft squeezes the air','Cooling the air makes it denser'],
+ watch:'Turbochargers run at very high speed. Watch the lube oil and the vibration, and wash the turbine and compressor as the maker says.'},
+{id:'exh',n:'Exhaust receiver & valves',g:'air',pin:[10,11.3,-1.9],cam:{t:[10,10,-1],r:16,az:160,el:16},
+ what:"The exhaust valves let the burnt gas out. The receiver collects it and sends it to the turbocharger.",
+ how:"Each cylinder has one exhaust valve in the cover. A hydraulic actuator opens it, and an air spring closes it. It opens just before the scavenge ports, which lets the pressure out. This is called blowdown. The gas goes into the exhaust receiver, then to the turbocharger and up to the funnel.",
+ facts:['The valve opens hydraulically and closes with an air spring','It opens before the scavenge ports uncover','The receiver feeds the turbocharger'],
+ watch:'The exhaust is very hot. Keep the lagging in place, and watch the exhaust temperatures for signs of trouble.'},
+{id:'cw',n:'Cooling water systems',g:'serv',pin:[13,10.0,1.3],cam:{t:[12,9,0],r:16,az:20,el:14},
+ what:"Water that carries heat away from the liners, covers and air cooler.",
+ how:"Jacket water circulates around each liner and cover and leaves from the top. A cooler passes the heat to sea water through a heat exchanger. The jacket water temperature is kept steady, because big changes strain the metal. Sea water also cools the air cooler and the lube oil cooler.",
+ facts:['Jacket water goes round each liner and cover','A heat exchanger passes the heat to sea water','The temperature is kept steady'],
+ watch:'Sudden cooling can crack a hot liner or cover. Change the temperature slowly.'},
+{id:'lube',n:'Lube oil & cylinder lubrication',g:'serv',pin:[6,3.9,-2.6],cam:{t:[7,2.5,-1],r:18,az:155,el:16},
+ what:"Oil that lubricates and cools the bearings and moving parts, and a separate oil for the cylinders.",
+ how:"A pump takes oil from the sump or drain tank through a filter and a cooler, and sends it to the bearings, crossheads and camshaft. The oil drains back to the sump. Cylinder oil is a different oil. Lubricators feed small amounts through quills in the liner. This protects the rings and liner, and neutralises acids from the fuel.",
+ facts:['System oil circulates and returns to the sump','Cylinder oil is fed to the liner in small measured amounts','Filters and coolers protect the bearings'],
+ watch:'Low lube oil pressure can wreck bearings in seconds. Know the alarm and slowdown settings.'},
+{id:'start',n:'Starting air, turning gear & reversing',g:'air',pin:[4.4,10.9,1.0],cam:{t:[5,10,0.5],r:16,az:20,el:20},
+ what:"Compressed air turns the engine over to start it. The turning gear turns it slowly by motor for checks.",
+ how:"Air at about 30 bar goes to the starting air manifold and then to the air start valves in the covers. They open in turn and push the pistons down to turn the engine over. Once fuel is on, the engine runs by itself. The turning gear is a motor that engages a ring gear on the flywheel to turn the engine slowly. To go astern, the engine is stopped and the timing is changed so that it runs the other way.",
+ facts:['Starting air is about 30 bar','The turning gear must be disengaged before starting','Astern needs the timing set for the other direction'],
+ watch:'Always disengage the turning gear before starting. Interlocks stop the engine starting while it is engaged.'},
+{id:'gov',n:'Governor & control system',g:'serv',pin:[18,5.0,2.7],cam:{t:[16,4,2],r:14,az:25,el:15},
+ what:"Keeps the engine speed steady and carries the orders from the bridge.",
+ how:"The governor senses the engine speed and moves the fuel rack. If the engine slows because of the load, it gives more fuel. If it speeds up, it gives less. The bridge or control room sends speed and direction orders to the engine control system, which also handles the alarms and the safety stops.",
+ facts:['The governor moves the fuel rack to hold the speed','Orders come from the bridge, control room or local stand','Safety systems can slow or stop the engine'],
+ watch:'Know how to take local control, and know which alarms slow down or stop the engine.'}
+];
+const PBY={};PARTS.forEach(p=>{PBY[p.id]=p;});
+
+const PROCS=[
+{id:'start',n:'Prepare and start',steps:[
+ {t:'Start the lube oil and cooling water',b:'Start the lube oil pump and the cooling water pumps. Check the pressures and warm the jacket water.',why:'A cold engine with no oil film can be damaged in moments.',part:'lube'},
+ {t:'Prepare the fuel',b:'Circulate the fuel and heat it to the right viscosity.',why:'Thick, cold fuel will not spray and burn properly.',part:'fuelsvc'},
+ {t:'Check the starting air',b:'Open the air bottle valves, drain the pipes, and check the pressure is about 30 bar.',why:'Without enough air the engine will not turn over.',part:'start'},
+ {t:'Turn the engine on the turning gear',b:'Open the indicator cocks. Turn the engine one full turn with the turning gear and watch for water, oil or fuel blowing out. Then disengage the turning gear.',why:'Liquid in a cylinder cannot be compressed, and it can wreck the engine.',caut:'The turning gear must be disengaged before the engine is started.',part:'start'},
+ {t:'Close the indicator cocks',b:'Close the indicator cocks again after blowing through.',why:'They must be closed or gas will escape when the engine fires.',part:'liner'},
+ {t:'Check the controls',b:'Check the governor and the control system, and confirm who has control: the bridge, the control room, or the local stand.',why:'You need to know where the orders come from before you start.',part:'gov'},
+ {t:'Start on air',b:'Give the start order. Air turns the engine over, fuel is injected, and the engine fires.',why:'Once the cylinders are firing, the engine runs by itself.',part:'start'},
+ {t:'Check after the start',b:'Check the speed, the exhaust temperatures, the oil pressure and the cooling water. Listen for any unusual noise.',why:'Problems often show in the first minutes.',part:'gov'}
+]},
+{id:'stop',n:'Stop and secure',steps:[
+ {t:'Reduce the speed',b:'Bring the engine down to slow speed as ordered, and let the temperatures settle.',why:'Stopping from full power puts a heavy strain on hot metal.',part:'gov'},
+ {t:'Stop the engine',b:'Give the stop order. The fuel is cut off and the engine slows.',why:'The engine stops when no fuel is injected.',part:'fuelinj'},
+ {t:'Keep the pumps running',b:'Keep the lube oil and cooling water pumps running while the engine cools.',why:'The hot parts still need oil and cooling after the engine has stopped.',part:'lube'},
+ {t:'Shut the fuel and air valves',b:'Shut the starting air bottle valves, and the fuel supply if the engine will be stopped for some time.',why:'This makes the engine safe to work on.',part:'start'},
+ {t:'Record it',b:'Write the stop in the log, with the time and any problems you noticed.',why:'The log helps the next watch.',part:'gov'}
+]},
+{id:'cycle',n:'One two-stroke cycle',steps:[
+ {t:'Compression',b:'The piston moves up and squeezes the air in the cylinder. The air gets very hot.',why:'Hot air is what ignites the fuel. A two-stroke engine has no spark plug.',part:'piston'},
+ {t:'Fuel injection and combustion',b:'Near the top, fuel is sprayed in. It ignites at once and burns.',why:'The burning raises the pressure sharply.',part:'fuelinj'},
+ {t:'Expansion',b:'The pressure pushes the piston down. This is the power stroke. The piston rod, crosshead and connecting rod turn the crankshaft.',why:'This is the only stroke that makes power.',part:'piston'},
+ {t:'Exhaust valve opens',b:'Before the piston reaches the bottom, the exhaust valve opens and the burnt gas rushes out.',why:'This lets the pressure fall so fresh air can flow in. It is called blowdown.',part:'exh'},
+ {t:'Scavenging',b:'The piston uncovers the scavenge ports. Air from the receiver rushes in and pushes the rest of the exhaust out through the valve.',why:'The cylinder is filled with fresh air for the next cycle.',part:'scav'},
+ {t:'The valve closes and compression begins',b:'The exhaust valve closes and the piston rises again. The cycle repeats with every turn of the crankshaft.',why:'A two-stroke engine fires once every turn.',part:'liner'}
+]}
+];
+
+const QUIZ=[
+{q:'Why does a slow-speed two-stroke engine have a crosshead?',a:['To take the side thrust away from the piston and liner','To cool the piston','To drive the camshaft','To hold the fuel pump'],c:0,w:'The crosshead slides in guides and takes the side thrust from the connecting rod.'},
+{q:'How does fresh air get into the cylinder?',a:['Through ports in the liner near the bottom of the stroke','Through the fuel valve','Through the crankcase doors','Through the starting air valve'],c:0,w:'When the piston moves down past the scavenge ports, air from the receiver flows in.'},
+{q:'What drives the turbocharger?',a:['The exhaust gas','The camshaft','The crankshaft','The starting air'],c:0,w:'Exhaust gas spins the turbine, which drives the compressor on the same shaft.'},
+{q:'Why is the scavenge air cooled?',a:['Cooler air is denser, so the cylinder gets more oxygen','To make it dry','To warm the liner','To make less noise'],c:0,w:'More oxygen means more fuel can be burned and more power made.'},
+{q:'A typical firing order for a six-cylinder two-stroke engine is:',a:['1-5-3-4-2-6','1-2-3-4-5-6','6-5-4-3-2-1','1-3-5-2-4-6'],c:0,w:'The firing order spreads the load along the crankshaft.'},
+{q:'When is the turning gear used?',a:['When the engine is stopped, to turn it slowly for checks','At full speed','To start the engine on air','To cool the exhaust'],c:0,w:'It turns the engine slowly by motor. It must be disengaged before the engine starts.'},
+{q:'About what pressure is the starting air?',a:['30 bar','3 bar','300 bar','1 bar'],c:0,w:'Starting air is stored at about 30 bar in the air bottles.'},
+{q:'Where are the main bearings?',a:['In the bedplate','In the cylinder cover','In the turbocharger','In the exhaust receiver'],c:0,w:'The bedplate carries the main bearings that support the crankshaft.'},
+{q:'What does the thrust block do?',a:['Passes the propeller\u2019s push to the ship','Cools the crankshaft','Meters the fuel','Opens the exhaust valve'],c:0,w:'The propeller pushes on the shaft, and the thrust block passes that push to the hull.'},
+{q:'Why is heavy fuel oil heated?',a:['So it is thin enough to flow and spray well','To make it cheaper','To make it heavier','To remove the oil'],c:0,w:'Heavy fuel is thick when cold. A viscosity controller keeps it at the right temperature.'},
+{q:'Why do you blow through with the indicator cocks open before starting?',a:['To check for liquid in the cylinders','To cool the cylinders','To fill the cylinders with air','To test the governor'],c:0,w:'Liquid cannot be compressed. If it is trapped in a cylinder it can wreck the engine.'},
+{q:'What should you do with the pumps after stopping the engine?',a:['Keep the lube oil and cooling water running while it cools','Stop them at once','Switch to fuel','Open the bypass'],c:0,w:'The hot parts still need oil and cooling after the engine has stopped.'},
+{q:'How often does a two-stroke cylinder fire?',a:['Once for every turn of the crankshaft','Once for every two turns','Twice for every turn','Once a minute'],c:0,w:'Every downward stroke is a power stroke, so there is one firing for each turn.'},
+{q:'What does the governor control?',a:['The engine speed, by moving the fuel rack','The scavenge air pressure','The lube oil temperature','The turning gear'],c:0,w:'The governor gives more fuel if the engine slows and less if it speeds up.'},
+{q:'What is blowdown?',a:['The exhaust valve opens and the gas pressure falls before scavenging','Blowing out the fuel pipe','Draining the receiver','Cooling the turbocharger'],c:0,w:'The valve opens just before the scavenge ports uncover, so the air can flow in.'},
+{q:'What risk comes from oil building up in the scavenge space?',a:['A scavenge fire','A cold engine','Low fuel pressure','A bent shaft'],c:0,w:'Check the drains and the scavenge temperatures regularly.'},
+{q:'What closes the exhaust valve?',a:['An air spring','The crankshaft','The fuel pump','The turning gear'],c:0,w:'A hydraulic actuator opens it, and an air spring closes it.'},
+{q:'Why is cylinder oil fed to the liner in small amounts?',a:['To protect the rings and liner and neutralise acids','To heat the fuel','To drive the turbocharger','To cool the crankcase'],c:0,w:'Cylinder oil is a separate oil, fed through quills in the liner.'}
+];
+
+/* ---------------- 3D main engine ---------------- */
+const view3d=(function(){
+  const stub={ok:false,focus(){},setView(){},cam(){},pins(){},names(){},tick(){},onPick:null,onView:null};
+  let renderer;
+  try{
+    renderer=new THREE.WebGLRenderer({canvas:$('#gl'),antialias:true,alpha:true,powerPreference:'high-performance'});
+  }catch(e){
+    $('#stage').insertAdjacentHTML('beforeend','<p class="nogl">This device could not start 3D graphics. The parts guide, procedures and quiz still work.</p>');
+    return stub;
+  }
+  try{
+  const T=THREE,stage=$('#stage'),canvas=$('#gl');
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  renderer.setClearColor(0x000000,0);
+  renderer.localClippingEnabled=true;
+  const scene=new T.Scene();
+  const camera=new T.PerspectiveCamera(38,1,0.1,400);
+  const root=new T.Group();scene.add(root);
+  const V=(x,y,z)=>new T.Vector3(x,y,z);
+  const UP=V(0,1,0);
+  /* x runs along the engine (fore end at 0, flywheel and shaft towards +x), y is up, z is across (+z is the front). */
+  const NC=6,XS=i=>3.0+2.6*i,YC=1.6,R=1.3,LC=3.2,PR=2.0,PH=1.3,BR=0.5,TAU=Math.PI*2;
+  const PLN_L=new T.Plane(V(0,0,-1),0),PLN_W=new T.Plane(V(0,0,-1),1.0),PLN_T=new T.Plane(V(0,0,-1),-1.0);
+  const CLIP=[],CLIPMAP=new Map(),A={cyl:[]};
+
+  scene.add(new T.HemisphereLight(0xe6f0f7,0x3a5666,1.0));
+  scene.add(new T.AmbientLight(0xffffff,0.45));
+  const key=new T.DirectionalLight(0xffffff,1.0);key.position.set(0,30,30);scene.add(key);
+  const fill=new T.DirectionalLight(0xbcd6ea,0.55);fill.position.set(30,12,-20);scene.add(fill);
+
+  function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new T.CanvasTexture(c);t.anisotropy=4;return t;}
+  const floorTex=canvasTex(1024,1024,(x,w,h)=>{
+    const g=x.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);
+    g.addColorStop(0,'rgba(60,112,152,0.55)');g.addColorStop(0.7,'rgba(30,72,102,0.3)');g.addColorStop(1,'rgba(20,50,75,0)');
+    x.fillStyle=g;x.fillRect(0,0,w,h);x.lineWidth=2;
+    for(let i=0;i<=30;i++){const p=i*w/30;x.strokeStyle=(i%5===0)?'rgba(190,225,245,0.3)':'rgba(190,225,245,0.12)';x.beginPath();x.moveTo(p,0);x.lineTo(p,h);x.stroke();x.beginPath();x.moveTo(0,p);x.lineTo(w,p);x.stroke();}
+    x.globalCompositeOperation='destination-in';
+    const m=x.createRadialGradient(w/2,h/2,w*0.1,w/2,h/2,w/2);m.addColorStop(0,'rgba(0,0,0,1)');m.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=m;x.fillRect(0,0,w,h);
+  });
+  const floor=new T.Mesh(new T.CircleGeometry(30,64),new T.MeshBasicMaterial({map:floorTex,transparent:true,depthWrite:false}));
+  floor.rotation.x=-Math.PI/2;floor.position.set(11,-1.75,0);scene.add(floor);
+
+  /* ---- builders ---- */
+  function M(c,o){o=o||{};
+    const m=new T.MeshStandardMaterial({color:c,roughness:o.r!=null?o.r:0.55,metalness:o.m!=null?o.m:0.3,side:o.d?T.DoubleSide:T.FrontSide,transparent:!!o.t,opacity:o.o!=null?o.o:1});
+    if(o.e!=null){m.emissive=new T.Color(o.e);m.emissiveIntensity=o.ei!=null?o.ei:1;}
+    if(o.t)m.depthWrite=false;
+    if(o.clip){CLIP.push({m:m,pl:o.clip});CLIPMAP.set(m,o.clip);}
+    return m;}
+  function G(id,x,y,z){const g=new T.Group();if(id)g.userData.part=id;g.position.set(x||0,y||0,z||0);root.add(g);return g;}
+  function add(g,geo,mat,x,y,z){const m=new T.Mesh(geo,mat);m.position.set(x||0,y||0,z||0);g.add(m);return m;}
+  const cyl=(a,b,h,s,open)=>new T.CylinderGeometry(a,b,h,s||24,1,!!open);
+  const box=(w,h,d)=>new T.BoxGeometry(w,h,d);
+  const sph=(r,s)=>new T.SphereGeometry(r,s||16,Math.max(8,Math.floor((s||16)/2)));
+  function unitCylG(r){const g=new T.CylinderGeometry(r,r,1,32);g.translate(0,0.5,0);return g;}
+  function unitRod(r){const g=new T.CylinderGeometry(r,r,1,14);g.translate(0,0.5,0);return g;}
+  function cylX(g,r,len,mat,x,y,z,open){const m=add(g,cyl(r,r,len,28,open),mat,x,y,z);m.rotation.z=Math.PI/2;return m;}
+  function cylZ(g,r,len,mat,x,y,z){const m=add(g,cyl(r,r,len,20),mat,x,y,z);m.rotation.x=Math.PI/2;return m;}
+  const shell=m=>{m.userData.shellish=true;return m;};
+  const dyn=m=>{m.userData.dyn=true;return m;};
+  const steel=()=>M(0xa9b9c4,{m:0.7,r:0.3});
+  const _d=V(0,0,0);
+  function setRod(m,a,b){_d.copy(b).sub(a);const len=_d.length();m.position.copy(a);m.scale.set(1,Math.max(len,0.001),1);m.quaternion.setFromUnitVectors(UP,_d.divideScalar(len||1));}
+  function seg(g,a,b,r,mat){const d=b.clone().sub(a),len=d.length();if(len<1e-4)return;const m=new T.Mesh(cyl(r,r,len,12),mat);m.position.copy(a).add(b).multiplyScalar(0.5);m.quaternion.setFromUnitVectors(UP,d.normalize());g.add(m);}
+  function pipe(g,pts,r,mat){for(let i=0;i<pts.length-1;i++)seg(g,pts[i],pts[i+1],r,mat);for(let i=1;i<pts.length-1;i++)add(g,sph(r*1.02,10),mat,pts[i].x,pts[i].y,pts[i].z);}
+  function label(g,txt,x,y,z,ry,w,h,col,px){
+    const tx=canvasTex(256,64,(c,cw,ch)=>{c.clearRect(0,0,cw,ch);c.fillStyle=col||'#e8f0f4';c.font='bold '+(px||34)+'px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(txt,cw/2,ch/2);});
+    const p=new T.Mesh(new T.PlaneGeometry(w||1.2,h||0.3),new T.MeshBasicMaterial({map:tx,transparent:true,depthWrite:false}));
+    p.position.set(x,y,z);p.rotation.y=ry||0;g.add(p);return p;
+  }
+  const P=(x,y,z)=>V(x,y,z);
+
+  /* ---- bedplate, frame box, crankcase ---- */
+  const gBed=G('bedplate');
+  const bedM=()=>M(0x2a4a5e,{m:0.4,r:0.6}),frM=(clip)=>M(0x5a8099,Object.assign({m:0.4,r:0.5,d:true},clip?{clip:clip}:{}));
+  add(gBed,box(17.4,0.3,4.4),bedM(),10,0.15,0);
+  [-1,1].forEach(s=>add(gBed,box(17.4,1.6,0.4),bedM(),10,0.8,s*2.0));
+  [1.3,18.7].forEach(x=>add(gBed,box(0.4,1.6,4.4),bedM(),x,0.8,0));
+  for(let j=-1;j<NC;j++){const x=XS(j)+1.3;add(gBed,box(0.5,1.0,3.6),bedM(),x,0.7,0);cylX(gBed,0.64,0.5,M(0xc8a24a,{m:0.6,r:0.4}),x,YC,0);}
+  shell(add(gBed,box(16.4,5.0,0.3),frM(),10,3.7,-2.0));
+  for(let i=0;i<NC;i++)shell(add(gBed,box(2.3,5.0,0.3),frM(i===2?PLN_W:null),XS(i),3.7,2.0));
+  for(let j=-1;j<NC;j++)shell(add(gBed,box(0.25,5.0,3.7),frM(),XS(j)+1.3,3.7,0));
+  add(gBed,box(16.4,0.25,3.7),bedM(),10,6.3,0);
+  for(let j=0;j<NC-1;j++)[-1,1].forEach(s=>add(gBed,cyl(0.09,0.09,5.3,10),steel(),XS(j)+1.3,3.75,s*1.2));
+  for(let i=0;i<NC;i++){[-0.7,0.7].forEach(s=>add(gBed,box(0.12,3.0,0.12),M(0x7d95a5,{m:0.5,r:0.4}),XS(i),4.8,s));}
+
+  /* ---- crankshaft, throws, flywheel, thrust block and shaft ---- */
+  const gShaft=G('crank');
+  cylX(gShaft,0.5,17.8,steel(),10,YC,0);
+  cylX(gShaft,0.5,7.4,steel(),22.5,YC,0);
+  add(gShaft,box(1.6,1.2,2.4),M(0x3f5666,{m:0.4,r:0.6}),22.4,0.9,0);
+  cylX(gShaft,0.95,0.25,M(0x56707f,{m:0.5,r:0.4}),22.4,YC,0);
+  const flyG=G('crank',19.7,YC,0);
+  cylX(flyG,1.7,0.5,M(0x1f3140,{m:0.4,r:0.5}),0,0,0);
+  cylX(flyG,1.78,0.15,M(0xc8a24a,{m:0.6,r:0.4}),-0.35,0,0);
+  add(flyG,box(0.5,0.35,0.35),M(0xd9a441,{m:0.4,r:0.5}),0,1.7,0);
+  A.crk=[];
+  for(let i=0;i<NC;i++){
+    const g=G('crank',XS(i),YC,0);
+    [-0.5,0.5].forEach(dx=>{
+      add(g,box(0.32,2.0,1.1),M(0x2f5f7f,{m:0.4,r:0.5}),dx,0.45,0);
+      add(g,box(0.32,0.9,1.5),M(0x23414f,{m:0.4,r:0.5}),dx,-1.1,0);
+    });
+    cylX(g,0.44,1.0,M(0xc8a24a,{m:0.7,r:0.3}),0,R,0);
+    A.crk.push(g);
+  }
+
+  /* ---- cylinders: liner, jacket and cover (cylinder 3 is cut open) ---- */
+  const gLin=G('liner');
+  const cm=(c,cut,o)=>M(c,Object.assign({m:0.4,r:0.5,d:true},cut?{clip:PLN_L}:{},o||{}));
+  const glowGeo=unitCylG(0.47);
+  const gPis=[],gCon=[],gExh=G('exh');
+  for(let i=0;i<NC;i++){
+    const x=XS(i),cut=(i===2);
+    shell(add(gLin,cyl(BR+0.04,BR+0.04,3.2,40,true),cm(0x8a9aa6,cut),x,8.0,0));
+    shell(add(gLin,cyl(0.74,0.74,2.9,40,true),cm(0x3a7aa0,cut),x,7.95,0));
+    shell(add(gLin,cyl(0.8,0.8,0.2,40,true),cm(0x4f86a8,cut),x,6.5,0));
+    shell(add(gLin,cyl(0.8,0.8,0.2,40,true),cm(0x4f86a8,cut),x,9.4,0));
+    shell(add(gLin,cyl(0.82,0.82,0.55,40,true),cm(0x4f86a8,cut),x,9.875,0));
+    shell(add(gLin,cyl(0.82,0.82,0.12,40),cm(0x4f86a8,cut),x,10.17,0));
+    for(let k=0;k<8;k++){const a=k*Math.PI/4;const s=add(gLin,box(0.3,0.5,0.1),M(0x10202b,{m:0.2,r:0.7}),x+BR*Math.cos(a),7.15,BR*Math.sin(a));s.rotation.y=-a;}
+    const glowM=M(0xff7a2a,{t:true,o:0.3,e:0xff6a1a,ei:0.1,d:true,r:0.8,m:0});
+    if(cut){CLIP.push({m:glowM,pl:PLN_L});CLIPMAP.set(glowM,PLN_L);}
+    const glow=dyn(add(gLin,glowGeo,glowM,x,8.0,0));
+    /* piston, rod and crosshead */
+    const gp=G('piston',x,6.0,0);
+    add(gp,cyl(BR-0.02,BR-0.02,PH,36),M(0xb9c6ce,{m:0.7,r:0.3}),0,0,0);
+    [0.42,0.28,0.14].forEach(dy=>{const t=add(gp,new T.TorusGeometry(BR-0.02,0.03,6,28),M(0x23313b,{m:0.5,r:0.4}),0,dy,0);t.rotation.x=Math.PI/2;});
+    add(gp,cyl(0.16,0.16,PR,16),steel(),0,-PH/2-PR/2,0);
+    const xh=G('piston',x,4.0,0);
+    cylX(xh,0.3,0.8,steel(),0,0,0);
+    add(xh,box(0.7,0.5,0.9),M(0x6b7c88,{m:0.5,r:0.4}),0,0.1,0);
+    [-0.55,0.55].forEach(dz=>add(xh,box(0.5,0.8,0.12),M(0xc8a24a,{m:0.6,r:0.4}),0,0,dz));
+    gPis.push({gp:gp,xh:xh});
+    /* connecting rod */
+    const gc=G('conrod');
+    const rod=new T.Mesh(unitRod(0.2),M(0xd8e2e8,{m:0.7,r:0.3}));gc.add(rod);
+    const big=cylX(gc,0.62,0.8,M(0xc8a24a,{m:0.7,r:0.3}),0,0,0);
+    const small=cylX(gc,0.38,0.7,M(0xc8a24a,{m:0.7,r:0.3}),x,4.0,0);
+    gCon.push({rod:rod,big:big,small:small,x:x});
+    /* exhaust valve (moves down to open) */
+    const vg=G('exh',x,0,0);
+    add(vg,cyl(0.1,0.1,1.6,12),steel(),0,10.4,0);
+    add(vg,cyl(0.36,0.36,0.08,24),M(0x6b7c88,{m:0.7,r:0.3}),0,9.65,0);
+    shell(add(gExh,cyl(0.42,0.42,0.8,28,true),cm(0x5f8aa6,cut),x,10.5,0));
+    add(gExh,cyl(0.26,0.26,0.6,20),M(0x2a6f99,{m:0.4,r:0.5}),x,11.2,0);
+    cylZ(gExh,0.42,1.5,M(0x8a949b,{m:0.3,r:0.6}),x,10.0,-1.2);
+    A.cyl.push({crank:A.crk[i],gp:gp,xh:xh,rod:rod,big:big,small:small,glow:glow,glowM:glowM,vg:vg,x:x});
+    label(G(null),'No.'+(i+1),x,12.2,0,0,1.0,0.32,'#cfe6f3',32);
+  }
+  /* crosshead guide plates (static) */
+
+  /* ---- exhaust receiver and exhaust gas pipework ---- */
+  shell(cylX(gExh,0.6,15.8,M(0x8a949b,{m:0.3,r:0.6}),9.9,10.0,-1.9));
+  /* ---- scavenge receiver and ducts ---- */
+  const gScv=G('scav');
+  shell(cylX(gScv,0.75,15.8,M(0x7fb0cf,{m:0.4,r:0.5}),9.7,7.0,2.0));
+  for(let i=0;i<NC;i++)add(gScv,box(1.1,0.9,0.55),M(0x6b9ab8,{m:0.4,r:0.5}),XS(i),7.15,1.0);
+  cylX(gScv,0.6,0.8,M(0x6b9ab8,{m:0.4,r:0.5}),17.95,7.0,2.0);
+  add(gScv,cyl(0.05,0.05,0.4,8),steel(),9.7,6.0,2.0);
+
+  /* ---- turbocharger and air cooler ---- */
+  const gTc=G('tc');
+  const tcRot=G('tc',19.3,10.2,-1.0);
+  cylX(tcRot,0.15,2.4,steel(),0,0,0);
+  cylX(tcRot,0.78,0.14,M(0xd8b455,{m:0.7,r:0.35}),0.75,0,0);
+  cylX(tcRot,0.85,0.14,M(0xc9d4db,{m:0.7,r:0.35}),-0.75,0,0);
+  for(let k=0;k<8;k++){const a=k*Math.PI/4;add(tcRot,box(0.1,0.3,0.06),M(0x9aa6ad,{m:0.6,r:0.4}),0.75,0.62*Math.cos(a),0.62*Math.sin(a));}
+  shell(cylX(gTc,0.98,0.9,M(0xc9d4db,{m:0.5,r:0.4,d:true,clip:PLN_T}),20.05,10.2,-1.0,true));
+  shell(cylX(gTc,1.05,0.8,M(0x4f86a8,{m:0.5,r:0.4,d:true,clip:PLN_T}),18.5,10.2,-1.0,true));
+  shell(cylX(gTc,0.98,0.1,M(0xc9d4db,{m:0.5,r:0.4,d:true,clip:PLN_T}),20.55,10.2,-1.0));
+  shell(cylX(gTc,1.05,0.1,M(0x4f86a8,{m:0.5,r:0.4,d:true,clip:PLN_T}),18.05,10.2,-1.0));
+  shell(add(gTc,box(1.6,1.8,1.5),M(0x3a7fb5,{m:0.3,r:0.5,t:true,o:0.55,d:true}),19.1,7.0,2.0));
+  for(let k=0;k<5;k++)add(gTc,box(0.05,1.5,1.3),M(0xb9d3e6,{m:0.4,r:0.4}),18.5+k*0.3,7.0,2.0);
+  pipe(gTc,[P(18.6,9.9,-0.3),P(18.6,9.0,1.2),P(19.1,8.1,1.7)],0.38,M(0x4f86a8,{m:0.4,r:0.5}));
+  const exM=M(0x8a949b,{m:0.3,r:0.6});
+  pipe(gExh,[P(17.8,10.0,-1.9),P(19.4,10.0,-1.9),P(19.9,10.0,-1.4)],0.55,exM);
+  pipe(gExh,[P(20.3,10.9,-1.0),P(20.3,14.5,-1.0)],0.6,exM);
+
+  /* ---- fuel pumps, camshaft, fuel valves and fuel service unit ---- */
+  const gFuel=G('fuelinj'),camG=G('fuelinj',10,4.0,1.4);
+  const fuelM=M(0xe0a020,{m:0.3,r:0.5});
+  cylX(camG,0.18,15.6,steel(),0,0,0);
+  for(let i=0;i<NC;i++){
+    const cg=new T.Group();cg.position.set(XS(i)-10,0,0);cg.rotation.x=-KORD[i]*Math.PI/3;camG.add(cg);
+    cylX(cg,0.38,0.22,M(0xd9a441,{m:0.5,r:0.4}),0,0.14,0);
+    add(gFuel,box(0.7,1.2,0.6),M(0xd9a441,{m:0.35,r:0.5}),XS(i)+0.1,5.2,2.3);
+    add(gFuel,cyl(0.14,0.14,0.5,10),steel(),XS(i)+0.1,5.95,2.3);
+    pipe(gFuel,[P(XS(i)+0.1,5.9,2.3),P(XS(i)+0.1,9.2,1.7),P(XS(i)+0.3,10.0,0.5)],0.07,fuelM);
+    add(gFuel,cyl(0.12,0.12,0.7,12),M(0x2b3a44,{m:0.5,r:0.4}),XS(i)+0.3,10.5,0.45);
+    pipe(gFuel,[P(XS(i)+0.1,5.2,2.9),P(XS(i)+0.1,5.2,2.6)],0.1,fuelM);
+  }
+  cylX(gFuel,0.17,17.0,fuelM,9.1,5.2,2.9);
+  const gFsv=G('fuelsvc');
+  add(gFsv,box(1.6,1.6,1.4),M(0x3f5666,{m:0.4,r:0.6}),-1.8,0.8,3.2);
+  add(gFsv,cyl(0.4,0.4,2.0,24),M(0xb5452e,{m:0.35,r:0.5}),-1.8,2.6,3.2);
+  cylX(gFsv,0.3,0.9,M(0x2e7d6a,{m:0.4,r:0.5}),-1.8,0.8,4.1);
+  pipe(gFsv,[P(-1.0,2.6,3.2),P(-1.0,5.2,3.2),P(0.6,5.2,2.9)],0.12,fuelM);
+
+  /* ---- cooling water pipework ---- */
+  const gCw=G('cw');
+  const cwM=M(0x3a9bdc,{m:0.3,r:0.5});
+  cylX(gCw,0.2,16.0,cwM,9.6,6.6,-1.3);
+  cylX(gCw,0.2,16.0,cwM,9.6,9.7,1.3);
+  for(let i=0;i<NC;i++){
+    pipe(gCw,[P(XS(i),6.6,-1.3),P(XS(i),6.6,-0.74)],0.12,cwM);
+    pipe(gCw,[P(XS(i),9.3,0.74),P(XS(i),9.7,1.3)],0.12,cwM);
+  }
+  add(gCw,box(0.9,0.9,0.9),M(0x2a6f99,{m:0.4,r:0.5}),18.8,9.7,1.3);
+  pipe(gCw,[P(17.6,9.7,1.3),P(18.3,9.7,1.3)],0.2,cwM);
+
+  /* ---- lube oil: sump, main, pump and cylinder lubricators ---- */
+  const gLub=G('lube');
+  const lubM=M(0x8a5a2b,{m:0.3,r:0.5});
+  add(gLub,box(17.4,1.4,4.4),M(0xd9a441,{m:0.2,r:0.4,t:true,o:0.35,d:true}),10,-0.9,0);
+  label(gLub,'LUBE OIL SUMP',10,-1.0,2.3,0,5,0.7,'#ffd991',32);
+  cylX(gLub,0.14,16.0,lubM,9.6,3.5,-2.6);
+  pipe(gLub,[P(-0.6,-0.9,-2.6),P(-0.6,3.5,-2.6),P(1.6,3.5,-2.6)],0.14,lubM);
+  add(gLub,box(1.0,0.8,0.8),M(0x2e7d6a,{m:0.4,r:0.5}),-0.6,-0.4,-2.6);
+  for(let i=0;i<NC;i++){
+    pipe(gLub,[P(XS(i),3.5,-2.6),P(XS(i),3.5,-2.0)],0.1,lubM);
+    cylZ(gLub,0.05,0.5,steel(),XS(i),8.0,1.0);
+  }
+  add(gLub,box(0.6,0.8,0.5),M(0xd9a441,{m:0.4,r:0.5}),1.2,8.3,2.0);
+  cylX(gLub,0.05,15.4,M(0xd9a441,{m:0.4,r:0.5}),9.0,8.3,1.7);
+
+  /* ---- starting air, turning gear ---- */
+  const gSt=G('start');
+  const airM=M(0x7fc6ff,{m:0.3,r:0.5});
+  cylX(gSt,0.15,18.0,airM,10.5,10.4,1.0);
+  pipe(gSt,[P(19.5,10.4,1.0),P(19.5,14.0,1.0)],0.15,airM);
+  for(let i=0;i<NC;i++){
+    add(gSt,cyl(0.12,0.12,0.45,12),M(0x2a6f99,{m:0.4,r:0.5}),XS(i)-0.2,10.4,0.55);
+    pipe(gSt,[P(XS(i)-0.2,10.4,1.0),P(XS(i)-0.2,10.4,0.55)],0.08,airM);
+  }
+  cylX(gSt,0.2,0.35,steel(),19.35,YC,1.98);
+  add(gSt,box(0.8,0.6,0.8),M(0x2e7d6a,{m:0.4,r:0.5}),19.35,YC+0.1,2.7);
+
+  /* ---- governor, fuel rack and control stand ---- */
+  const gGov=G('gov');
+  add(gGov,box(1.0,1.2,0.9),M(0x2f5f7f,{m:0.4,r:0.5}),18.2,4.2,2.7);
+  add(gGov,cyl(0.25,0.25,0.6,16),steel(),18.2,5.1,2.7);
+  cylX(gGov,0.06,15.4,steel(),10.0,6.0,2.75);
+  pipe(gGov,[P(18.2,5.4,2.7),P(17.7,6.0,2.75)],0.06,steel());
+  add(gGov,box(0.9,2.0,0.6),M(0x6b7c88,{m:0.35,r:0.5}),-1.0,1.0,-3.4);
+  [-0.25,0,0.25].forEach((dx,k)=>add(gGov,sph(0.05,10),M([0x22dd66,0xffa020,0xff3a2a][k],{m:0.2,r:0.4,e:[0x22dd66,0xffa020,0xff3a2a][k],ei:0.6}),-1.0+dx,1.5,-3.08));
+  label(gGov,'ENGINE CONTROL',-1.0,2.3,-3.4,0,1.5,0.3,'#bfe6f7',26);
+
+  
+  /* ---- finalise meshes: part ids, base material state, pick list ---- */
+  const ALLM=[],PICK=[];
+  function partOf(o){while(o){if(o.isGroup&&o.userData&&o.userData.part)return o.userData.part;o=o.parent;}return null;}
+  root.traverse(o=>{
+    if(!o.isMesh)return;const id=partOf(o);if(!id)return;
+    const mat=o.material;o.userData.part=id;
+    o.userData.clipZ=CLIPMAP.has(mat)?CLIPMAP.get(mat).constant:null;
+    o.userData.base={opacity:mat.opacity,transparent:mat.transparent,depthWrite:mat.depthWrite,emissive:mat.emissive?mat.emissive.clone():null,ei:mat.emissiveIntensity};
+    ALLM.push(o);PICK.push(o);
+  });
+
+  /* ---- view modes, ghosting, highlight ---- */
+  let viewMode='cut',focusId=null,FOCUSM=[];
+  const ACC=new T.Color(0xf2c230);
+  function refreshMaterials(){
+    const xr=viewMode==='xray';
+    for(const m of ALLM){
+      const b=m.userData.base,mat=m.material;let op=b.opacity,tr=b.transparent,dw=b.depthWrite;
+      if(xr&&m.userData.shellish){op=Math.min(op,0.14);tr=true;dw=false;}
+      if(focusId&&m.userData.part!==focusId){op*=0.18;tr=true;dw=false;}
+      if(mat.opacity!==op||mat.transparent!==tr){mat.opacity=op;mat.transparent=tr;mat.depthWrite=dw;mat.needsUpdate=true;}
+    }
+  }
+  function rebuildFocus(){
+    FOCUSM.forEach(m=>{const b=m.userData.base;if(b.emissive){m.material.emissive.copy(b.emissive);m.material.emissiveIntensity=b.ei;}});
+    FOCUSM=focusId?ALLM.filter(m=>m.userData.part===focusId&&m.userData.base.emissive&&!m.userData.dyn):[];
+  }
+  function setView(mode){
+    viewMode=mode;const on=mode==='cut';
+    CLIP.forEach(c=>{c.m.clippingPlanes=on?[c.pl]:null;c.m.needsUpdate=true;});
+    refreshMaterials();
+  }
+
+  /* ---- camera ---- */
+  const cam={tx:11,ty:5.5,tz:0,r:60,az:18*Math.PI/180,el:16*Math.PI/180},goal=Object.assign({},cam);
+  let W=2,H=2,sway=true,swayBase=0;
+  function homeR(){const t=Math.tan(camera.fov*Math.PI/360),asp=W/H;const por=asp<0.9;return clamp(Math.max(8.5/t,(por?14:17)/(t*asp)),12,150);}
+  function fly(t,r,azDeg,elDeg){
+    goal.tx=t[0];goal.ty=t[1];goal.tz=t[2];goal.r=clamp(r,4,150);
+    let d=azDeg*Math.PI/180-cam.az;d=Math.atan2(Math.sin(d),Math.cos(d));goal.az=cam.az+d;goal.el=clamp(elDeg*Math.PI/180,-0.05,1.45);
+  }
+  function camPreset(name){
+    sway=false;
+    const por=(W/H)<0.9;
+    const m={front:[0,8],right:[90,10],back:[180,10],top:[0,80],home:por?[55,20]:[18,16]}[name]||(por?[55,20]:[18,16]);
+    fly([11,5.5,0],homeR(),m[0],m[1]);
+  }
+  function focus(id){
+    focusId=id||null;sway=false;
+    if(id){const p=PBY[id],k=Math.max(1,0.9/(W/H));fly(p.cam.t,p.cam.r*k,p.cam.az,p.cam.el);}
+    refreshMaterials();rebuildFocus();
+  }
+  function updateCamera(dt){
+    const k=reduce?1:1-Math.exp(-dt*7);
+    cam.tx+=(goal.tx-cam.tx)*k;cam.ty+=(goal.ty-cam.ty)*k;cam.tz+=(goal.tz-cam.tz)*k;cam.r+=(goal.r-cam.r)*k;cam.el+=(goal.el-cam.el)*k;cam.az+=(goal.az-cam.az)*k;
+    const ce=Math.cos(cam.el);
+    camera.position.set(cam.tx+cam.r*Math.sin(cam.az)*ce,cam.ty+cam.r*Math.sin(cam.el),cam.tz+cam.r*Math.cos(cam.az)*ce);
+    camera.lookAt(cam.tx,cam.ty,cam.tz);camera.updateMatrixWorld();
+  }
+  const _r=new T.Vector3(),_u=new T.Vector3(),_z=new T.Vector3();
+  function pan(dx,dy){
+    camera.matrixWorld.extractBasis(_r,_u,_z);const s=cam.r*0.0017;
+    goal.tx=clamp(goal.tx+(-_r.x*dx+_u.x*dy)*s,-4,26);goal.ty=clamp(goal.ty+(-_r.y*dx+_u.y*dy)*s,-2,14);goal.tz=clamp(goal.tz+(-_r.z*dx+_u.z*dy)*s,-8,8);
+  }
+  const ptrs=new Map();let down=null,pinchD=0,pinchMid=null;
+  canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  canvas.addEventListener('pointerdown',e=>{
+    try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+    ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(ptrs.size===1)down={x:e.clientX,y:e.clientY,t:performance.now(),m:0};
+    else{down=null;const v=Array.from(ptrs.values());pinchD=Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y);pinchMid={x:(v[0].x+v[1].x)/2,y:(v[0].y+v[1].y)/2};}
+    sway=false;
+  });
+  canvas.addEventListener('pointermove',e=>{
+    const p=ptrs.get(e.pointerId);if(!p)return;
+    const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+    if(ptrs.size===1){
+      if(down)down.m+=Math.abs(dx)+Math.abs(dy);
+      if((e.buttons&2)||e.shiftKey)pan(dx,dy);
+      else{goal.az-=dx*0.0065;goal.el=clamp(goal.el+dy*0.0055,-0.05,1.45);}
+    }else if(ptrs.size===2){
+      const v=Array.from(ptrs.values()),d=Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y),mid={x:(v[0].x+v[1].x)/2,y:(v[0].y+v[1].y)/2};
+      if(pinchD>0&&d>0)goal.r=clamp(goal.r*pinchD/d,4,150);
+      if(pinchMid)pan(mid.x-pinchMid.x,mid.y-pinchMid.y);
+      pinchD=d;pinchMid=mid;
+    }
+  });
+  const ray=new T.Raycaster(),ndc=new T.Vector2();
+  function pick(cx,cy){
+    const rc=canvas.getBoundingClientRect();
+    ndc.set((cx-rc.left)/rc.width*2-1,-((cy-rc.top)/rc.height)*2+1);ray.setFromCamera(ndc,camera);
+    const hits=ray.intersectObjects(PICK,false);
+    for(const h of hits){
+      const o=h.object;if(!o.visible)continue;
+      if(viewMode==='cut'&&o.userData.clipZ!=null&&h.point.z>o.userData.clipZ)continue;
+      if(viewMode==='xray'&&o.userData.shellish)continue;
+      return o.userData.part;
+    }
+    return null;
+  }
+  function endPtr(e){
+    const was=down;ptrs.delete(e.pointerId);if(ptrs.size<2)pinchD=0;
+    if(was&&e.type==='pointerup'&&was.m<8&&performance.now()-was.t<600){const id=pick(e.clientX,e.clientY);if(id&&api.onPick)api.onPick(id);}
+    if(ptrs.size===0)down=null;
+  }
+  canvas.addEventListener('pointerup',endPtr);canvas.addEventListener('pointercancel',endPtr);
+  canvas.addEventListener('wheel',e=>{e.preventDefault();sway=false;goal.r=clamp(goal.r*Math.exp(e.deltaY*0.0012),4,150);},{passive:false});
+  canvas.addEventListener('keydown',e=>{
+    const k=e.key;sway=false;
+    if(k==='ArrowLeft')goal.az-=0.12;else if(k==='ArrowRight')goal.az+=0.12;
+    else if(k==='ArrowUp')goal.el=clamp(goal.el+0.08,-0.05,1.45);else if(k==='ArrowDown')goal.el=clamp(goal.el-0.08,-0.05,1.45);
+    else if(k==='+'||k==='=')goal.r=clamp(goal.r*0.9,4,150);else if(k==='-')goal.r=clamp(goal.r*1.1,4,150);else return;
+    e.preventDefault();
+  });
+
+  /* ---- pins ---- */
+  const pinsEl=$('#pins'),pinEls={};let pinMode='all',pinId=null;
+  PARTS.forEach(p=>{
+    const b=document.createElement('button');b.type='button';b.className='pin';b.style.setProperty('--pc',GROUPS[p.g].c);b.setAttribute('aria-label',p.n);
+    b.innerHTML='<span class="dot"></span><span class="lab"></span>';b.lastChild.textContent=p.n;
+    b.addEventListener('click',e=>{e.stopPropagation();if(api.onPick)api.onPick(p.id);});
+    pinsEl.appendChild(b);pinEls[p.id]=b;
+  });
+  const _v=new T.Vector3();
+  function updatePins(){
+    if(pinMode==='none')return;
+    PARTS.forEach(p=>{
+      const el=pinEls[p.id];
+      if(!(pinMode==='all'||(pinMode==='one'&&p.id===pinId))){el.style.display='none';return;}
+      _v.set(p.pin[0],p.pin[1],p.pin[2]).project(camera);
+      if(_v.z>1||_v.z<-1){el.style.display='none';return;}
+      el.style.display='';el.style.opacity=1;el.style.pointerEvents='auto';
+      el.style.transform='translate('+((_v.x*0.5+0.5)*W).toFixed(1)+'px,'+((-_v.y*0.5+0.5)*H).toFixed(1)+'px)';
+      el.classList.toggle('on',p.id===focusId||(pinMode==='one'&&p.id===pinId));
+    });
+  }
+
+  /* ---- animate the engine ---- */
+  const _a=V(0,0,0),_b=V(0,0,0);
+  function animate(dt,tm){
+    const w=ENG.frac*ENG.dir*1.2*TAU;
+    ENG.theta=(((ENG.theta+w*dt)%TAU)+TAU)%TAU;
+    const th=ENG.theta;
+    A.cyl.forEach((c,i)=>{
+      const a=th-KORD[i]*Math.PI/3,s=Math.sin(a),co=Math.cos(a);
+      const pinY=YC+R*co,pinZ=R*s,yX=pinY+Math.sqrt(LC*LC-pinZ*pinZ);
+      c.crank.rotation.x=a;
+      c.gp.position.y=yX+PR+PH/2;
+      c.xh.position.y=yX;
+      _a.set(c.x,pinY,pinZ);_b.set(c.x,yX,0);setRod(c.rod,_a,_b);
+      c.big.position.set(c.x,pinY,pinZ);c.small.position.y=yX;
+      const topY=yX+PR+PH;
+      c.glow.position.y=topY;c.glow.scale.y=Math.max(0.01,9.6-topY);
+      let d=((a*180/Math.PI)%360+360)%360;
+      const dc=d>180?d-360:d,f=Math.exp(-Math.pow((dc-15)/25,2));
+      c.glowM.emissiveIntensity=0.1+(ENG.fire?1.9*f:0);c.glowM.opacity=0.25+(ENG.fire?0.5*f:0);
+      let open=0;
+      if(d>=95&&d<110)open=(d-95)/15;else if(d>=110&&d<249)open=1;else if(d>=249&&d<262)open=1-(d-249)/13;
+      c.vg.position.y=-0.4*open;
+    });
+    camG.rotation.x=th;flyG.rotation.x=th;
+    tcRot.rotation.x+=dt*ENG.frac*40;
+  }
+
+    function resize(){
+    const r=stage.getBoundingClientRect(),w=Math.max(2,Math.floor(r.width)),h=Math.max(2,Math.floor(r.height));
+    if(w===W&&h===H)return;W=w;H=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+  }
+  if(window.ResizeObserver)new ResizeObserver(resize).observe(stage);else window.addEventListener('resize',resize);
+  resize();
+  camPreset('home');Object.assign(cam,goal);swayBase=cam.az;sway=true;
+  setView('cut');rebuildFocus();animate(0,0);
+
+  const api={ok:true,onPick:null,onView:null,focus:focus,setView:setView,cam:camPreset,
+    names(on){document.body.classList.toggle('names',!!on);},
+    pins(mode,id){pinMode=mode;pinId=id||null;pinsEl.classList.toggle('hide',mode==='none');},
+    tick(dt,tm){
+      resize();
+      if(sway&&!reduce)goal.az=swayBase+0.2*Math.sin(tm*0.5);
+      updateCamera(dt);
+      animate(dt,tm);
+      if(focusId&&FOCUSM.length){const k=reduce?0.4:0.45+0.25*Math.sin(tm*4.2);FOCUSM.forEach(m=>{const b=m.userData.base;m.material.emissive.copy(b.emissive).lerp(ACC,k);m.material.emissiveIntensity=Math.max(b.ei,1);});}
+      renderer.render(scene,camera);
+      updatePins();
+    }};
+  return api;
+  }catch(err){
+    console.error(err);
+    $('#stage').insertAdjacentHTML('beforeend','<p class="nogl">The 3D view hit a problem and was turned off. The guide, procedures, simulator and quiz still work.</p>');
+    return stub;
+  }
+})();
+
+/* ---------------- UI ---------------- */
+const UI={tab:'parts',filter:'all',sel:null,proc:'start',step:0,quiz:null};
+const appEl=$('#app'),panel=$('#panel');
+const toastEl=$('#toast');let toastT=0;
+function toast(msg,sev){toastEl.textContent=msg;toastEl.className='show '+(sev||'info');clearTimeout(toastT);toastT=setTimeout(()=>{toastEl.className='';},3600);}
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}return a;};
+
+/* bottom sheet (mobile) */
+const mqDesk=window.matchMedia('(min-width:640px) and (min-aspect-ratio:1/1)');
+let stops=[84,300,500];
+function calcStops(){const H=appEl.clientHeight||700;stops=[84,Math.round(H*0.48),Math.round(H*0.84)];}
+function sheetH(){return panel.getBoundingClientRect().height;}
+function setSheet(h,anim){
+  if(mqDesk.matches){panel.style.height='';return;}
+  calcStops();h=clamp(h,stops[0],stops[2]);
+  panel.classList.toggle('snap',!!anim);panel.style.height=h+'px';
+}
+function expandIfCollapsed(){if(!mqDesk.matches&&sheetH()<150)setSheet(stops[1],true);}
+const grab=$('#grab');let drag=null;
+grab.addEventListener('pointerdown',e=>{if(mqDesk.matches)return;try{grab.setPointerCapture(e.pointerId);}catch(_){}drag={y:e.clientY,h:sheetH(),m:0};panel.classList.remove('snap');});
+grab.addEventListener('pointermove',e=>{if(!drag)return;const dy=drag.y-e.clientY;drag.m=Math.max(drag.m,Math.abs(dy));setSheet(drag.h+dy,false);});
+function endDrag(){
+  if(!drag)return;const d=drag;drag=null;calcStops();const h=sheetH();
+  if(d.m<6){setSheet(h<150?stops[1]:stops[0],true);}
+  else{let best=stops[0];stops.forEach(s=>{if(Math.abs(s-h)<Math.abs(best-h))best=s;});setSheet(best,true);}
+}
+grab.addEventListener('pointerup',endDrag);grab.addEventListener('pointercancel',endDrag);
+grab.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSheet(sheetH()<150?stops[1]:stops[0],true);}});
+window.addEventListener('resize',()=>{if(mqDesk.matches)panel.style.height='';else setSheet(sheetH(),false);});
+
+/* tabs */
+function setTab(t){
+  UI.tab=t;
+  $$('#tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
+  ['parts','steps','run','quiz'].forEach(k=>{$('#v-'+k).hidden=(k!==t);});
+  if(t==='parts'){renderParts();view3d.pins('all');view3d.focus(UI.sel);}
+  else if(t==='steps'){renderSteps();applyStepFocus();}
+  else if(t==='run'){view3d.pins('none');view3d.focus(null);view3d.cam('home');updateRun();}
+  else{view3d.pins('none');view3d.focus(null);}
+}
+$$('#tabs button').forEach(b=>b.addEventListener('click',()=>{expandIfCollapsed();setTab(b.dataset.tab);}));
+
+/* parts guide */
+/* ---- learning progress, saved on this phone for the menu bars ---- */
+const MT_PROG={
+  id:'mainengine',
+  total:PARTS.length+QUIZ.length,
+  mark(item){
+    try{
+      const doneAll=JSON.parse(localStorage.getItem('marineTrainers.done')||'{}')||{};
+      const mine=new Set(doneAll[this.id]||[]);
+      if(mine.has(item))return;
+      mine.add(item);doneAll[this.id]=[...mine];
+      localStorage.setItem('marineTrainers.done',JSON.stringify(doneAll));
+      const prog=JSON.parse(localStorage.getItem('marineTrainers.progress')||'{}')||{};
+      prog[this.id]=Math.min(100,Math.round(mine.size/this.total*100));
+      localStorage.setItem('marineTrainers.progress',JSON.stringify(prog));
+    }catch(e){}
+  }
+};
+function selectPart(id){
+  if(id)MT_PROG.mark('part:'+id);
+  UI.sel=id;
+  if(UI.tab!=='parts')setTab('parts');
+  else{renderParts();view3d.focus(id);}
+  const v=$('#v-parts');v.scrollTop=0;
+}
+function renderParts(){
+  const v=$('#v-parts');
+  if(UI.sel){renderDetail(v);return;}
+  const chips=[['all','All']].concat(Object.keys(GROUPS).map(k=>[k,GROUPS[k].n]));
+  let h='<div class="chips" role="group" aria-label="Filter parts">'+chips.map(c=>'<button class="chip" data-f="'+c[0]+'" aria-pressed="'+(UI.filter===c[0])+'">'+c[1]+'</button>').join('')+'</div>';
+  h+='<p class="muted small">Tap a part in the 3D model or pick one below.</p>';
+  h+='<div class="legend" aria-label="Pipe colours in the model">'+[['#e0a020','Fuel'],['#3a9bdc','Cooling water'],['#8a5a2b','Lube oil'],['#7fc6ff','Starting air'],['#8a949b','Exhaust']].map(x=>'<span><s style="background:'+x[0]+';box-shadow:0 0 0 1px var(--line)"></s>'+x[1]+'</span>').join('')+'</div>';
+  h+='<ul class="plist">'+PARTS.filter(p=>UI.filter==='all'||p.g===UI.filter).map(p=>'<li><button class="prow" data-id="'+p.id+'" style="--gc:'+GROUPS[p.g].c+'"><b>'+p.n+'</b><small>'+GROUPS[p.g].n+'</small></button></li>').join('')+'</ul>';
+  v.innerHTML=h;
+}
+function renderDetail(v){
+  const p=PBY[UI.sel],g=GROUPS[p.g];
+  let list=PARTS.filter(x=>UI.filter==='all'||x.g===UI.filter);
+  let i=list.findIndex(x=>x.id===p.id);if(i<0){list=PARTS;i=list.findIndex(x=>x.id===p.id);}
+  const prev=list[(i-1+list.length)%list.length],next=list[(i+1)%list.length];
+  let h='<button class="back" data-act="back">&larr; All parts</button>';
+  h+='<span class="gtag" style="--gc:'+g.c+'">'+g.n+'</span><h2>'+p.n+'</h2>';
+  h+='<h3>What it does</h3><p>'+p.what+'</p><h3>How it works</h3><p>'+p.how+'</p>';
+  h+='<h3>Key points</h3><ul class="facts">'+p.facts.map(f=>'<li>'+f+'</li>').join('')+'</ul>';
+  h+='<div class="watch"><b>Watch for</b>'+p.watch+'</div>';
+  h+='<div class="pnav"><button class="btn" data-id="'+prev.id+'">&larr; '+prev.n+'</button><button class="btn" data-id="'+next.id+'">'+next.n+' &rarr;</button></div>';
+  v.innerHTML=h;
+}
+$('#v-parts').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.f){UI.filter=b.dataset.f;renderParts();}
+  else if(b.dataset.id){selectPart(b.dataset.id);}
+  else if(b.dataset.act==='back'){UI.sel=null;renderParts();view3d.focus(null);view3d.cam('home');$('#v-parts').scrollTop=0;}
+});
+
+/* procedures */
+const curProc=()=>PROCS.find(p=>p.id===UI.proc);
+function applyStepFocus(){
+  const st=curProc().steps[UI.step];
+  view3d.pins('one',st.part);view3d.focus(st.part);
+}
+function renderSteps(){
+  const v=$('#v-steps'),pr=curProc(),st=pr.steps[UI.step],last=UI.step===pr.steps.length-1;
+  let h='<div class="procs" role="group" aria-label="Procedure">'+PROCS.map(p=>'<button class="chip" data-p="'+p.id+'" aria-pressed="'+(p.id===UI.proc)+'">'+p.n+'</button>').join('')+'</div>';
+  h+='<div class="stepno">Step '+(UI.step+1)+' of '+pr.steps.length+'</div><div class="prog"><i style="width:'+((UI.step+1)/pr.steps.length*100)+'%"></i></div>';
+  h+='<h2>'+st.t+'</h2><p>'+st.b+'</p><p class="muted"><b>Why:</b> '+st.why+'</p>';
+  if(st.caut)h+='<div class="caution"><b>Caution. </b>'+st.caut+'</div>';
+  if(st.chk)h+='<div class="chk" id="chk"><span class="tick"></span><span>'+st.chkL+'</span></div>';
+  h+='<div class="row">'+(st.doF?'<button class="btn pri" data-a="do">'+st.doL+'</button>':'')+'<button class="btn sm" data-a="show">Show in 3D</button></div>';
+  h+='<div class="pnav"><button class="btn" data-a="prev"'+(UI.step===0?' disabled':'')+'>Back</button><button class="btn pri" data-a="next">'+(last?'Done':'Next')+'</button></div>';
+  h+='<p class="muted small" style="margin-top:14px">Details differ between makers and engine types. Use your own engine\'s manual.</p>';
+  v.innerHTML=h;v.scrollTop=0;
+}
+function updateStepChk(){
+  if(UI.tab!=='steps')return;
+  const st=curProc().steps[UI.step],el=$('#chk');
+  if(st.chk&&el)el.classList.toggle('ok',!!st.chk(sim));
+}
+$('#v-steps').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const pr=curProc(),st=pr.steps[UI.step];
+  if(b.dataset.p){UI.proc=b.dataset.p;UI.step=0;renderSteps();applyStepFocus();}
+  else if(b.dataset.a==='next'){if(UI.step<pr.steps.length-1)UI.step++;else{UI.step=0;toast('Procedure complete.','ok');}renderSteps();applyStepFocus();}
+  else if(b.dataset.a==='prev'){if(UI.step>0)UI.step--;renderSteps();applyStepFocus();}
+  else if(b.dataset.a==='show'){applyStepFocus();}
+  else if(b.dataset.a==='do'&&st.doF){st.doF(sim);updateStepChk();}
+});
+
+
+/* engine tab: run the animation */
+const SPEEDS=[['0','Stopped'],['3','Turning gear'],['25','Slow'],['60','Half'],['100','Full']];
+const segE=(label,id,opts)=>'<div class="ctl"><span>'+label+'</span><div class="seg" data-ctl="'+id+'" role="group" aria-label="'+label+'">'+opts.map(o=>'<button data-v="'+o[0]+'" aria-pressed="false">'+o[1]+'</button>').join('')+'</div></div>';
+function buildRun(){
+  let h='<p class="muted small">Run the engine to watch the pistons, crank and valves move. Cylinder 3 is cut open. The firing order is 1-5-3-4-2-6. The animation runs slower than a real engine so that you can follow each stroke.</p>';
+  h+='<div class="ctl"><label for="spd">Engine speed</label><input type="range" id="spd" min="0" max="100" step="1" value="0"><output id="spdv">0 rpm</output></div>';
+  h+='<div class="row">'+SPEEDS.map(s=>'<button class="btn sm" data-spd="'+s[0]+'">'+s[1]+'</button>').join('')+'</div>';
+  h+=segE('Direction','dir',[['1','Ahead'],['-1','Astern']]);
+  h+=segE('Firing flash','fire',[['1','On'],['0','Off']]);
+  h+='<div class="card"><h3>Cylinder 1</h3><p id="phase" style="margin:6px 0 0"></p><p class="small muted" id="crankdeg" style="margin:6px 0 0"></p></div>';
+  h+='<p class="muted small" style="margin-top:10px">Turn the speed to about 3 for the turning gear. Orange glow in a cylinder shows the fuel burning. The exhaust valve goes down to open and goes back up to close.</p>';
+  $('#v-run').innerHTML=h;
+}
+$('#v-run').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.spd!==undefined){ENG.frac=+b.dataset.spd/100;updateRun(true);return;}
+  const sg=b.closest('.seg');
+  if(sg&&b.dataset.v!==undefined){
+    if(sg.dataset.ctl==='dir')ENG.dir=+b.dataset.v;
+    else if(sg.dataset.ctl==='fire')ENG.fire=b.dataset.v==='1';
+    updateRun(true);
+  }
+});
+$('#v-run').addEventListener('input',e=>{
+  if(e.target.id==='spd'){ENG.frac=+e.target.value/100;$('#spdv').textContent=Math.round(ENG.frac*100)+' rpm';}
+});
+function updateRun(force){
+  if(UI.tab!=='run')return;
+  const v=$('#v-run');
+  const sp=$('#spd');
+  if(sp&&(force||document.activeElement!==sp)){sp.value=Math.round(ENG.frac*100);$('#spdv').textContent=Math.round(ENG.frac*100)+' rpm';}
+  const d=cycleDeg(0);
+  $('#phase').textContent=phaseOf(d);
+  $('#crankdeg').textContent='Cylinder 1 crank angle: '+Math.round(d)+'\u00b0 after top dead centre';
+  const st={dir:String(ENG.dir),fire:ENG.fire?'1':'0'};
+  $$('.seg[data-ctl]',v).forEach(sg=>{$$('button',sg).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===st[sg.dataset.ctl])));});
+}
+
+/* quiz */
+function startQuiz(){UI.quiz={order:shuffle(QUIZ.map((q,i)=>i)).slice(0,8),i:0,score:0,picked:null,opts:null};renderQuiz();}
+function renderQuiz(){
+  const v=$('#v-quiz'),Q=UI.quiz;let h='';
+  if(!Q){
+    h='<h2>Check what you know</h2><p>Eight questions drawn from the parts guide and procedures. You get an explanation after every answer.</p><div class="row"><button class="btn pri" data-q="start">Start quiz</button></div>';
+  }else if(Q.i>=Q.order.length){
+    const msg=Q.score>=7?'Strong result. Now run the engine in the Engine tab and watch each stroke.':Q.score>=5?'A solid base. Revisit the parts you missed.':'Worth another pass through the Parts and the One two-stroke cycle procedure.';
+    h='<p class="muted">Quiz complete</p><div class="score">'+Q.score+' / '+Q.order.length+'</div><p>'+msg+'</p><div class="row"><button class="btn pri" data-q="start">Try again</button><button class="btn" data-q="parts">Back to parts</button></div>';
+  }else{
+    const q=QUIZ[Q.order[Q.i]];
+    if(!Q.opts)Q.opts=shuffle(q.a.map((t,k)=>({t:t,ok:k===q.c})));
+    h='<div class="stepno">Question '+(Q.i+1)+' of '+Q.order.length+'</div><div class="prog"><i style="width:'+((Q.i+1)/Q.order.length*100)+'%"></i></div><h3 style="font-size:20px;margin-top:6px">'+q.q+'</h3>';
+    h+=Q.opts.map((o,k)=>{let c='opt';if(Q.picked!==null){if(o.ok)c+=' right';else if(k===Q.picked)c+=' wrong';}return '<button class="'+c+'" data-k="'+k+'"'+(Q.picked!==null?' disabled':'')+'>'+o.t+'</button>';}).join('');
+    if(Q.picked!==null){
+      const ok=Q.opts[Q.picked].ok;
+      h+='<div class="card"><b>'+(ok?'Correct.':'Not quite.')+'</b> '+q.w+'</div><div class="row"><button class="btn pri" data-q="next">'+(Q.i===Q.order.length-1?'See result':'Next question')+'</button></div>';
+    }
+  }
+  v.innerHTML=h;
+}
+$('#v-quiz').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;const Q=UI.quiz;
+  if(b.dataset.q==='start'){startQuiz();$('#v-quiz').scrollTop=0;}
+  else if(b.dataset.q==='parts'){UI.quiz=null;setTab('parts');}
+  else if(b.dataset.q==='next'){Q.i++;Q.picked=null;Q.opts=null;renderQuiz();$('#v-quiz').scrollTop=0;}
+  else if(b.dataset.k!==undefined&&Q&&Q.picked===null){Q.picked=+b.dataset.k;if(Q.opts[Q.picked].ok){Q.score++;MT_PROG.mark('q'+Q.order[Q.i]);}renderQuiz();}
+});
+
+/* stage controls */
+function setViewButtons(m){$$('#viewseg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===m)));}
+$$('#viewseg button').forEach(b=>b.addEventListener('click',()=>{view3d.setView(b.dataset.view);setViewButtons(b.dataset.view);}));
+view3d.onView=setViewButtons;
+$$('#cams button[data-cam]').forEach(b=>b.addEventListener('click',()=>view3d.cam(b.dataset.cam)));
+$('#namesBtn').addEventListener('click',e=>{const b=e.currentTarget,on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(on));view3d.names(on);});
+view3d.onPick=id=>{expandIfCollapsed();selectPart(id);};
+$('#alarmBanner').addEventListener('click',()=>{expandIfCollapsed();setTab('run');});
+
+
+function updateHUD(){
+  const d=cycleDeg(0);
+  $('#r-a').textContent=Math.round(ENG.frac*100);
+  $('#r-p').textContent=Math.round(d);
+  $('#state').textContent=ENG.frac>0?'Cylinder 1: '+phaseOf(d):'Engine stopped. Open the Engine tab to run it.';
+}
+
+/* main loop */
+let last=performance.now(),hudT=0,ok3d=true;
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=Math.min(0.05,Math.max(0,(now-last)/1000));last=now;
+  if(ok3d){try{view3d.tick(dt,now/1000);}catch(err){ok3d=false;console.error(err);}}
+  hudT+=dt;if(hudT>0.15){hudT=0;updateHUD();updateRun();updateStepChk();}
+}
+buildRun();renderParts();renderSteps();renderQuiz();
+setSheet(Math.round((appEl.clientHeight||700)*0.48),false);
+setTab('parts');updateHUD();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
