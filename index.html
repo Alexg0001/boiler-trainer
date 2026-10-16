@@ -80,7 +80,7 @@ window.addEventListener("pageshow",drawProgress);
     transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
     opacity:0;transform:translateY(12px);animation:rise .5s ease forwards;
   }
-  a.card:nth-child(1){animation-delay:.05s}a.card:nth-child(2){animation-delay:.14s}a.card:nth-child(3){animation-delay:.23s}a.card:nth-child(4){animation-delay:.32s}a.card:nth-child(5){animation-delay:.41s}a.card:nth-child(6){animation-delay:.5s}a.card:nth-child(7){animation-delay:.59s}
+  a.card:nth-child(1){animation-delay:.05s}a.card:nth-child(2){animation-delay:.14s}a.card:nth-child(3){animation-delay:.23s}a.card:nth-child(4){animation-delay:.32s}a.card:nth-child(5){animation-delay:.41s}
   @keyframes rise{to{opacity:1;transform:none}}
   /* coloured edge that glows */
   a.card::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:var(--c,var(--accent));box-shadow:0 0 14px var(--c,var(--accent))}
@@ -126,9 +126,68 @@ window.addEventListener("pageshow",drawProgress);
   .surf{position:absolute;left:0;right:0;bottom:calc(46vh - 2px);height:2px;background:linear-gradient(90deg,transparent,rgba(127,208,242,.45),transparent);opacity:0;pointer-events:none}
   @media (prefers-reduced-motion:reduce){a.card{animation:none;opacity:1;transform:none}a.card::after{display:none}.wl,.shimmer{animation:none}}
   @media (min-width:700px){.list{display:grid;grid-template-columns:1fr 1fr;max-width:860px;margin:6px auto 0;width:100%}header{max-width:860px;margin:0 auto;width:100%}footer{max-width:860px;margin-left:auto;margin-right:auto;width:100%}}
+
+
+  /* === Marine Trainers access gate === */
+  body.locked{overflow:hidden}
+  #accessGate{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:22px;
+    background:radial-gradient(ellipse at 50% 18%,rgba(25,111,151,.3),transparent 48%),linear-gradient(180deg,#06131d 0%,#081e2b 58%,#030a10 100%);
+    color:#eaf7ff;opacity:1;visibility:visible;transition:opacity .35s ease,visibility .35s ease;overflow:hidden}
+  #accessGate::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.2;
+    background-image:linear-gradient(rgba(80,183,224,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(80,183,224,.14) 1px,transparent 1px);background-size:34px 34px;
+    mask-image:linear-gradient(to bottom,#000,transparent 90%)}
+  #accessGate.gone{opacity:0;visibility:hidden;pointer-events:none}
+  .gate-card{position:relative;width:min(100%,410px);padding:30px 24px 24px;border:1px solid rgba(100,205,245,.25);border-radius:26px;
+    background:linear-gradient(150deg,rgba(17,48,67,.96),rgba(5,20,31,.97));box-shadow:0 28px 90px rgba(0,0,0,.55),inset 0 1px rgba(255,255,255,.06);text-align:center;backdrop-filter:blur(18px)}
+  .gate-mark{width:76px;height:76px;margin:0 auto 20px;display:grid;place-items:center;border-radius:24px;position:relative;
+    background:linear-gradient(145deg,rgba(56,183,231,.2),rgba(13,58,81,.45));border:1px solid rgba(89,207,255,.45);box-shadow:0 0 34px rgba(42,174,224,.13),inset 0 0 22px rgba(62,186,234,.08)}
+  .gate-mark::after{content:"";position:absolute;inset:-7px;border:1px solid rgba(89,207,255,.16);border-radius:29px;animation:gatePulse 3s ease-in-out infinite}
+  .gate-mark svg{width:38px;height:38px;stroke:#73d8ff;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .gate-kicker{font:600 11px/1 'Barlow Condensed',sans-serif;letter-spacing:.25em;text-transform:uppercase;color:#70d8ff}
+  .gate-title{font:700 clamp(34px,9vw,43px)/1 'Barlow Condensed',sans-serif;letter-spacing:.015em;margin:10px 0 9px;color:#f5fbff}
+  .gate-sub{margin:0 auto 24px;max-width:280px;color:#a8c4d2;font-size:14px;line-height:1.55}
+  .gate-label{display:block;text-align:left;margin:0 0 8px 2px;color:#c9e3ee;font:600 12px 'Barlow Condensed',sans-serif;letter-spacing:.12em;text-transform:uppercase}
+  .gate-input-wrap{display:flex;align-items:center;gap:8px;padding:0 13px;border:1px solid rgba(120,190,225,.28);border-radius:14px;background:rgba(1,12,20,.48);transition:border-color .2s,box-shadow .2s}
+  .gate-input-wrap:focus-within{border-color:#51c8f4;box-shadow:0 0 0 3px rgba(81,200,244,.1)}
+  .gate-input-wrap svg{width:19px;height:19px;flex:0 0 19px;stroke:#76b9d3;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  #gatePassword{min-width:0;width:100%;height:52px;border:0;outline:0;background:transparent;color:#f2fbff;font:500 16px 'Barlow',sans-serif;letter-spacing:.06em}
+  #gatePassword::placeholder{color:#607f8f;letter-spacing:0}
+  #gateToggle{border:0;background:transparent;color:#83bdd3;font-size:12px;font-weight:600;padding:8px 0;cursor:pointer}
+  #gateSubmit{width:100%;height:52px;margin-top:15px;border:0;border-radius:14px;background:linear-gradient(100deg,#f2b72e,#ffda75);color:#18212a;font:700 16px 'Barlow Condensed',sans-serif;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;box-shadow:0 8px 24px rgba(240,180,41,.16);transition:transform .18s,filter .18s}
+  #gateSubmit:hover{filter:brightness(1.06);transform:translateY(-1px)}#gateSubmit:active{transform:scale(.99)}
+  #gateError{min-height:19px;margin:10px 0 0;color:#ff8d8d;font-size:13px}
+  .gate-foot{display:flex;justify-content:center;align-items:center;gap:7px;margin-top:17px;color:#7896a5;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+  .gate-dot{width:6px;height:6px;border-radius:50%;background:#51d6a4;box-shadow:0 0 9px #51d6a4}
+  .gate-note{margin-top:20px;color:#5f8293;font-size:11px;line-height:1.45}
+  @keyframes gatePulse{0%,100%{transform:scale(1);opacity:.65}50%{transform:scale(1.05);opacity:1}}
+  @keyframes gateShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+  .gate-card.shake{animation:gateShake .35s ease}
+  @media(prefers-reduced-motion:reduce){#accessGate,.gate-mark::after,#gateSubmit{transition:none;animation:none}}
 </style>
 </head>
-<body>
+<body class="locked">
+<div id="accessGate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+  <section class="gate-card" id="gateCard">
+    <div class="gate-mark" aria-hidden="true">
+      <svg viewBox="0 0 48 48"><path d="M24 5 39 11v11c0 10-6 16-15 21C15 38 9 32 9 22V11z"/><rect x="18" y="21" width="12" height="10" rx="2"/><path d="M21 21v-4a3 3 0 0 1 6 0v4"/><path d="M24 25v2"/></svg>
+    </div>
+    <div class="gate-kicker">Marine learning system</div>
+    <h2 class="gate-title" id="gateTitle">ACCESS CONTROL</h2>
+    <p class="gate-sub">Your engine-room training hub is secured. Enter the access key to come aboard.</p>
+    <form id="gateForm">
+      <label class="gate-label" for="gatePassword">Access key</label>
+      <div class="gate-input-wrap">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>
+        <input id="gatePassword" type="password" placeholder="Enter your access key" autocomplete="current-password" required>
+        <button id="gateToggle" type="button" aria-label="Show password">SHOW</button>
+      </div>
+      <button id="gateSubmit" type="submit">Unlock training hub <span aria-hidden="true"> ↗</span></button>
+      <p id="gateError" role="status" aria-live="polite"></p>
+    </form>
+    <div class="gate-foot"><span class="gate-dot"></span> Local access checkpoint</div>
+    <div class="gate-note">Marine Trainers · Boiler · Compressor · Purifier · Steering · OWS</div>
+  </section>
+</div>
 <div class="water" aria-hidden="true">
   <div class="shimmer"></div>
   <div class="wl w3"></div>
@@ -139,20 +198,10 @@ window.addEventListener("pageshow",drawProgress);
   <div class="eyebrow">Ship training</div>
   <h1>Marine Trainers</h1>
   <p class="sub">Choose a system to study</p>
-  <div class="count"><b>7</b><span>Systems</span></div>
+  <div class="count"><b>5</b><span>Systems</span></div>
 </header>
 
 <main class="list">
-  <a class="card" data-id="engineroom" href="engineroom.html" style="--c:#a98bff">
-    <div class="row">
-      <div class="ico"><svg viewBox="0 0 24 24"><path d="M3 15h18l-2 4H5z"/><path d="M6 15V9h5v6M13 15V6h5v9"/><path d="M15 3v3"/></svg></div>
-      <div>
-        <div class="title">Engine room explorer</div>
-        <div class="desc">A 3D cutaway of a ship's engine room. See where each machine sits, and tap to learn.</div>
-        <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-      </div>
-    </div>
-  </a>
   <a class="card" data-id="boiler" href="boiler.html" style="--c:#f0b429">
     <div class="row">
       <div class="ico"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="13" rx="6" ry="7"/><path d="M9 6V3M12 6V2M15 6V3"/></svg></div>
@@ -206,16 +255,6 @@ window.addEventListener("pageshow",drawProgress);
       </div>
     </div>
   </a>
-  <a class="card" data-id="mainengine" href="mainengine.html" style="--c:#ff7a5c">
-    <div class="row">
-      <div class="ico"><svg viewBox="0 0 24 24"><path d="M4 18h16M6 18V9h3v9M10.5 18V6h3v12M15 18V9h3v9"/><path d="M12 3v3"/></svg></div>
-      <div>
-        <div class="title">Main diesel engine trainer</div>
-        <div class="desc">Slow-speed two-stroke engine: six cylinders, every system, and a live animation.</div>
-        <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-      </div>
-    </div>
-  </a>
 </main>
 
 <footer>
@@ -223,5 +262,49 @@ window.addEventListener("pageshow",drawProgress);
   <div class="sig">Thura Maung</div>
   <div class="made">Trainers by</div>
 </footer>
+
+<script>
+(()=>{
+  // CHANGE THIS to the shared password you want everyone to use.
+  const ACCESS_KEY = "CHANGE-ME-123";
+  const gate = document.getElementById("accessGate");
+  const card = document.getElementById("gateCard");
+  const form = document.getElementById("gateForm");
+  const input = document.getElementById("gatePassword");
+  const error = document.getElementById("gateError");
+  const toggle = document.getElementById("gateToggle");
+  const submit = document.getElementById("gateSubmit");
+  function unlock(){
+    gate.classList.add("gone");
+    document.body.classList.remove("locked");
+    setTimeout(()=>{gate.style.display="none"},380);
+  }
+  function requireLogin(){
+    gate.style.display="grid";
+    gate.classList.remove("gone");
+    document.body.classList.add("locked");
+    input.value="";
+    error.textContent="";
+    submit.textContent="Unlock training hub ↗";
+    setTimeout(()=>input.focus({preventScroll:true}),100);
+  }
+  form.addEventListener("submit",event=>{
+    event.preventDefault();
+    if(input.value===ACCESS_KEY){error.textContent="";submit.textContent="Access granted ✓";unlock();}
+    else{
+      error.textContent="Incorrect access key. Try again.";
+      card.classList.remove("shake");void card.offsetWidth;card.classList.add("shake");
+      input.value="";input.focus();
+    }
+  });
+  toggle.addEventListener("click",()=>{
+    const showing=input.type==="text";input.type=showing?"password":"text";toggle.textContent=showing?"SHOW":"HIDE";toggle.setAttribute("aria-label",showing?"Show password":"Hide password");input.focus();
+  });
+  // Require the shared access key on every page load, including back/forward cache restores.
+  window.addEventListener("pageshow",requireLogin);
+  if(!gate.classList.contains("gone"))setTimeout(()=>input.focus({preventScroll:true}),100);
+})();
+</script>
+
 </body>
 </html>
