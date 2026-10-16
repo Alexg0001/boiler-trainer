@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Turbocharger Trainer</title>
+<meta name="theme-color" content="#1f4f6b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --stage-a:#26506d; --stage-b:#0a1f2e;
+  --bg:#e7edf0; --panel:#f3f6f7; --card:#ffffff; --ink:#10222d; --ink2:#4d616d; --line:#cbd6dc; --chip:#e3eaee;
+  --accent:#f2c230; --accent-ink:#1b1708;
+  --ok:#17804f; --warn:#a96a00; --bad:#c32f2f; --info:#1f6fa8;
+  --font-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-disp:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#08141b; --panel:#112430; --card:#17303f; --ink:#e8f0f4; --ink2:#a0b4c0; --line:#28475a; --chip:#1e3a4b;
+    --ok:#4fd197; --warn:#f0b445; --bad:#ff7070; --info:#6cb8ee;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#08141b; --panel:#112430; --card:#17303f; --ink:#e8f0f4; --ink2:#a0b4c0; --line:#28475a; --chip:#1e3a4b;
+  --ok:#4fd197; --warn:#f0b445; --bad:#ff7070; --info:#6cb8ee;
+}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:linear-gradient(var(--stage-a) 50%,var(--panel) 50%)}
+body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--font-body);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+*,*::before,*::after{box-sizing:inherit}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#app{height:100%;display:flex;flex-direction:column}
+#stage{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:radial-gradient(120% 90% at 50% 40%,var(--stage-a),var(--stage-b))}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.nogl{position:absolute;inset:auto 16px 16px;margin:0;padding:12px 14px;background:rgba(0,0,0,.55);color:#fff;border-radius:8px}
+
+#top{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:10px 10px 0;pointer-events:none;color:#eaf3f8}
+#top>*{pointer-events:auto}
+.brand{display:flex;flex-direction:column;line-height:1.05;text-shadow:0 1px 8px rgba(0,0,0,.45)}
+.brand strong{font:700 24px/1 var(--font-disp);letter-spacing:.01em}
+.brand span{font-size:14.5px;opacity:.82;margin-top:3px}
+.seg{display:inline-flex;background:rgba(8,26,38,.62);border:1px solid rgba(190,225,245,.22);border-radius:9px;padding:2px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.seg button{border:0;background:transparent;color:inherit;padding:6px 10px;border-radius:7px;font-size:14px;font-weight:500;min-height:34px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+#top .seg{color:#dcecf5}
+#readout{position:absolute;left:10px;right:64px;top:58px;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none}
+.pill{display:flex;align-items:baseline;gap:5px;background:rgba(8,26,38,.66);border:1px solid rgba(190,225,245,.2);color:#eaf3f8;border-radius:8px;padding:3px 9px 4px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.pill i{font-style:normal;font-size:14px;opacity:.8}
+.pill b{font:600 22px/1 var(--font-disp);font-variant-numeric:tabular-nums}
+.pill u{text-decoration:none;font-size:14px;opacity:.8}
+.pill.warn{border-color:#f0b445;background:rgba(120,78,0,.7)}
+.pill.bad{border-color:#ff7070;background:rgba(130,20,20,.75)}
+#state{flex-basis:100%;font-size:15.5px;color:#dff0f8;text-shadow:0 1px 6px rgba(0,0,0,.6);padding-left:2px}
+#cams{position:absolute;right:10px;top:58px;display:flex;flex-direction:column;gap:6px}
+#cams button{width:46px;min-height:34px;border:1px solid rgba(190,225,245,.22);background:rgba(8,26,38,.62);color:#dcecf5;border-radius:8px;font-size:13px;padding:3px 0;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#cams button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+#alarmBanner{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;max-width:calc(100% - 24px);border:0;border-radius:9px;padding:8px 14px;font-weight:600;font-size:15px;color:#fff;box-shadow:0 4px 18px rgba(0,0,0,.4)}
+#alarmBanner.warn{background:#9a6200}
+#alarmBanner.bad{background:#b52a2a}
+#toast{position:absolute;left:50%;transform:translateX(-50%) translateY(6px);bottom:56px;max-width:calc(100% - 24px);background:rgba(8,26,38,.9);color:#eaf3f8;border:1px solid rgba(190,225,245,.25);border-left:4px solid var(--info);border-radius:8px;padding:8px 12px;font-size:14.5px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;text-align:left}
+#toast.show{opacity:1;transform:translateX(-50%)}
+#toast.ok{border-left-color:#4fd197}#toast.warn{border-left-color:#f0b445}#toast.bad{border-left-color:#ff7070}
+
+#pins{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#pins.hide{display:none}
+.pin{position:absolute;left:0;top:0;width:30px;height:30px;margin:-15px 0 0 -15px;padding:0;border:0;background:none;pointer-events:auto;display:grid;place-items:center;will-change:transform,opacity}
+.pin .dot{width:13px;height:13px;border-radius:50%;background:var(--pc,#fff);border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.4)}
+.pin .lab{position:absolute;left:22px;top:50%;transform:translateY(-50%);white-space:nowrap;background:rgba(8,26,38,.9);color:#fff;font-size:13.5px;padding:2px 8px;border-radius:5px;display:none;pointer-events:none}
+body.names .pin .lab,.pin.on .lab{display:block}
+.pin.on{z-index:3}
+.pin.on .dot{transform:scale(1.45);background:var(--accent);box-shadow:0 0 0 3px rgba(242,194,48,.35),0 2px 8px rgba(0,0,0,.5)}
+@media (prefers-reduced-motion:no-preference){.pin.on .dot{animation:ping 1.8s ease-out infinite}}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(242,194,48,.7)}100%{box-shadow:0 0 0 14px rgba(242,194,48,0)}}
+
+#panel{flex:0 0 auto;height:48%;display:flex;flex-direction:column;background:var(--panel);color:var(--ink);border-radius:16px 16px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.25);position:relative;z-index:5;min-height:0}
+#panel.snap{transition:height .22s ease}
+#grab{flex:0 0 22px;display:grid;place-items:center;touch-action:none;cursor:ns-resize}
+#grab i{width:42px;height:5px;border-radius:3px;background:var(--line)}
+#tabs{flex:0 0 auto;display:flex;border-bottom:1px solid var(--line);padding:0 6px}
+#tabs button{flex:1;border:0;background:none;padding:8px 2px 9px;font:600 18px/1.1 var(--font-disp);color:var(--ink2);border-bottom:3px solid transparent;margin-bottom:-1px;min-height:44px}
+#tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+#body{flex:1 1 0;min-height:0;position:relative}
+.view{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;padding:12px 14px 22px;-webkit-overflow-scrolling:touch}
+.view[hidden]{display:none}
+h2{font:700 30px/1.05 var(--font-disp);margin:2px 0 4px}
+h3{font:600 19px/1.2 var(--font-body);margin:16px 0 4px}
+p{margin:0 0 8px}
+.muted{color:var(--ink2)}
+.small{font-size:15.5px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin:0 -14px 6px;padding-left:14px;padding-right:14px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:6px 13px;font-size:15px;min-height:36px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:15px;color:var(--ink2);margin:2px 0 10px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend s{width:18px;height:6px;border-radius:3px;display:inline-block}
+.plist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.prow{width:100%;text-align:left;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-left:6px solid var(--gc,#999);border-radius:8px;min-height:48px}
+.prow b{font-weight:600;flex:1}
+.prow small{color:var(--ink2);font-size:15px}
+.prow:active{background:var(--chip)}
+.back{border:0;background:none;color:var(--info);padding:4px 0;font-weight:600;font-size:16.5px;min-height:36px}
+.gtag{display:inline-block;border-radius:999px;padding:3px 11px;font-size:15px;background:var(--chip);border-left:5px solid var(--gc,#999);margin-bottom:6px}
+.facts{margin:6px 0 0;padding-left:20px}
+.facts li{margin:3px 0}
+.watch{margin-top:12px;padding:10px 12px;border-radius:8px;background:rgba(242,194,48,.18);border-left:5px solid var(--accent)}
+.watch b{display:block;margin-bottom:2px}
+.pnav{display:flex;gap:8px;margin-top:16px}
+.btn{flex:1;border:1px solid var(--line);background:var(--card);border-radius:9px;padding:10px 12px;font-weight:600;min-height:46px}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.sm{flex:0 0 auto;padding:7px 12px;min-height:40px;font-size:16.5px}
+.btn:disabled{opacity:.45;cursor:default}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+
+.procs{display:flex;gap:6px;overflow-x:auto;margin:0 -14px 10px;padding:0 14px 4px;scrollbar-width:none}
+.procs::-webkit-scrollbar{display:none}
+.prog{height:6px;border-radius:3px;background:var(--chip);overflow:hidden;margin:2px 0 8px}
+.prog i{display:block;height:100%;background:var(--accent);transition:width .25s}
+.stepno{font:600 16.5px var(--font-body);color:var(--ink2)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:10px}
+.chk{display:flex;align-items:center;gap:9px;margin-top:10px;padding:9px 11px;border-radius:8px;background:var(--chip);font-size:16.5px}
+.chk .tick{width:20px;height:20px;border-radius:50%;border:2px solid var(--ink2);flex:0 0 auto;display:grid;place-items:center;font-size:13px;line-height:1}
+.chk.ok .tick{background:var(--ok);border-color:var(--ok);color:#fff}
+.chk.ok .tick::after{content:"✓"}
+.caution{margin-top:10px;padding:10px 13px;border-radius:8px;background:rgba(195,47,47,.12);border-left:5px solid var(--bad);font-size:16.5px}
+
+.gauges{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
+.gbox{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gbox svg{width:100%;height:auto;max-height:170px}
+.gbox .cap{font-size:15px;color:var(--ink2);margin-top:2px;text-align:center}
+.temps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
+.temps div{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px;text-align:center}
+.temps b{display:block;font:600 22px/1.1 var(--font-disp);font-variant-numeric:tabular-nums}
+.temps span{font-size:14px;color:var(--ink2)}
+.ctl{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.ctl label,.ctl>span{font-weight:500;flex:1}
+.ctl .seg{background:var(--chip);border-color:var(--line);backdrop-filter:none}
+.ctl .seg button{color:var(--ink);min-height:38px;padding:6px 12px}
+.ctl .seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.ctl input[type=range]{flex:0 0 150px;accent-color:#c99a00;height:32px}
+.ctl output{width:44px;text-align:right;font-variant-numeric:tabular-nums}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.alist{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:5px}
+.alist li{padding:8px 11px;border-radius:7px;font-size:16.5px;border-left:5px solid var(--warn);background:rgba(240,180,69,.16)}
+.alist li.bad{border-left-color:var(--bad);background:rgba(195,47,47,.14)}
+.alist li.none{border-left-color:var(--ok);background:rgba(23,128,79,.12)}
+.foul{display:grid;grid-template-columns:96px 1fr 40px;gap:8px;align-items:center;font-size:15.5px;margin:4px 0}
+.foul i{display:block;height:10px;border-radius:5px;background:var(--chip);overflow:hidden}
+.foul i b{display:block;height:100%;background:var(--warn);width:0}
+.foul output{text-align:right;font-variant-numeric:tabular-nums}
+
+.opt{display:block;width:100%;text-align:left;margin-top:8px;padding:11px 13px;border-radius:9px;border:1px solid var(--line);background:var(--card);min-height:48px}
+.opt.right{border-color:var(--ok);background:rgba(23,128,79,.14)}
+.opt.wrong{border-color:var(--bad);background:rgba(195,47,47,.13)}
+.opt:disabled{cursor:default}
+.score{font:700 54px/1 var(--font-disp);margin:6px 0}
+
+@media (min-width:900px) and (min-aspect-ratio:1/1){
+  #app{flex-direction:row}
+  #panel{width:440px;height:100%!important;border-radius:0;order:2;box-shadow:-6px 0 24px rgba(0,0,0,.22)}
+  #grab{display:none}
+  #tabs{padding-top:8px}
+  #alarmBanner{bottom:16px}
+  #toast{bottom:64px}
+}
+@media (max-width:420px){.brand strong{font-size:21px}.seg button{padding:6px 8px;font-size:13.5px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <main id="stage">
+    <canvas id="gl" aria-label="Interactive 3D model of a marine exhaust-gas turbocharger. Drag to rotate, pinch or scroll to zoom, tap a part to learn about it." tabindex="0"></canvas>
+    <div id="pins"></div>
+    <header id="top">
+      <div class="brand"><strong>Turbocharger trainer</strong><span>Exhaust-gas turbocharger</span></div>
+      <div class="seg" id="viewseg" role="group" aria-label="View style">
+        <button data-view="cut" aria-pressed="true">Cutaway</button>
+        <button data-view="xray" aria-pressed="false">X-ray</button>
+        <button data-view="ext" aria-pressed="false">Outside</button>
+      </div>
+    </header>
+    <div id="readout" aria-live="off">
+      <div class="pill" id="pp"><i>Speed</i><b id="r-n">0.0</b><u>krpm</u></div>
+      <div class="pill" id="pb"><i>Boost</i><b id="r-b">0.0</b><u>bar</u></div>
+      <div class="pill" id="pt"><i>Gas in</i><b id="r-t">30</b><u>°C</u></div>
+      <div id="state"></div>
+    </div>
+    <div id="cams" role="group" aria-label="Camera">
+      <button data-cam="front">Front</button>
+      <button data-cam="left">Air</button>
+      <button data-cam="right">Gas</button>
+      <button data-cam="back">Back</button>
+      <button data-cam="top">Top</button>
+      <button id="namesBtn" aria-pressed="false">Names</button>
+    </div>
+    <button id="alarmBanner" hidden></button>
+    <div id="toast" role="status" aria-live="polite"></div>
+  </main>
+  <section id="panel" aria-label="Learning panel">
+    <div id="grab" role="button" aria-label="Resize panel" tabindex="0"><i></i></div>
+    <nav id="tabs" role="tablist" aria-label="Sections">
+      <button role="tab" data-tab="parts" aria-selected="true">Parts</button>
+      <button role="tab" data-tab="steps" aria-selected="false">Procedures</button>
+      <button role="tab" data-tab="run" aria-selected="false">Simulator</button>
+      <button role="tab" data-tab="quiz" aria-selected="false">Quiz</button>
+    </nav>
+    <div id="body">
+      <section class="view" id="v-parts" role="tabpanel"></section>
+      <section class="view" id="v-steps" role="tabpanel" hidden></section>
+      <section class="view" id="v-run" role="tabpanel" hidden></section>
+      <section class="view" id="v-quiz" role="tabpanel" hidden></section>
+    </div>
+  </section>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $=(s,e)=>(e||document).querySelector(s);
+const $$=(s,e)=>Array.from((e||document).querySelectorAll(s));
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const reduce=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+/*SIM-START*/
+const SIM=(function(){
+  const NMAX=13000;
+  const C={NMAX:NMAX,OVS_W:1.05,OVS_B:1.10,EGT_W:520,EGT_B:560,LUBE_W:1.4,LUBE_B:0.8,TB_W:110,TB_B:130,TB_SEIZE:150,TAIR_W:50,DPF_W:30,DPF_B:45};
+  const cl=(v,a,b)=>v<a?a:v>b?b:v;
+  function surgeFlow(PR,fc,ff){return (0.14+0.12*(PR-1))*(1+0.55*fc+0.12*ff);}
+  function runN(L){return 0.18+0.82*Math.pow(Math.max(L,0.05),0.75);}
+  function create(){
+    return {speed:3,t:0,engineOn:false,loadSet:0.5,load:0,limiter:true,accrue:false,
+      N:0,flow:0.02,PR:1,Tin:30,Tout:30,Tc2:30,Tair:32,Tb:35,lubeP:0,
+      ft:0,fc:0,fa:0,ff:0,wash:null,seized:false,lubeFail:false,
+      surging:false,surgeAcc:0,surgeMargin:99,surgeCount:0,ovs:false,dpF:0,dpC:0,events:[]};
+  }
+  function ev(s,msg,sev){s.events.push({msg:msg,sev:sev||'info'});if(s.events.length>30)s.events.shift();}
+  function sub(s,dt){
+    s.t+=dt;
+    const lt=s.engineOn?cl(s.loadSet,0.05,1.1):0;
+    const rate=s.engineOn?(s.limiter?0.04:0.6):0.8;
+    s.load+=cl(lt-s.load,-rate*dt,rate*dt);
+    if(s.accrue&&s.engineOn){
+      const k=dt*(0.3+s.load);
+      s.ft=cl(s.ft+0.0010*k,0,1);s.fc=cl(s.fc+0.0005*k,0,1);s.ff=cl(s.ff+0.0003*k,0,1);s.fa=cl(s.fa+0.0004*k,0,1);
+    }
+    if(s.wash){
+      const w=s.wash;w.t+=dt;const k=dt/w.dur;
+      if(!s.engineOn){s.wash=null;ev(s,'Wash stopped: engine is not running','warn');}
+      else{
+        if(w.type==='turbine'){s.ft=Math.max(0,s.ft-0.55*k*((s.load>=0.4&&s.load<=0.8)?1:0.2));}
+        else{s.fc=Math.max(0,s.fc-0.55*k*(s.load>=0.6?1:0.2));}
+        if(w.t>=w.dur){ev(s,(w.type==='turbine'?'Turbine':'Compressor')+' wash complete','ok');s.wash=null;}
+      }
+    }
+    const eng=s.engineOn&&!s.seized;
+    let Nt=eng?NMAX*runN(s.load):0;
+    Nt*=(1-0.12*s.ft-0.06*s.fc-0.03*s.ff-0.04*s.fa);
+    if(s.seized)Nt=0;
+    const tau=s.seized?1.5:(s.engineOn?6:16);
+    s.N+=(Nt-s.N)*(1-Math.exp(-dt/tau));
+    if(s.N<5&&Nt===0)s.N=0;
+    const nr=s.N/NMAX;
+    let ftgt=s.engineOn?0.15+0.85*s.load:0.02;
+    ftgt*=(1-0.10*s.fa-0.10*s.ff-0.06*s.ft);
+    if(s.seized&&s.engineOn)ftgt*=0.35;
+    s.flow+=(ftgt-s.flow)*(1-Math.exp(-dt/0.8));
+    let PR=1+2.85*nr*nr*(1-0.18*s.fc)*(1-0.03*s.ff);
+    if(s.seized&&s.engineOn)PR=1+0.06+0.04*s.load;
+    const fs=surgeFlow(PR,s.fc,s.ff);
+    s.surgeMargin=(s.flow/Math.max(fs,0.05)-1)*100;
+    if(s.engineOn&&nr>0.2&&!s.seized){
+      if(!s.surging&&s.surgeMargin<0){s.surging=true;s.surgeCount++;ev(s,'COMPRESSOR SURGE: flow too low for the pressure','bad');}
+      else if(s.surging&&s.surgeMargin>8){s.surging=false;ev(s,'Surge cleared','ok');}
+    }else if(s.surging){s.surging=false;}
+    if(s.surging){
+      PR*=1+0.07*Math.sin(s.t*13)+0.03*Math.sin(s.t*29);
+      s.surgeAcc+=dt;
+      if(s.surgeAcc>40){s.surgeAcc=0;s.fc=Math.max(s.fc,0.55);ev(s,'Repeated surge has damaged the compressor: efficiency lost','bad');}
+    }else s.surgeAcc=Math.max(0,s.surgeAcc-dt*0.2);
+    s.PR=Math.max(1,PR);
+    // lube oil and bearings
+    const lpT=s.lubeFail?0.15:(s.engineOn?2.1:(s.N>400?0.5:0));
+    s.lubeP+=(lpT-s.lubeP)*(1-Math.exp(-dt/1.2));
+    let tbT=35+10*(s.engineOn?1:0)+30*nr*nr+(s.surging?8:0);
+    if(s.lubeP<1.0&&s.N>800)tbT+=(1-s.lubeP)*(260*nr);
+    s.Tb+=(tbT-s.Tb)*(1-Math.exp(-dt/6));
+    if(s.Tb>=C.TB_SEIZE&&!s.seized){s.seized=true;ev(s,'BEARING SEIZURE: rotor locked','bad');}
+    // temperatures
+    let tin=28,tout=28;
+    if(s.engineOn){
+      tin=230+260*s.load+100*s.ft+60*s.fa+40*s.ff+(s.seized?150:0)+(s.surging?15:0);
+      tout=tin-((70+110*nr*nr)*(1-0.5*s.ft));
+      if(s.seized)tout=tin-15;
+    }
+    s.Tin+=(tin-s.Tin)*(1-Math.exp(-dt/10));
+    s.Tout+=(tout-s.Tout)*(1-Math.exp(-dt/10));
+    const eta=0.80-0.15*s.fc;
+    const tc2=303*(1+(Math.pow(s.PR,0.2857)-1)/eta)-273;
+    s.Tc2+=(tc2-s.Tc2)*(1-Math.exp(-dt/5));
+    const tair=(s.engineOn?36+22*s.fa+8*s.load:32);
+    s.Tair+=(tair-s.Tair)*(1-Math.exp(-dt/12));
+    s.dpF=(8+80*s.ff)*(0.25+0.75*s.flow);
+    s.dpC=(12+55*s.fa)*(0.25+0.75*s.flow);
+    if(nr>=C.OVS_B&&!s.ovs){s.ovs=true;ev(s,'OVERSPEED: reduce engine load','bad');}
+    else if(nr<C.OVS_W&&s.ovs)s.ovs=false;
+  }
+  function step(s,dtReal){
+    let dt=Math.min(dtReal,0.1)*s.speed;
+    while(dt>1e-6){const h=Math.min(dt,0.1);sub(s,h);dt-=h;}
+  }
+  function alarms(s){
+    const a=[],nr=s.N/NMAX;
+    if(s.seized)a.push({text:'Turbocharger seized: rotor locked',sev:'bad'});
+    if(s.surging)a.push({text:'Compressor surge',sev:'bad'});
+    if(nr>=C.OVS_B)a.push({text:'Rotor overspeed',sev:'bad'});
+    else if(nr>=C.OVS_W)a.push({text:'High rotor speed',sev:'warn'});
+    if(s.engineOn||s.N>400){
+      if(s.lubeP<C.LUBE_B)a.push({text:'Lube oil pressure low-low',sev:'bad'});
+      else if(s.lubeP<C.LUBE_W)a.push({text:'Lube oil pressure low',sev:'warn'});
+    }
+    if(s.Tb>=C.TB_B)a.push({text:'Bearing temperature very high',sev:'bad'});
+    else if(s.Tb>=C.TB_W)a.push({text:'Bearing temperature high',sev:'warn'});
+    if(s.Tin>=C.EGT_B)a.push({text:'Gas inlet temperature very high',sev:'bad'});
+    else if(s.Tin>=C.EGT_W)a.push({text:'Gas inlet temperature high',sev:'warn'});
+    if(s.Tair>=C.TAIR_W)a.push({text:'Scavenge air temperature high',sev:'warn'});
+    if(s.dpF>=C.DPF_B)a.push({text:'Air filter blocked',sev:'bad'});
+    else if(s.dpF>=C.DPF_W)a.push({text:'Air filter dirty',sev:'warn'});
+    return a;
+  }
+  function status(s){
+    if(s.seized)return 'SEIZED: rotor locked';
+    if(!s.engineOn)return s.N>50?'Engine stopped: rotor running down':'Stopped';
+    if(s.surging)return 'SURGE: compressor unstable';
+    if(s.wash)return 'Water washing the '+s.wash.type;
+    return 'Running at '+Math.round(s.load*100)+'% load';
+  }
+  const act={
+    engine(s,on){
+      if(on&&s.seized){ev(s,'Cannot run: turbocharger seized. Overhaul the rotor first','warn');return;}
+      s.engineOn=on;
+      if(on&&s.lubeFail)ev(s,'Starting with no lube oil pressure','bad');
+    },
+    load(s,v){s.loadSet=cl(v,0.05,1.1);},
+    limiter(s,on){s.limiter=on;},
+    accrue(s,on){s.accrue=on;},
+    lubeFail(s,on){s.lubeFail=on;ev(s,on?'Fault set: lube oil supply failure':'Lube oil supply restored',on?'warn':'ok');},
+    foul(s,k,amt){s[k]=cl(s[k]+amt,0,1);},
+    wash(s,type){
+      if(!s.engineOn){ev(s,'Water wash needs the engine running','warn');return;}
+      if(s.wash){ev(s,'A wash is already in progress','warn');return;}
+      if(type==='turbine'&&(s.load<0.4||s.load>0.8))ev(s,'Turbine wash works best at about 40 to 80% load','warn');
+      if(type==='compressor'&&s.load<0.6)ev(s,'Compressor wash works best at 60% load or more','warn');
+      s.wash={type:type,t:0,dur:14};ev(s,'Washing the '+type+'...','info');
+    },
+    cleanCooler(s){s.fa=0;ev(s,'Air cooler cleaned','ok');},
+    changeFilter(s){s.ff=0;ev(s,'Air filter element renewed','ok');},
+    overhaul(s){
+      if(s.engineOn||s.N>50){ev(s,'Stop the engine and let the rotor stop first','warn');return;}
+      s.seized=false;s.ft=0;s.fc=0;s.surgeAcc=0;s.lubeFail=false;s.Tb=35;ev(s,'Rotor overhauled and cleaned','ok');
+    }
+  };
+  function preset(s,name){
+    const sp=s.speed;Object.assign(s,create(),{speed:sp});
+    if(name==='cold')return;
+    const L=name==='full'?1.0:0.75;
+    s.engineOn=true;s.loadSet=L;s.load=L;s.N=NMAX*runN(L);s.lubeP=2.1;s.flow=0.15+0.85*L;
+    s.Tin=250;s.Tout=200;s.Tb=80;s.Tair=45;s.Tc2=150;s.PR=1+2.85*Math.pow(s.N/NMAX,2);
+    if(name==='degraded'){s.ft=0.45;s.fc=0.35;s.fa=0.4;s.ff=0.35;}
+    for(let i=0;i<240;i++)sub(s,0.5);
+    s.events.length=0;s.surgeCount=0;s.surgeAcc=0;
+  }
+  return {create,step,alarms,status,act,preset,surgeFlow,runN,C};
+})();
+/*SIM-END*/
+const sim=SIM.create();
+
+/* ---------------- lesson content ---------------- */
+const GROUPS={air:{n:'Air side',c:'#3a9bdc'},rot:{n:'Rotor & bearings',c:'#e0b020'},gas:{n:'Gas side',c:'#e8742f'},serv:{n:'Services & control',c:'#3fae7c'}};
+const PARTS=[
+{id:'air_filter',n:'Air filter & silencer',g:'air',pin:[-4.5,3.0,0.1],cam:{t:[-4.4,2.2,0],r:5.5,az:30,el:14},
+ what:'Cleans the air entering the compressor and softens the high-pitched whine of the impeller.',
+ how:'Air passes through a pleated filter element and a silencer pack before it reaches the compressor inlet. A manometer across the filter shows the pressure drop: the dirtier the filter, the higher it reads.',
+ facts:['Clean filter drop is under 10 mbar in this trainer. Alarm at 30 mbar','A blocked filter starves the compressor, lowers boost and shrinks the surge margin'],
+ watch:'A rising pressure drop means less air, higher exhaust temperatures and an earlier surge. Clean or renew the element early.'},
+{id:'comp_inlet',n:'Compressor inlet casing',g:'air',pin:[-3.2,2.85,0.1],cam:{t:[-3.0,2.2,0],r:5,az:30,el:14},
+ what:'Guides the air smoothly into the impeller eye and forms the casing wall around the blade tips.',
+ how:'The casing narrows toward the impeller so the air speeds up evenly. A very small clearance between the casing and the blade tips keeps leakage low. The compressor wash nozzle is fitted here.',
+ facts:['Tip clearance is only a few tenths of a millimetre','The compressor water-wash nozzle sprays into this inlet'],
+ watch:'Rubbing marks on the casing mean the rotor has touched it: check bearing wear and look for blade damage.'},
+{id:'comp_wheel',n:'Compressor wheel (impeller)',g:'air',pin:[-2.1,2.75,0.25],internal:true,cam:{t:[-2.0,2.2,0],r:4.2,az:25,el:12},
+ what:'A spinning aluminium or titanium wheel that flings air outward, raising its speed and pressure.',
+ how:'Air enters the eye axially and the curved blades turn it outward. The wheel has full blades and shorter splitter blades between them. The speed energy is turned into pressure in the diffuser and volute.',
+ facts:['Blade tip speed is well over 400 m/s on a modern unit','Pressure ratio here reaches about 3.9 at full load'],
+ watch:'Deposits on the blades lower efficiency. Cracked or bent blades cause vibration: stop and inspect.'},
+{id:'diffuser_volute',n:'Diffuser & volute',g:'air',pin:[-1.6,3.65,0.3],cam:{t:[-1.8,2.6,0],r:5,az:30,el:14},
+ what:'Slows the fast air leaving the wheel to turn speed into pressure, then collects it in the spiral casing and sends it to the pipework.',
+ how:'Fixed vanes in the diffuser slow and straighten the flow. The volute (scroll) grows in area around the wheel so the air leaves smoothly through one outlet.',
+ facts:['Most of the pressure gain is made in the impeller and diffuser together','Surge starts here when flow is too low for the pressure'],
+ watch:'Surge is a loud pulsing or banging from this casing. Fix the cause, not only the noise.'},
+{id:'charge_cooler',n:'Charge air cooler',g:'air',pin:[-1.4,3.1,-3.0],cam:{t:[-1.4,2.3,-3.0],r:5,az:20,el:18},
+ what:'Cools the compressed air before it enters the engine.',
+ how:'Compression heats the air to over 150°C. Water flows through the tubes and the air passes across the fins. Cooler air is denser, so more oxygen fills each cylinder. A water separator removes condensate.',
+ facts:['Air leaves at about 40 to 50°C','Fouled fins raise the air temperature and the pressure drop'],
+ watch:'A high pressure drop across the cooler lowers airflow and pushes the compressor toward surge.'},
+{id:'engine',n:'Engine & scavenge air receiver',g:'air',pin:[2.4,3.25,-4.0],cam:{t:[2.2,2.0,-3.4],r:7,az:25,el:16},
+ what:'The diesel engine supplies the exhaust energy that drives the turbine, and it takes the compressed air.',
+ how:'Exhaust leaves the cylinders into the exhaust receiver, which smooths the pulses and feeds the turbine. Cooled air waits in the scavenge air receiver and fills the cylinders. The turbocharger has no motor: its speed follows engine load.',
+ facts:['More fuel burned means more exhaust energy, so more boost','At low load the turbocharger gives little boost, so an auxiliary blower often helps'],
+ watch:'Engine faults such as a leaking exhaust valve or poor combustion change turbocharger readings. Always compare at the same load.'},
+{id:'shaft',n:'Rotor shaft',g:'rot',pin:[0.15,2.05,0.2],internal:true,cam:{t:[0.2,2.1,0],r:4.6,az:25,el:12},
+ what:'Joins the turbine wheel to the compressor wheel so the exhaust gas drives the air pump.',
+ how:'A single forged steel shaft carries both wheels and the thrust collar. It runs in the bearing housing between the two. The whole rotor is dynamically balanced as one piece.',
+ facts:['Rotor speed here is up to about 13,000 rpm','There is no clutch or gearbox: speed is set only by gas energy and air load'],
+ watch:'A rotor that has suffered a fault must be checked before it runs again. A bent shaft causes severe vibration.'},
+{id:'bearings',n:'Journal & thrust bearings',g:'rot',pin:[-1.0,2.15,0.2],internal:true,cam:{t:[-0.5,2.1,0],r:4.2,az:25,el:12},
+ what:'Hold the rotor in position and let it spin on a thin film of oil.',
+ how:'Two journal bearings carry the weight and keep the rotor centred. A thrust bearing takes the axial push from gas and air. Oil is fed under pressure and drains to the sump. At speed the oil film keeps metal from touching metal.',
+ facts:['Some makes use rolling bearings with their own oil','Bearing temperature is a key warning signal'],
+ watch:'A few seconds without oil at speed can wipe the bearings. Confirm lube pressure before starting and during run-down.'},
+{id:'bearing_housing',n:'Bearing housing',g:'rot',pin:[-0.3,2.62,0.3],cam:{t:[-0.3,2.2,0],r:4.4,az:30,el:14},
+ what:'The cast body between turbine and compressor that supports the bearings and seals.',
+ how:'It carries oil to the bearings and often water to a cooling jacket. The housing sits on a rigid pedestal and is shielded from the hot gas side by an inner casing.',
+ facts:['Oil enters at the top and drains from the bottom','Cooling or an air gap keeps turbine heat away from the oil'],
+ watch:'Oil on the turbine casing or in the compressor outlet means a seal has leaked.'},
+{id:'seals',n:'Labyrinth seals & sealing air',g:'rot',pin:[0.74,2.4,0.15],internal:true,cam:{t:[0.7,2.1,0],r:3.8,az:25,el:12},
+ what:'Stop oil leaking out of the bearing housing and hot gas leaking in.',
+ how:'Rings of fine fins make a long, narrow path for any leakage. Air from the compressor side (sealing air) is fed to the labyrinths so the flow always runs toward the bearings and keeps gas and oil out.',
+ facts:['Sealing air is taken from the compressor discharge','Worn fins increase leakage and oil consumption'],
+ watch:'Oil smoke on the turbine side or carbon behind the wheel points to worn seals or blocked sealing air.'},
+{id:'exh_receiver',n:'Exhaust receiver & gas pipe',g:'gas',pin:[3.0,2.75,-2.7],cam:{t:[2.2,3.0,-1.5],r:6.5,az:25,el:20},
+ what:'Collects exhaust from the cylinders and carries it to the turbine.',
+ how:'The insulated receiver evens out pressure pulses. A short pipe with a bellows takes the gas to the turbine inlet. The bellows absorbs heat expansion so the casing is not pushed or pulled.',
+ facts:['Gas reaches the turbine at roughly 400 to 500°C at full load','Insulation protects people and keeps the energy in the gas'],
+ watch:'Soot streaks or hot spots show a gas leak. A cracked bellows lowers turbine power and is a fire risk.'},
+{id:'gas_inlet',n:'Gas inlet casing',g:'gas',pin:[1.4,3.35,0.3],cam:{t:[1.3,2.5,0],r:4.6,az:25,el:16},
+ what:'Brings the exhaust gas around the shaft and presents it evenly to the nozzle ring.',
+ how:'Gas enters from the top, passes through an annular passage and speeds up toward the nozzle ring. The casing is insulated and often cooled to limit surface temperature. An inner casing shields the bearing housing from the heat.',
+ facts:['Gas casings sit on sliding supports so they can expand','The maker sets a gas temperature limit, about 600°C in many designs'],
+ watch:'Weeping at flanges or damaged insulation means a leak. Never run above the maker limit.'},
+{id:'nozzle',n:'Nozzle ring',g:'gas',pin:[2.1,2.9,0.1],internal:true,cam:{t:[2.1,2.3,0],r:4,az:20,el:12},
+ what:'Fixed curved vanes that speed the gas up and aim it onto the turbine blades.',
+ how:'Gas expands through the narrowing passages between the vanes, which turns pressure and heat into speed. The jets strike the turbine blades at the best angle, so the wheel is pushed round.',
+ facts:['Deposits on the vanes narrow the passage and raise back pressure','Water or dry (nut shell) cleaning removes soft deposits'],
+ watch:'A fouled or eroded nozzle ring costs speed and efficiency. A higher exhaust temperature at the same load is the sign.'},
+{id:'turb_wheel',n:'Turbine wheel & blades',g:'gas',pin:[2.4,2.85,0.2],internal:true,cam:{t:[2.4,2.2,0],r:4,az:25,el:12},
+ what:'A disc with blades that takes energy from the exhaust gas and turns the shaft.',
+ how:'Hot gas from the nozzle ring strikes the blades and pushes them round. The blades are held in fir-tree roots in the disc. All the power goes to the compressor on the same shaft.',
+ facts:['Blades run very hot at full load, so material and speed are limited','The wheel and impeller are balanced together as one rotor'],
+ watch:'Heavy fouling reduces power. A lost blade causes severe vibration: stop at once if the unit starts to shake.'},
+{id:'gas_outlet',n:'Gas outlet diffuser & uptake',g:'gas',pin:[3.35,2.85,0.3],cam:{t:[3.8,2.8,0],r:6,az:40,el:16},
+ what:'Slows the exhaust after the turbine and leads it to the funnel or exhaust gas boiler.',
+ how:'A widening cone recovers some pressure so the turbine sees a lower back pressure. The gas then rises up the uptake, usually through an exhaust gas boiler and silencer.',
+ facts:['Outlet gas is typically 250 to 350°C','Lower outlet pressure means more turbine power'],
+ watch:'If the gap between inlet and outlet temperature shrinks, the turbine is taking out less energy. Look for fouling.'},
+{id:'lube',n:'Lube oil supply & drain',g:'serv',pin:[-0.3,3.15,-0.4],cam:{t:[-0.2,1.8,-0.5],r:5.5,az:25,el:18},
+ what:'Delivers clean oil to the bearings and carries heat away.',
+ how:'Oil comes from the engine lubrication system through a filter, enters the top of the housing and drains to the sump. A gravity tank can supply oil during run-down if power fails. A sight glass on the drain shows flow.',
+ facts:['Normal feed pressure here is about 2.1 bar','Alarm at 1.4 bar, serious alarm at 0.8 bar'],
+ watch:'A lube oil failure while running overheats the bearings in seconds. Reduce load or stop the engine immediately.'},
+{id:'wash',n:'Water-wash system',g:'serv',pin:[0.2,1.0,1.4],cam:{t:[-1.2,2.3,1.0],r:7,az:5,el:14},
+ what:'Cleans fouling from the compressor and the turbine while the engine runs.',
+ how:'A small tank and flow meter feed measured fresh water to the compressor inlet and to the turbine inlet casing. The droplets knock off soft deposits without dismantling anything.',
+ facts:['Turbine wash is done at reduced load, compressor wash at high load','Use fresh water only, in the quantity the maker states'],
+ watch:'Washing at the wrong load or with too much water risks thermal shock and corrosion. Follow the maker instructions exactly.'},
+{id:'speed_sensor',n:'Speed pick-up',g:'serv',pin:[-2.8,3.05,0.1],cam:{t:[-2.8,2.5,0],r:3.6,az:30,el:20},
+ what:'Measures the rotor speed.',
+ how:'A magnetic or eddy-current probe senses a notch or nut passing it and sends pulses to the panel, which turns them into revolutions per minute.',
+ facts:['Rotor speed is the best single indicator of turbocharger health','High speed alarm at 105% here'],
+ watch:'A lost signal reads zero. Always cross-check with boost pressure.'},
+{id:'thermocouples',n:'Exhaust temperature sensors',g:'serv',pin:[1.6,3.7,0.1],cam:{t:[2.5,3.4,0],r:6,az:30,el:14},
+ what:'Measure the gas temperature before and after the turbine.',
+ how:'Thermocouples in pockets read inlet and outlet temperatures. The difference shows how much energy the turbine has taken out. The inlet temperature also protects the casing and blades.',
+ facts:['A high inlet temperature points to a dirty turbine or poor combustion','A small inlet-to-outlet difference means the turbine is losing efficiency'],
+ watch:'Log readings at the same load each watch so trends mean something.'},
+{id:'foot',n:'Foot & supports',g:'serv',pin:[0.5,0.55,0.5],cam:{t:[0.5,0.8,0],r:6,az:25,el:12},
+ what:'Holds the turbocharger on its mounting and lets the casings expand.',
+ how:'The bearing housing sits on a rigid pedestal while the hot casings sit on sliding supports so they grow with heat without pulling on pipes or bearings.',
+ facts:['Casings grow several millimetres between cold and hot','Pipes must not load the casings'],
+ watch:'Check the holding bolts and the slides. A seized slide pulls the casing out of line.'},
+{id:'panel',n:'Instrument panel',g:'serv',pin:[-3.8,1.9,1.9],cam:{t:[-3.8,1.4,1.9],r:4.6,az:20,el:10},
+ what:'Shows rotor speed, boost, temperatures and lube oil pressure, and raises the alarms.',
+ how:'The panel collects the sensor signals, shows them on the display and lights a lamp for each alarm. The lamps show power, running, surge, low lube oil, overspeed and high gas temperature.',
+ facts:['Compare readings with the maker test-bed figures for the same load','Alarm lamps stay on until the fault clears'],
+ watch:'Do not disable an alarm to keep running. Find the cause.'}
+];
+const PBY={};PARTS.forEach(p=>{PBY[p.id]=p;});
+
+const PROCS=[
+{id:'start',n:'Start-up',steps:[
+ {t:'Check the lube oil',b:'Before the engine starts, make sure the lube oil system is running with good pressure and the gravity tank is full. The oil filter pressure drop should be normal.',why:'The bearings must never turn without oil.',part:'lube',chk:s=>!s.lubeFail,chkL:'Lube oil supply is healthy',doL:'Restore lube oil supply',doF:s=>SIM.act.lubeFail(s,false)},
+ {t:'Check the air intake',b:'Look at the air filter and the manometer. The inlet must be free of rags and blockages. Change the element if the pressure drop is high.',why:'A dirty filter lowers the air supply and the surge margin.',part:'air_filter',chk:s=>s.ff<0.2,chkL:'Air filter is clean',doL:'Change the air filter',doF:s=>SIM.act.changeFilter(s)},
+ {t:'Check the rotor',b:'If the unit was opened or rotor locking devices were fitted, confirm they are removed and the rotor turns freely by hand.',why:'A locked or rubbing rotor will be damaged as soon as it speeds up.',caut:'Never start with rotor locking plates or blanks still fitted.',part:'shaft'},
+ {t:'Check sealing air and cooling',b:'Make sure sealing air lines are open and any cooling water supply is on, as the maker requires.',why:'Seals only work when they are pressurised from the clean side.',part:'seals'},
+ {t:'Start the engine',b:'Start the engine as the engine procedure says. The turbocharger has no starter: it spins up as exhaust gas begins to flow.',why:'The exhaust gas is the only drive.',part:'engine',chk:s=>s.engineOn,chkL:'Engine running',doL:'Start the engine',doF:s=>SIM.act.engine(s,true)},
+ {t:'Watch the lube pressure and speed',b:'Within seconds the lube oil pressure should be normal and the rotor speed should rise smoothly. Listen for rubbing or unusual noise.',why:'Any fault in the first minute usually shows here.',part:'panel',chk:s=>s.lubeP>=1.4&&s.N>1000,chkL:'Lube oil above 1.4 bar and rotor turning'},
+ {t:'Load up gradually',b:'Raise engine load in small steps, following the engine warm-up schedule.',why:'Slow changes keep the compressor away from surge and keep casing temperatures even.',caut:'Big, fast load changes can push the compressor into surge.',part:'turb_wheel',chk:s=>s.load>=0.5&&!s.surging,chkL:'Load at 50% or more and no surge'},
+ {t:'Record the first readings',b:'Log rotor speed, boost, gas temperatures and lube oil pressure at a steady load. This is your baseline for later comparison.',why:'A trend from a baseline shows fouling long before an alarm.',part:'thermocouples',chk:s=>s.Tin<520&&!s.surging,chkL:'Gas inlet below 520°C and no surge'}
+]},
+{id:'run',n:'Running checks',steps:[
+ {t:'Speed and boost',b:'Compare rotor speed and boost with the baseline at the same engine load. Low speed with high temperature suggests turbine fouling.',why:'Speed and boost together tell you how healthy the unit is.',part:'speed_sensor',chk:s=>!s.surging&&s.PR>1.1,chkL:'Boost is building and there is no surge'},
+ {t:'Gas temperatures',b:'Read gas inlet and outlet temperatures. The inlet should stay below 520°C. Watch the gap between inlet and outlet.',why:'A shrinking gap means the turbine is doing less work.',part:'thermocouples',chk:s=>s.Tin<520,chkL:'Gas inlet below 520°C'},
+ {t:'Air filter pressure drop',b:'Read the filter manometer. Clean or renew the element before the drop reaches the alarm value.',why:'A blocked filter cuts airflow.',part:'air_filter',chk:s=>s.dpF<30,chkL:'Filter drop below 30 mbar',doL:'Change the air filter',doF:s=>SIM.act.changeFilter(s)},
+ {t:'Air cooler',b:'Check the air temperature after the cooler and the pressure drop across it. Clean the cooler when either rises.',why:'A hot, restricted air path costs power and surge margin.',part:'charge_cooler',chk:s=>s.Tair<50,chkL:'Air after cooler below 50°C',doL:'Clean the air cooler',doF:s=>SIM.act.cleanCooler(s)},
+ {t:'Lube oil and bearings',b:'Check lube pressure, oil temperature, the drain sight glass and bearing temperature. Listen for any change in noise.',why:'Bearing trouble gives only a short warning.',part:'lube',chk:s=>s.lubeP>=1.4&&s.Tb<110,chkL:'Lube above 1.4 bar and bearing below 110°C'},
+ {t:'Listen for surge',b:'Surge sounds like a rumble or bangs from the compressor, with the boost needle and rotor speed swinging.',why:'Repeated surge damages blades and bearings.',part:'diffuser_volute',chk:s=>!s.surging,chkL:'No surge'},
+ {t:'Log and compare',b:'Write the readings in the log at a standard load. Look at trends since the last wash.',why:'Trends catch slow problems.',part:'panel'}
+]},
+{id:'stop',n:'Shut-down',steps:[
+ {t:'Reduce the load',b:'Bring the engine load down in steps before stopping.',why:'It lets the turbocharger and casings cool evenly.',part:'panel',chk:s=>s.loadSet<=0.4,chkL:'Load setting is 40% or less',doL:'Set load to 30%',doF:s=>SIM.act.load(s,0.3)},
+ {t:'Stop the engine',b:'Stop the engine as the engine procedure states.',why:'Gas flow stops and the rotor starts to run down.',part:'engine',chk:s=>!s.engineOn,chkL:'Engine stopped',doL:'Stop the engine',doF:s=>SIM.act.engine(s,false)},
+ {t:'Watch the run-down',b:'The rotor should slow smoothly and quietly. A sudden stop or grinding noise points to bearing damage.',why:'Run-down time is a good bearing health check.',part:'bearings',chk:s=>s.N<150,chkL:'Rotor has almost stopped'},
+ {t:'Keep the oil flowing',b:'Keep after-lubrication running, or make sure the gravity tank supplies oil, until the rotor has fully stopped.',why:'The rotor is hot and still spinning. It needs oil.',caut:'Never cut the oil supply while the rotor is still turning.',part:'lube'},
+ {t:'Log the stop',b:'Record the run-down time and the last readings.',why:'A shorter run-down time than usual signals bearing wear.',part:'panel'}
+]},
+{id:'wash',n:'Water washing',steps:[
+ {t:'Decide if a wash is needed',b:'High gas temperatures, low speed or low boost at the same load show fouling. In the simulator, press the button to add fouling.',why:'Wash only when there is a reason, and keep to the maker interval.',part:'gas_outlet',chk:s=>s.ft>0.1||s.fc>0.1,chkL:'Some fouling is present',doL:'Add fouling',doF:s=>{SIM.act.foul(s,'ft',0.4);SIM.act.foul(s,'fc',0.4);}},
+ {t:'Set the load for the turbine wash',b:'Run the engine at reduced load, about 40 to 80%, so the gas is hot enough to evaporate the water but not at full temperature.',why:'The right load lets the water clean without thermal shock.',part:'panel',chk:s=>s.load>=0.4&&s.load<=0.8,chkL:'Load between 40% and 80%',doL:'Set load to 60%',doF:s=>SIM.act.load(s,0.6)},
+ {t:'Start the turbine wash',b:'Open the wash water to the turbine for the time the maker states. The gas outlet temperature may dip briefly.',why:'The droplets lift soft deposits off the nozzle ring and blades.',caut:'Use only the measured quantity of fresh water.',part:'wash',chk:s=>s.ft<0.1||(s.wash&&s.wash.type==='turbine'),chkL:'Turbine wash running or done',doL:'Start turbine wash',doF:s=>SIM.act.wash(s,'turbine')},
+ {t:'Let it finish',b:'Wait for the wash to finish and watch the gas temperatures settle.',why:'Stopping early leaves the deposits in place.',part:'turb_wheel',chk:s=>!s.wash&&s.ft<0.15,chkL:'Turbine wash complete'},
+ {t:'Raise load for the compressor wash',b:'The compressor wash is done at high load and high rotor speed so the water is flung off the blades.',why:'The speed helps the droplets clean the impeller.',part:'panel',chk:s=>s.load>=0.6,chkL:'Load at 60% or more',doL:'Set load to 85%',doF:s=>SIM.act.load(s,0.85)},
+ {t:'Start the compressor wash',b:'Inject the measured quantity of water into the compressor inlet.',why:'Lifts oily dust from the blades.',part:'comp_inlet',chk:s=>s.fc<0.1||(s.wash&&s.wash.type==='compressor'),chkL:'Compressor wash running or done',doL:'Start compressor wash',doF:s=>SIM.act.wash(s,'compressor')},
+ {t:'Compare before and after',b:'Look at the speed, boost and gas temperatures. They should return toward the baseline. Record them.',why:'Proves the wash worked and shows how long the effect lasts.',part:'panel',chk:s=>s.ft<0.15&&s.fc<0.15,chkL:'Turbine and compressor are both clean'}
+]},
+{id:'surge',n:'Surge',steps:[
+ {t:'Recognise surge',b:'Listen for rumbling or bangs from the compressor. The boost needle and rotor speed swing. To practise, press the drill button: it runs at full load, then drops the load fast with the ramp limiter off.',why:'Early action prevents blade and bearing damage.',part:'diffuser_volute',chk:s=>s.surging||s.surgeCount>0,chkL:'Surge has occurred',doL:'Run the surge drill',doF:s=>{SIM.preset(s,'full');SIM.act.limiter(s,false);SIM.act.load(s,0.1);}},
+ {t:'Ease the engine load',b:'Do not make big or quick load changes. Let the rotor speed settle and bring the load back in small steps.',why:'Surge from a fast load drop clears as the rotor speed falls to match the new flow.',part:'panel',chk:s=>!s.surging,chkL:'Surge has cleared'},
+ {t:'Check the air filter',b:'Read the filter pressure drop. A blocked filter is a common cause.',why:'Less inlet air means a smaller surge margin.',part:'air_filter',chk:s=>s.dpF<30,chkL:'Filter drop below 30 mbar',doL:'Change the air filter',doF:s=>SIM.act.changeFilter(s)},
+ {t:'Check the air cooler',b:'Check the pressure drop and the air temperature after the cooler.',why:'A fouled cooler restricts the air path.',part:'charge_cooler',chk:s=>s.fa<0.3,chkL:'Air cooler is clean',doL:'Clean the air cooler',doF:s=>SIM.act.cleanCooler(s)},
+ {t:'Wash the compressor and turbine',b:'A dirty compressor or turbine narrows the safe operating range. Wash at the right loads.',why:'Fouling moves the surge line toward the working line.',part:'wash',chk:s=>s.fc<0.2&&s.ft<0.2,chkL:'Compressor and turbine are clean',doL:'Clean both wheels',doF:s=>{s.fc=0;s.ft=0;}},
+ {t:'Switch the load ramp limiter on',b:'Go back to the normal, gradual load changes.',why:'It protects the turbocharger from fast load swings.',part:'panel',chk:s=>s.limiter&&!s.surging,chkL:'Ramp limiter on, no surge',doL:'Ramp limiter on',doF:s=>SIM.act.limiter(s,true)},
+ {t:'Inspect if surge keeps coming back',b:'Repeated surge at normal loads points to damage or an engine fault. Plan an inspection.',why:'Damaged blades or a worn nozzle ring change the compressor and turbine behaviour.',part:'comp_wheel'}
+]},
+{id:'bearing',n:'Lube oil failure',steps:[
+ {t:'Recognise it',b:'Low lube pressure alarm, rising bearing temperature, and a change in noise. To practise, press the button to fail the oil supply with the engine at load.',why:'You have only seconds to react.',part:'lube',chk:s=>s.lubeP<1.4||s.seized,chkL:'Lube oil pressure is low',doL:'Fail the lube oil supply',doF:s=>{if(!s.engineOn)SIM.preset(s,'steady');SIM.act.lubeFail(s,true);}},
+ {t:'Reduce load or stop the engine',b:'Cut the load at once. If the pressure does not return, stop the engine.',why:'Less speed means less heat in the bearings.',caut:'Do not wait to see if it recovers.',part:'engine',chk:s=>!s.engineOn,chkL:'Engine stopped',doL:'Stop the engine',doF:s=>SIM.act.engine(s,false)},
+ {t:'Do not restart',b:'Leave the engine stopped until the cause is found and the bearings are checked.',why:'A damaged bearing will fail completely on the next start.',part:'bearings'},
+ {t:'Find the cause',b:'Check the oil supply pump, filter, valves and piping. Restore the supply before any new start.',why:'The same fault will repeat if the cause stays.',part:'lube',chk:s=>!s.lubeFail,chkL:'Lube oil supply restored',doL:'Restore lube supply',doF:s=>SIM.act.lubeFail(s,false)},
+ {t:'If the rotor is damaged',b:'If the rotor is seized or damaged, the maker may allow a reduced-power run with the rotor locked and gas passages blanked. Follow the maker and the engine builder limits.',why:'It lets the ship keep moving at a safe reduced power.',part:'shaft'},
+ {t:'Overhaul the rotor',b:'Remove the rotor, inspect journals, thrust faces, blades and seals, and renew what is worn.',why:'Restores the turbocharger to service.',part:'shaft',chk:s=>!s.seized&&!s.lubeFail&&s.N<50,chkL:'Rotor overhauled and ready',doL:'Overhaul the rotor',doF:s=>SIM.act.overhaul(s)}
+]}
+];
+
+const QUIZ=[
+{q:'What drives the turbine of an exhaust-gas turbocharger?',a:['An electric motor','The energy in the engine exhaust gas','A belt from the crankshaft','Steam from the boiler'],c:1,w:'The turbocharger has no mechanical drive. Exhaust energy spins the turbine, which drives the compressor on the same shaft.'},
+{q:'Why is the air cooled after the compressor?',a:['To protect the compressor','To make the air denser so more oxygen enters each cylinder','To lower the boost pressure','To dry the filter'],c:1,w:'Cooler air is denser. More air in the cylinder means more fuel can burn and the engine makes more power.'},
+{q:'What does the diffuser do?',a:['Cools the air','Turns the fast air from the wheel into pressure','Filters the air','Measures speed'],c:1,w:'The vanes slow the air down. The lost speed energy becomes pressure.'},
+{q:'What is compressor surge?',a:['A sudden rise in lube oil pressure','Unstable, pulsing flow when airflow is too low for the pressure','Water in the exhaust','An overspeed of the turbine'],c:1,w:'When the flow falls too far below the surge line, the air flow reverses in pulses with loud bangs and swinging boost.'},
+{q:'Which of these makes surge more likely?',a:['A clean air filter','A fouled air cooler or blocked filter, or a fast drop in load','Lower sea water temperature','A new nozzle ring'],c:1,w:'Anything that cuts airflow, or a fast load drop while the rotor is still fast, moves the working point toward the surge line.'},
+{q:'High gas inlet temperature at the same engine load most likely means…',a:['The turbine is fouled or combustion is poor','The air filter is too clean','The lube oil is too cold','Boost is too high'],c:0,w:'A dirty turbine raises back pressure and exhaust temperature. The same happens with a dirty air path.'},
+{q:'What must be running before and while the rotor turns?',a:['The wash water','The lube oil supply','The charge air cooler water only','The sealing air only'],c:1,w:'The bearings run on an oil film. Without it they overheat in seconds.'},
+{q:'The lube oil supply fails with the engine at load. What first?',a:['Wait and watch','Reduce load at once and stop the engine if pressure does not return','Raise the load to cool the bearings','Start the wash'],c:1,w:'Less speed means less bearing heat. A seized rotor can cost the turbocharger.'},
+{q:'At what load is a turbine water wash normally done?',a:['Full load','Reduced load, around 40 to 80%','Engine stopped','Overload'],c:1,w:'At reduced load the gas is hot enough to evaporate the water but not so hot as to cause thermal shock.'},
+{q:'Why is the compressor wash done at high load?',a:['To save water','The high rotor speed helps the droplets clean the blades','The air is cooler','The engine is quieter'],c:1,w:'Speed helps the water droplets clean the blades and carry deposits away.'},
+{q:'What does the labyrinth seal sealing air do?',a:['Cools the shaft','Keeps oil in and hot gas out of the bearing housing','Drives the rotor','Cleans the blades'],c:1,w:'Clean air flows toward the bearing housing through the seal so gas and oil cannot escape.'},
+{q:'The gas inlet casing sits on sliding supports because…',a:['It is heavy','It needs to expand with heat without loading the pipes or bearings','It is easier to remove','It prevents oil leaks'],c:1,w:'Hot casings grow by several millimetres. Sliding or flexible supports let them move.'},
+{q:'The inlet-to-outlet gas temperature difference gets smaller. This usually means…',a:['The turbine is taking out less energy: possible fouling','The engine load has risen','The air filter is blocked','The lube oil is too hot'],c:0,w:'A smaller drop means less work is being done by the turbine. Check for deposits.'},
+{q:'Why must the lube oil keep flowing during rotor run-down?',a:['To cool the compressor','The rotor is still turning and hot','To clean the filter','To keep the pressure alarm quiet'],c:1,w:'The rotor can spin for minutes after the engine stops. It needs oil until it has stopped.'}
+];
+
+/* ---------------- 3D view ---------------- */
+const view3d=(function(){
+  const stub={ok:false,focus(){},setView(){},cam(){},pins(){},names(){},tick(){},onPick:null,onView:null};
+  let renderer;
+  try{
+    renderer=new THREE.WebGLRenderer({canvas:$('#gl'),antialias:true,alpha:true,powerPreference:'high-performance'});
+  }catch(e){
+    $('#stage').insertAdjacentHTML('beforeend','<p class="nogl">This device could not start 3D graphics. The parts guide, procedures, simulator and quiz still work.</p>');
+    return stub;
+  }
+  try{
+  const T=THREE,stage=$('#stage'),canvas=$('#gl');
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  renderer.setClearColor(0x000000,0);
+  renderer.localClippingEnabled=true;
+  const scene=new T.Scene();
+  const camera=new T.PerspectiveCamera(38,1,0.1,160);
+  const root=new T.Group();scene.add(root);
+  const V=(x,y,z)=>new T.Vector3(x,y,z);
+  const UP=V(0,1,0);
+  const Y0=2.0;
+  const PG={},CLIP=[],A={rotGroups:[],ang:0,plamps:[],ff:0,lcdT:0,shake:0};
+
+  scene.add(new T.HemisphereLight(0xe6f0f7,0x3a5666,1.0));
+  scene.add(new T.AmbientLight(0xffffff,0.4));
+  const key=new T.DirectionalLight(0xffffff,1.0);key.position.set(6,10,8);scene.add(key);
+  const fill=new T.DirectionalLight(0xbcd6ea,0.6);fill.position.set(-7,4,-3);scene.add(fill);
+  const rim=new T.DirectionalLight(0xffe2b8,0.35);rim.position.set(0,5,-9);scene.add(rim);
+
+  function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new T.CanvasTexture(c);t.anisotropy=4;return t;}
+  const dotTex=canvasTex(64,64,(x,w,h)=>{const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.45,'rgba(255,255,255,0.7)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,w,h);});
+  const floorTex=canvasTex(1024,1024,(x,w,h)=>{
+    const g=x.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);
+    g.addColorStop(0,'rgba(60,112,152,0.55)');g.addColorStop(0.7,'rgba(30,72,102,0.3)');g.addColorStop(1,'rgba(20,50,75,0)');
+    x.fillStyle=g;x.fillRect(0,0,w,h);x.lineWidth=2;
+    for(let i=0;i<=44;i++){const p=i*w/44;x.strokeStyle=(i%4===0)?'rgba(190,225,245,0.34)':'rgba(190,225,245,0.13)';x.beginPath();x.moveTo(p,0);x.lineTo(p,h);x.stroke();x.beginPath();x.moveTo(0,p);x.lineTo(w,p);x.stroke();}
+    x.globalCompositeOperation='destination-in';
+    const m=x.createRadialGradient(w/2,h/2,w*0.1,w/2,h/2,w/2);m.addColorStop(0,'rgba(0,0,0,1)');m.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=m;x.fillRect(0,0,w,h);
+  });
+  const floor=new T.Mesh(new T.CircleGeometry(12,64),new T.MeshBasicMaterial({map:floorTex,transparent:true,depthWrite:false}));
+  floor.rotation.x=-Math.PI/2;floor.position.y=0.001;scene.add(floor);
+
+  /* ---- helpers ---- */
+  function M(c,o){o=o||{};
+    const m=new T.MeshStandardMaterial({color:c,roughness:o.r!=null?o.r:0.5,metalness:o.m!=null?o.m:0.3,side:o.d?T.DoubleSide:T.FrontSide,transparent:!!o.t,opacity:o.o!=null?o.o:1});
+    if(o.e!=null){m.emissive=new T.Color(o.e);m.emissiveIntensity=o.ei!=null?o.ei:1;}
+    if(o.t)m.depthWrite=false;
+    if(o.clip)CLIP.push(m);
+    return m;}
+  function G(id){const g=new T.Group();g.userData.part=id;PG[id]=g;root.add(g);return g;}
+  function ax(g){const a=new T.Group();a.position.y=Y0;g.add(a);return a;}
+  function add(g,geo,mat,x,y,z){const m=new T.Mesh(geo,mat);m.position.set(x||0,y||0,z||0);g.add(m);return m;}
+  const cyl=(a,b,h,s,open)=>new T.CylinderGeometry(a,b,h,s||24,1,!!open);
+  const box=(w,h,d)=>new T.BoxGeometry(w,h,d);
+  const sph=(r,s)=>new T.SphereGeometry(r,s||16,Math.max(8,Math.floor((s||16)/2)));
+  function cylX(g,r,len,mat,x,y,z){const m=add(g,cyl(r,r,len,24),mat,x,y,z);m.rotation.z=Math.PI/2;return m;}
+  function seg(g,a,b,r,mat){const d=b.clone().sub(a),len=d.length();if(len<1e-4)return;const m=new T.Mesh(cyl(r,r,len,14),mat);m.position.copy(a).add(b).multiplyScalar(0.5);m.quaternion.setFromUnitVectors(UP,d.normalize());g.add(m);}
+  function pipe(g,pts,r,col,o){const mat=M(col,Object.assign({m:0.3,r:0.45},o||{}));for(let i=0;i<pts.length-1;i++)seg(g,pts[i],pts[i+1],r,mat);for(let i=1;i<pts.length-1;i++)add(g,sph(r*1.02,12),mat,pts[i].x,pts[i].y,pts[i].z);return mat;}
+  function latheX(pts,seg){const g=new T.LatheGeometry(pts.map(p=>new T.Vector2(p[0],p[1])),seg||48);g.rotateZ(-Math.PI/2);return g;}
+  function shellX(outer,inner,seg){const pts=outer.concat(inner.slice().reverse());pts.push(outer[0]);return latheX(pts,seg);}
+  function ringX(g,r0,r1,x0,x1,mat,seg){return add(g,latheX([[r0,x0],[r1,x0],[r1,x1],[r0,x1],[r0,x0]],seg||40),mat);}
+  function ribbon(fn,nt,nu){
+    const pos=[],idx=[];
+    for(let i=0;i<=nt;i++)for(let j=0;j<=nu;j++){const p=fn(i/nt,j/nu);pos.push(p[0],p[1],p[2]);}
+    for(let i=0;i<nt;i++)for(let j=0;j<nu;j++){const a=i*(nu+1)+j,b=a+1,c=a+nu+1,d=c+1;idx.push(a,b,c,b,d,c);}
+    const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return g;
+  }
+  const _m=new T.Matrix4(),_a=new T.Matrix4(),_b=new T.Matrix4();
+  function inst(geo,mat,n,x,rm,beta,gamma){
+    const im=new T.InstancedMesh(geo,mat,n);
+    for(let i=0;i<n;i++){
+      _m.makeRotationX(i/n*Math.PI*2);_a.makeTranslation(x,rm,0);_m.multiply(_a);
+      if(beta){_b.makeRotationY(beta);_m.multiply(_b);}
+      if(gamma){_b.makeRotationX(gamma);_m.multiply(_b);}
+      im.setMatrixAt(i,_m);
+    }
+    im.instanceMatrix.needsUpdate=true;im.frustumCulled=false;return im;
+  }
+  function valve(g,x,y,z,o){
+    o=o||{};const s=o.s||1,vg=new T.Group();vg.position.set(x,y,z);
+    const bm=()=>M(o.body||0x69757e,{m:0.35,r:0.5});
+    cylX(vg,0.085*s,0.4*s,bm(),0,0,0);
+    add(vg,sph(0.125*s,14),bm());
+    add(vg,cyl(0.07*s,0.07*s,0.14*s,12),bm(),0,0.15*s,0);
+    [-1,1].forEach(k=>cylX(vg,0.13*s,0.035*s,bm(),k*0.2*s,0,0));
+    const stem=new T.Group();stem.position.y=0.2*s;vg.add(stem);
+    const wm=M(o.col||0xc0392b,{m:0.1,r:0.55});
+    add(stem,cyl(0.014*s,0.014*s,0.3*s,8),M(0xc4ccd2,{m:0.6,r:0.3}),0,0.14*s,0);
+    const w=add(stem,new T.TorusGeometry(0.12*s,0.016*s,8,20),wm,0,0.3*s,0);w.rotation.x=Math.PI/2;
+    if(o.along==='z')vg.rotation.y=Math.PI/2;
+    g.add(vg);return vg;
+  }
+  const part=(id,fn)=>{fn(G(id));};
+  const shellish=m=>{m.userData.shellish=true;return m;};
+  const dyn=m=>{m.userData.dyn=true;return m;};
+
+  /* ---- pipe routes ---- */
+  const PIPES={
+    airOut:[V(-1.83,3.6,0),V(-1.83,4.4,0),V(-1.83,4.4,-3.0),V(-1.83,2.95,-3.0)],
+    scavOut:[V(-0.4,2.1,-3.0),V(0.5,2.1,-3.0),V(0.5,1.2,-3.0)],
+    gasIn:[V(1.4,2.4,-3.0),V(1.4,4.1,-3.0),V(1.4,4.1,0),V(1.4,3.2,0)],
+    gasOut:[V(3.95,Y0,0),V(4.6,Y0,0),V(4.6,5.7,0)],
+    oilIn:[V(0.9,0.8,-3.3),V(0.9,0.8,-1.2),V(-0.3,0.8,-1.2),V(-0.3,3.2,-1.2),V(-0.3,3.2,0),V(-0.3,2.55,0)],
+    oilOut:[V(-0.3,1.45,0),V(-0.3,0.35,0),V(-0.3,0.35,-1.5),V(0.9,0.35,-1.5),V(0.9,0.35,-3.3)],
+    washC:[V(0.2,0.95,1.4),V(0.2,3.7,1.4),V(-3.0,3.7,1.4),V(-3.0,3.7,0),V(-3.0,2.8,0)],
+    washT:[V(0.2,3.7,1.4),V(0.85,3.7,1.4),V(0.85,3.7,0),V(0.85,3.3,0)]
+  };
+  const CL={sil:0x2e6f93,cmp:0x8fb3c9,hous:0x4b7391,lag:0xc4ced4,cast:0x6a7780,steel:0x59666f,alu:0xcdd6dc,oil:0xc8892b,blue:0x3a9bdc};
+
+  /* ---- compressor wheel geometry ---- */
+  const SC=1.15,XC=-1.9;
+  const sS=t=>1-(1-t)*(1-t);
+  const hubR=t=>0.16+0.62*Math.pow(t,1.7),hubX=t=>-0.5+0.62*sS(t);
+  const shrR=t=>0.5+0.28*Math.pow(t,1.2),shrX=t=>-0.5+0.62*sS(t)-0.12*t*t;
+  const bth=t=>-1.0*Math.pow(t,1.4);
+  function cBlade(t0){
+    return ribbon((t,u)=>{
+      const tt=t0+(1-t0)*t,hx=hubX(tt),hr=hubR(tt),sx=shrX(tt),sr=shrR(tt);
+      const x=hx+(sx-hx)*u,r=hr+(sr-hr)*u,a=bth(tt);
+      return [x,r*Math.cos(a),r*Math.sin(a)];
+    },26,5);
+  }
+
+  /* ---- AIR FILTER ---- */
+  part('air_filter',g=>{
+    const a=ax(g);
+    add(a,shellX([[0.98,-5.1],[0.98,-3.95]],[[0.9,-5.1],[0.9,-3.95]]),M(CL.sil,{d:1,clip:1,m:0.3}));
+    ringX(a,0.3,0.98,-5.16,-5.08,M(0x24566f,{d:1,clip:1}));
+    ringX(a,0.25,0.98,-4.02,-3.94,M(0x24566f,{d:1,clip:1}));
+    const pl=inst(box(0.85,0.34,0.02),M(0xe9e4d2,{r:0.9,m:0,d:1,clip:1}),46,-4.52,0.62);a.add(pl);
+    cylX(a,0.3,1.0,M(0x37444e,{clip:1}),-4.52,0,0);
+    for(let i=0;i<4;i++)ringX(a,0.28,0.9,-4.2-i*0.0+0,-4.17,M(0x2a3b46,{d:1,clip:1}));
+    const mg=new T.Group();mg.position.set(-4.5,0.98,0);a.add(mg);
+    add(mg,cyl(0.14,0.14,0.08,22),M(0x2a343b),0,0.04,0).rotation.x=Math.PI/2;
+    add(mg,new T.CircleGeometry(0.12,24),M(0xf6f7f4,{d:1}),0,0.04,0.05).rotation.y=0;
+  });
+  /* ---- COMPRESSOR INLET ---- */
+  part('comp_inlet',g=>{
+    const a=ax(g);
+    const out=[[0.98,-3.95],[0.9,-3.4],[0.78,-2.95],[0.7,-2.5]],inn=out.map(p=>[p[0]-0.07,p[1]]);
+    add(a,shellX(out,inn),M(CL.cmp,{d:1,clip:1,m:0.35}));
+    const shr=[];for(let i=0;i<=16;i++){const t=i/16;shr.push([SC*shrR(t)+0.03,XC+SC*shrX(t)-0.03]);}
+    shr.push([1.32,XC+SC*shrX(1)-0.03]);
+    const shr2=shr.map(p=>[p[0]+0.07,p[1]-0.07]);
+    add(a,shellX(shr2,shr),M(CL.cmp,{d:1,clip:1,m:0.35}));
+    [-3.9,-2.55].forEach(x=>ringX(a,0.62,x<-3?1.05:0.82,x,x+0.1,M(0x54707f,{d:1,clip:1})));
+    add(g,cyl(0.05,0.05,0.18,10),M(CL.steel),-3.0,Y0+0.8,0);
+  });
+  /* ---- COMPRESSOR WHEEL ---- */
+  part('comp_wheel',g=>{
+    const a=ax(g);A.rotGroups.push(a);
+    const wg=new T.Group();wg.position.x=XC;wg.scale.set(SC,SC,SC);a.add(wg);
+    const hp=[[0,-0.62],[0.09,-0.58],[0.16,-0.5]];
+    for(let i=1;i<=14;i++){const t=i/14;hp.push([hubR(t),hubX(t)]);}
+    hp.push([0.78,0.2],[0.6,0.25],[0.3,0.28],[0.14,0.3],[0,0.3]);
+    add(wg,latheX(hp,48),M(0xb9c4cb,{m:0.7,r:0.3,d:1}));
+    const bm=M(0xdde4e8,{m:0.75,r:0.28,d:1});
+    const g1=cBlade(0),g2=cBlade(0.42);
+    for(let i=0;i<11;i++){const m1=new T.Mesh(g1,bm);m1.rotation.x=i/11*Math.PI*2;wg.add(m1);const m2=new T.Mesh(g2,bm);m2.rotation.x=(i+0.5)/11*Math.PI*2;wg.add(m2);}
+  });
+  /* ---- DIFFUSER AND VOLUTE ---- */
+  part('diffuser_volute',g=>{
+    const a=ax(g);
+    const rc=1.38,aa=0.34,bb=0.34,xv=-1.83,o=[],n=[];
+    for(let d=-150;d<=150;d+=15){const al=d*Math.PI/180;o.push([rc+(aa+0.06)*Math.cos(al),xv+(bb+0.06)*Math.sin(al)]);n.push([rc+aa*Math.cos(al),xv+bb*Math.sin(al)]);}
+    add(a,shellX(o,n),M(CL.cmp,{d:1,clip:1,m:0.35}));
+    add(a,shellX([[1.3,-1.76],[0.92,-1.76],[0.88,-1.55],[0.3,-1.52]],[[1.3,-1.69],[0.92,-1.69],[0.88,-1.48],[0.3,-1.45]]),M(CL.cmp,{d:1,clip:1,m:0.35}));
+    a.add(inst(box(0.14,0.3,0.025),M(0x9aa6ae,{d:1,clip:1}),19,-1.83,1.06,0,1.0));
+    add(g,cyl(0.3,0.3,0.1,26),M(CL.steel),-1.83,Y0+1.74,0);
+    add(g,cyl(0.31,0.31,0.4,26,true),M(CL.cmp,{d:1,m:0.35}),-1.83,Y0+1.8,0);
+    pipe(g,PIPES.airOut,0.28,0xa9c6dc);
+  });
+  /* ---- SHAFT AND THRUST COLLAR ---- */
+  part('shaft',g=>{
+    const a=ax(g);A.rotGroups.push(a);
+    const sm=M(0xb9c1c6,{m:0.85,r:0.25});
+    add(a,latheX([[0,-2.5],[0.11,-2.5],[0.11,-1.6],[0.14,-1.5],[0.14,-1.0],[0.16,-0.9],[0.16,0.4],[0.14,0.5],[0.14,2.3],[0,2.3]],24),sm);
+    ringX(a,0.14,0.3,-0.6,-0.52,sm,28);
+    add(a,latheX([[0,-2.68],[0.08,-2.64],[0.15,-2.56],[0.17,-2.5],[0,-2.5]],24),M(0x39464f,{m:0.6}));
+    add(a,box(0.4,0.02,0.04),M(0xd62020,{m:0.1}),-0.1,0.162,0);
+    add(a,box(0.4,0.02,0.04),M(0xf2f2f2,{m:0.1}),-0.1,-0.162,0);
+  });
+  /* ---- BEARINGS ---- */
+  part('bearings',g=>{
+    const a=ax(g),bz=M(0xc99a4a,{m:0.6,r:0.35,clip:1,d:1});
+    [-1.05,0.25].forEach(x=>{ringX(a,0.16,0.3,x-0.17,x+0.17,bz,28);ringX(a,0.3,0.36,x-0.19,x+0.19,M(0x59666f,{clip:1}),28);});
+    a.add(inst(box(0.07,0.09,0.12),bz,10,-0.66,0.24));
+    a.add(inst(box(0.07,0.09,0.12),bz,10,-0.46,0.24));
+  });
+  /* ---- BEARING HOUSING ---- */
+  part('bearing_housing',g=>{
+    const a=ax(g),hm=M(CL.hous,{d:1,clip:1,m:0.3});
+    add(a,shellX([[0.58,-1.4],[0.58,0.7]],[[0.5,-1.4],[0.5,0.7]]),hm);
+    ringX(a,0.5,0.76,-1.44,-1.32,hm);ringX(a,0.5,0.76,0.62,0.74,hm);
+    for(let i=0;i<8;i++){const f=add(a,box(0.06,0.14,0.12),M(0x3d5f78),-1.1+i*0.38,0.62,0);}
+    add(g,cyl(0.2,0.2,0.1,20),M(CL.steel),-0.3,Y0+0.6,0);
+    add(g,cyl(0.2,0.2,0.1,20),M(CL.steel),-0.3,Y0-0.62,0);
+    [-1,1].forEach(k=>{add(g,cyl(0.07,0.07,0.3,12),M(0x3a8dd0),-1.0+k*0.5+0.5,Y0-0.1,-0.7);});
+    add(g,cyl(0.07,0.07,0.3,12),M(0x3a8dd0),0.1,Y0-0.1,-0.7).rotation.x=Math.PI/2;
+  });
+  /* ---- SEALS ---- */
+  part('seals',g=>{
+    const a=ax(g),sm=M(0x7e8a92,{clip:1,d:1});
+    [[-1.52,-1.38],[0.7,0.88]].forEach(p=>{
+      ringX(a,0.18,0.34,p[0],p[1],sm,28);
+      for(let i=0;i<5;i++)ringX(a,0.145,0.19,p[0]+0.02+i*0.027,p[0]+0.032+i*0.027,M(0xaab3b9,{clip:1}),28);
+    });
+    [-1.45,0.79].forEach(x=>add(g,cyl(0.04,0.04,0.3,10),M(0x3a9bdc),x,Y0+0.62,0));
+  });
+  /* ---- GAS INLET CASING ---- */
+  part('gas_inlet',g=>{
+    const a=ax(g),cm=M(0x555f66,{d:1,clip:1,m:0.35}),lg=M(CL.lag,{d:1,clip:1,m:0.15,r:0.5});
+    add(a,shellX([[1.08,0.7],[1.14,0.85],[1.14,1.8],[1.0,2.02]],[[1.0,0.7],[1.06,0.85],[1.06,1.8],[0.92,2.02]]),cm);
+    A.innerMat=M(0x40484e,{d:1,clip:1,m:0.35,e:0xff4a00,ei:0});
+    add(a,shellX([[0.65,0.75],[0.65,1.95],[0.6,2.0]],[[0.57,0.75],[0.57,1.95],[0.52,2.0]]),A.innerMat);
+    shellish(add(a,shellX([[1.3,0.78],[1.3,1.85],[1.12,2.0]],[[1.14,0.78],[1.14,1.85],[1.06,2.0]]),lg));
+    ringX(a,1.0,1.36,0.7,0.82,M(CL.steel,{d:1,clip:1}));
+    [0.95,1.2,1.5,1.8].forEach(x=>shellish(add(a,cyl(1.31,1.31,0.04,48,true),M(0x2f3d47,{d:1,clip:1}),x,0,0)).rotation.z=Math.PI/2);
+    add(g,cyl(0.34,0.34,0.08,24),M(CL.steel),1.4,Y0+1.28,0);
+  });
+  /* ---- NOZZLE RING ---- */
+  part('nozzle',g=>{
+    const a=ax(g);
+    A.nozMat=M(0x8a949a,{m:0.5,e:0xff4a00,ei:0});
+    a.add(inst(box(0.2,0.37,0.03),A.nozMat,30,2.1,0.8,-0.75));
+    const rm=M(0x5d676d,{d:1,clip:1});
+    ringX(a,0.99,1.04,1.99,2.21,rm,40);ringX(a,0.58,0.62,1.99,2.21,rm,40);
+  });
+  /* ---- TURBINE WHEEL ---- */
+  part('turb_wheel',g=>{
+    const a=ax(g);A.rotGroups.push(a);
+    A.discMat=M(0x6b757c,{m:0.6,r:0.4,d:1,e:0xff4a00,ei:0});
+    add(a,latheX([[0.16,2.28],[0.45,2.28],[0.6,2.33],[0.66,2.36],[0.66,2.44],[0.6,2.47],[0.45,2.52],[0.16,2.52],[0.16,2.28]],40),A.discMat);
+    A.blMat=M(0x9aa4ab,{m:0.7,r:0.35,e:0xff4a00,ei:0});
+    a.add(inst(box(0.24,0.37,0.03),A.blMat,46,2.4,0.8,0.66));
+    ringX(a,0.6,0.66,2.28,2.52,M(0x4d575d,{d:1}),36);
+  });
+  /* ---- GAS OUTLET ---- */
+  part('gas_outlet',g=>{
+    const a=ax(g);
+    add(a,shellX([[1.0,2.62],[1.08,3.0],[0.95,3.5],[0.7,3.95]],[[0.92,2.62],[1.0,3.0],[0.87,3.5],[0.62,3.95]]),M(0x555f66,{d:1,clip:1,m:0.35}));
+    shellish(add(a,shellX([[1.18,2.62],[1.2,3.0],[1.05,3.5],[0.8,3.9]],[[1.0,2.62],[1.08,3.0],[0.95,3.5],[0.7,3.95]]),M(CL.lag,{d:1,clip:1,m:0.15,r:0.5})));
+    add(a,latheX([[0,3.7],[0.25,3.4],[0.46,2.9],[0.5,2.62],[0.2,2.56],[0,2.56]],32),M(0x5d676d,{d:1,m:0.4}));
+    ringX(a,0.62,0.84,3.93,4.03,M(CL.steel,{d:1}));
+    pipe(g,PIPES.gasOut,0.62,0xb7c2c8);
+    add(g,cyl(0.74,0.74,0.08,30),M(CL.steel),4.6,5.7,0);
+    [2.8,4.6].forEach(y=>add(g,cyl(0.66,0.66,0.05,30),M(0x2f3d47),4.6,y+0.0,0));
+  });
+  /* ---- EXHAUST RECEIVER AND GAS PIPE ---- */
+  part('exh_receiver',g=>{
+    cylX(g,0.3,3.0,M(0xb4bec5,{m:0.15,r:0.55}),2.4,2.4,-3.0);
+    [0.9,1.9,2.9,3.9].forEach(x=>cylX(g,0.33,0.06,M(0x2f3d47),x,2.4,-3.0));
+    for(let i=0;i<6;i++){add(g,cyl(0.1,0.1,0.35,12),M(0x6a7780),1.0+i*0.5,2.4,-3.22).rotation.x=Math.PI/2;}
+    const pm=pipe(g,PIPES.gasIn,0.3,0xb7c2c8,{m:0.15});
+    for(let i=0;i<6;i++){const t=add(g,new T.TorusGeometry(0.34,0.05,8,26),M(0x8b97a0),1.4,3.55+i*0.07,0);t.rotation.x=Math.PI/2;}
+    [3.5,3.9].forEach(y=>add(g,cyl(0.38,0.38,0.05,24),M(CL.steel),1.4,y,0));
+    add(g,cyl(0.38,0.38,0.05,24),M(CL.steel),1.4,4.1,-1.8).rotation.x=Math.PI/2;
+  });
+  /* ---- ENGINE ---- */
+  part('engine',g=>{
+    const em=M(0x4d6f5f,{m:0.3,r:0.6});
+    add(g,box(3.9,2.85,1.3),em,2.3,1.575,-3.95);
+    add(g,box(3.9,0.18,1.4),M(0x3b4a42),2.3,3.05,-3.95);
+    for(let i=0;i<6;i++){add(g,cyl(0.22,0.24,0.42,20),M(0x2d3a45,{m:0.5}),0.8+i*0.6,3.3,-3.95);add(g,cyl(0.08,0.08,0.25,10),M(0xaab3b9),0.8+i*0.6,3.6,-3.95);}
+    cylX(g,0.32,3.4,M(0x3d78a6,{m:0.25}),2.2,1.2,-3.0);
+    [0.5,1.5,2.5,3.5].forEach(x=>cylX(g,0.35,0.06,M(0x2a4a63),x,1.2,-3.0));
+    for(let i=0;i<5;i++)add(g,cyl(0.1,0.1,0.35,12),M(0x3d78a6),0.8+i*0.7,1.2,-3.25).rotation.x=Math.PI/2;
+    add(g,box(0.5,0.6,0.5),M(0x8a2b2b),-0.2,0.45,-3.95);
+    pipe(g,PIPES.scavOut,0.22,0x6fa7d0);
+  });
+  /* ---- CHARGE AIR COOLER ---- */
+  part('charge_cooler',g=>{
+    add(g,box(2.0,1.2,1.2),M(0x7fb4d6,{t:1,o:0.3,d:1,m:0,r:0.2}),-1.4,2.3,-3.0);
+    for(let i=0;i<18;i++)add(g,box(0.03,1.0,1.0),M(0xc77a3c,{m:0.6,r:0.4}),-2.25+i*0.1,2.3,-3.0);
+    [-1,1].forEach(k=>add(g,box(0.18,1.3,1.3),M(0x3a6f8f,{m:0.3}),-1.4+k*1.09,2.3,-3.0));
+    cylX(g,0.12,0.4,M(0x3a8dd0),-0.2,1.95,-3.0);cylX(g,0.12,0.4,M(0x3a8dd0),-0.2,2.55,-3.0);
+    add(g,cyl(0.34,0.34,0.1,24),M(CL.steel),-1.83,2.95,-3.0);
+    pipe(g,[V(-0.6,2.1,-3.0),V(-0.4,2.1,-3.0)],0.22,0x6fa7d0);
+  });
+  /* ---- LUBE OIL ---- */
+  part('lube',g=>{
+    pipe(g,PIPES.oilIn,0.05,CL.oil);pipe(g,PIPES.oilOut,0.08,0x8c6a24);
+    const sg=add(g,cyl(0.14,0.14,0.4,18),M(0xcfe9f5,{t:1,o:0.4,d:1,m:0,r:0.1}),-0.3,0.9,0);
+    add(g,cyl(0.16,0.16,0.04,18),M(0x3b4750),-0.3,1.1,0);add(g,cyl(0.16,0.16,0.04,18),M(0x3b4750),-0.3,0.7,0);
+    add(g,cyl(0.1,0.1,0.28,14),M(0xd9a441,{e:0xc8892b,ei:0.1}),-0.3,0.9,0);
+    const gp=new T.Group();gp.position.set(-0.3,3.05,-0.7);g.add(gp);
+    add(gp,cyl(0.15,0.15,0.08,22),M(0x2a343b),0,0,0).rotation.x=Math.PI/2;
+    add(gp,new T.CircleGeometry(0.125,24),M(0xf6f7f4,{d:1}),0,0,0.045);
+    add(g,box(0.2,0.1,0.2),M(0x2a343b),0.3,3.2,-1.2);
+  });
+  /* ---- WASH SYSTEM ---- */
+  part('wash',g=>{
+    add(g,box(0.6,0.6,0.5),M(0x3a6f8f,{m:0.3}),0.2,0.42,1.4);
+    add(g,cyl(0.1,0.1,0.28,14),M(0xcfe9f5,{t:1,o:0.5,d:1,m:0,r:0.1}),0.2,0.85,1.4);
+    pipe(g,PIPES.washC,0.04,CL.blue);pipe(g,PIPES.washT,0.04,CL.blue);
+    valve(g,-1.0,3.7,1.4,{along:'x',s:0.6,col:0x2f86c4});valve(g,0.55,3.7,1.4,{along:'x',s:0.6,col:0x2f86c4});
+    add(g,cyl(0.08,0.04,0.2,10),M(0xaab3b9),-3.0,2.75,0);add(g,cyl(0.08,0.04,0.2,10),M(0xaab3b9),0.85,3.25,0);
+  });
+  /* ---- SPEED SENSOR ---- */
+  part('speed_sensor',g=>{
+    add(g,cyl(0.06,0.06,0.3,12),M(0x20262a),-2.8,3.0,0);
+    add(g,box(0.12,0.1,0.12),M(0x39464f),-2.8,3.2,0);
+    pipe(g,[V(-2.8,3.25,0),V(-2.8,3.4,0.6),V(-3.6,3.0,1.6),V(-3.8,2.1,1.9)],0.015,0x15191b);
+  });
+  /* ---- THERMOCOUPLES ---- */
+  part('thermocouples',g=>{
+    [[1.58,3.5,0],[4.8,3.4,0]].forEach(p=>{
+      cylX(g,0.04,0.45,M(0x20262a),p[0],p[1],p[2]);
+      add(g,box(0.16,0.14,0.14),M(0x8a2b2b),p[0]+0.3,p[1],p[2]);
+      add(g,sph(0.04,8),M(0xd8c36a),p[0]+0.42,p[1],p[2]);
+    });
+  });
+  /* ---- FOOT AND SUPPORTS ---- */
+  part('foot',g=>{
+    add(g,box(10.6,0.12,7.0),M(0x2a3842,{m:0.3}),-0.1,0.06,-1.6);
+    const fm=M(0x3b4750,{m:0.3});
+    add(g,box(0.45,1.0,1.0),fm,-1.1,0.62,0);add(g,box(0.45,1.0,1.0),fm,0.5,0.62,0);
+    add(g,box(1.0,0.5,1.1),fm,1.4,0.37,0);
+    add(g,box(0.6,0.5,0.9),fm,-2.3,0.37,0);add(g,box(0.6,0.45,0.9),fm,3.4,0.34,0);
+    [-3,-1.1,0.5,3.4].forEach(x=>[-0.4,0.4].forEach(z=>add(g,cyl(0.05,0.05,0.12,8),M(0xaab3b9),x,0.4,z)));
+  });
+  /* ---- PANEL ---- */
+  const lcdTex=canvasTex(256,128,(x,w,h)=>{x.fillStyle='#0a2a1c';x.fillRect(0,0,w,h);});
+  function drawLCD(s){
+    const x=lcdTex.image.getContext('2d');x.fillStyle='#0a2a1c';x.fillRect(0,0,256,128);
+    x.fillStyle='#7dffb0';x.textBaseline='top';x.font='700 26px "Barlow Condensed","Arial Narrow",monospace';
+    x.fillText('SPEED '+Math.round(s.N)+' rpm',10,6);x.fillText('BOOST '+(s.PR-1).toFixed(2)+' bar',10,36);
+    x.fillText('GAS IN '+Math.round(s.Tin)+' C',10,66);x.fillText('LUBE '+s.lubeP.toFixed(1)+' bar',10,96);
+    lcdTex.needsUpdate=true;
+  }
+  part('panel',g=>{
+    const gp=new T.Group();gp.position.set(-3.8,0,1.9);gp.rotation.y=0.45;g.add(gp);
+    add(gp,box(0.95,1.6,0.38),M(0x8fa1ab,{m:0.25,r:0.55}),0,0.95,0);
+    add(gp,box(1.0,0.06,0.42),M(0x5a6a74),0,1.78,0);
+    add(gp,box(0.9,0.1,0.36),M(0x3b4750),0,0.1,0);
+    add(gp,new T.PlaneGeometry(0.66,0.33),new T.MeshBasicMaterial({map:lcdTex}),0,1.46,0.195);
+    const L=[[0xe8eef2,s=>true],[0x28d46a,s=>s.N>500],[0xf0a020,s=>s.surging],[0xf0a020,s=>(s.engineOn||s.N>400)&&s.lubeP<SIM.C.LUBE_W],[0xe03030,s=>s.N/SIM.C.NMAX>=SIM.C.OVS_W],[0xe03030,s=>s.Tin>=SIM.C.EGT_W]];
+    L.forEach((l,i)=>{const m=dyn(add(gp,new T.SphereGeometry(0.045,10,8),M(0x20303a,{e:l[0],ei:0.06,m:0,r:0.4}),-0.3+i*0.12,1.2,0.2));A.plamps.push({m:m,on:l[1]});});
+    add(gp,cyl(0.06,0.06,0.04,14),M(0xd62020),0.28,0.95,0.2).rotation.x=Math.PI/2;
+    add(gp,cyl(0.05,0.05,0.04,14),M(0x2f8f6b),-0.28,0.95,0.2).rotation.x=Math.PI/2;
+  });
+
+  /* ---- particles ---- */
+  function makePoints(n,size,o){
+    const geo=new T.BufferGeometry(),pos=new Float32Array(n*3);geo.setAttribute('position',new T.BufferAttribute(pos,3));
+    let col=null;if(o.colors){col=new Float32Array(n*3);geo.setAttribute('color',new T.BufferAttribute(col,3));}
+    const mat=new T.PointsMaterial({size:size,map:dotTex,transparent:true,depthWrite:false,opacity:o.opacity||1,color:o.color||0xffffff,vertexColors:!!o.colors,blending:o.add?T.AdditiveBlending:T.NormalBlending,sizeAttenuation:true});
+    const p=new T.Points(geo,mat);p.frustumCulled=false;scene.add(p);
+    return {p:p,geo:geo,pos:pos,col:col,mat:mat,n:n};
+  }
+  function makePuff(n,size,rgb,rise,spread,origin){
+    const sys=makePoints(n,size,{colors:true,add:true,opacity:0.9});sys.d=[];sys.rgb=rgb;sys.rise=rise;sys.spread=spread;sys.o=origin;
+    for(let i=0;i<n;i++)sys.d.push({u:Math.random(),dx:Math.random()-0.5,dz:Math.random()-0.5});
+    sys.p.visible=false;return sys;
+  }
+  function updatePuff(sys,act,dt){
+    sys.p.visible=act>0.02;if(!sys.p.visible)return;
+    for(let i=0;i<sys.n;i++){
+      const d=sys.d[i];d.u+=dt*(0.4+0.5*act);if(d.u>1)d.u-=1;
+      const k=d.u,f=(1-k)*Math.min(1,act);
+      sys.pos[i*3]=sys.o.x+d.dx*sys.spread*k;sys.pos[i*3+1]=sys.o.y+sys.rise*k;sys.pos[i*3+2]=sys.o.z+d.dz*sys.spread*k;
+      sys.col[i*3]=sys.rgb[0]*f;sys.col[i*3+1]=sys.rgb[1]*f;sys.col[i*3+2]=sys.rgb[2]*f;
+    }
+    sys.geo.attributes.position.needsUpdate=true;sys.geo.attributes.color.needsUpdate=true;
+  }
+  const smoke=makePuff(50,0.9,[0.7,0.72,0.74],2.6,1.0,V(4.6,5.8,0));
+
+  const FL=[];
+  const cat=(a,b)=>a.concat(b);
+  function flow(pts,col,n,sp,act,size){
+    const L=[0];for(let i=1;i<pts.length;i++)L.push(L[i-1]+pts[i].distanceTo(pts[i-1]));
+    const sys=makePoints(n,size||0.2,{color:col,opacity:0.95});sys.p.visible=false;
+    FL.push({sys:sys,pts:pts,L:L,total:L[L.length-1],sp:sp,act:act,ph:Math.random()});
+  }
+  const surgeDir=(s,tm)=>s.surging?(Math.sin(tm*9)>0?1:-0.8):1;
+  const af=s=>s.flow>0.04&&s.N>150?clamp(0.3+s.flow,0,1.3):0;
+  flow([V(-5.4,Y0,0),V(-2.55,Y0,0)],0xa8d8ff,14,2.2,(s,tm)=>af(s)*surgeDir(s,tm));
+  flow([V(-2.55,Y0,0),V(-2.15,Y0+0.2,0),V(-1.9,Y0+0.8,0),V(-1.83,Y0+1.55,0)],0xcfe7ff,8,1.6,(s,tm)=>af(s)*surgeDir(s,tm),0.17);
+  flow(cat(PIPES.airOut.slice(),[V(-1.83,2.3,-3.0),V(-0.4,2.1,-3.0)]),0xd7ecff,18,2.4,(s,tm)=>af(s)*surgeDir(s,tm));
+  flow(cat(PIPES.scavOut.slice(),[V(3.5,1.2,-3.0)]),0xd7ecff,12,2.0,s=>af(s));
+  flow(cat([V(3.4,2.4,-3.0)],PIPES.gasIn.slice()),0xff9a40,22,2.4,s=>(s.engineOn&&!s.seized)?clamp(0.3+s.load,0,1.3):(s.engineOn?0.3:0));
+  flow([V(1.4,3.2,0),V(1.5,2.82,0),V(2.1,2.8,0),V(2.4,2.75,0),V(2.9,2.6,0),V(3.5,2.3,0),V(3.95,2.0,0)],0xffb060,12,2.2,s=>(s.engineOn)?clamp(0.3+s.load,0,1.3):0,0.17);
+  flow(PIPES.gasOut.slice(),0xc9c2b8,14,2.4,s=>(s.engineOn)?clamp(0.3+s.load,0,1.3):0);
+  flow(PIPES.oilIn.slice(),0xffcf70,14,1.6,s=>s.lubeP>0.3?clamp(s.lubeP/2,0.3,1.2):0,0.16);
+  flow(PIPES.oilOut.slice(),0xffcf70,12,1.4,s=>s.lubeP>0.3?clamp(s.lubeP/2,0.3,1.2):0,0.16);
+  flow(PIPES.washC.slice(),0x6fd0ff,10,1.8,s=>(s.wash&&s.wash.type==='compressor')?1:0);
+  flow(PIPES.washT.slice(),0x6fd0ff,8,1.8,s=>(s.wash&&s.wash.type==='turbine')?1:0);
+  function updateFlows(s,dt,tm){
+    FL.forEach(f=>{
+      const a=f.act(s,tm);f.sys.p.visible=a!==0;if(!a)return;
+      f.ph=((f.ph+dt*f.sp*a/Math.max(f.total,0.5))%1+1)%1;
+      for(let i=0;i<f.sys.n;i++){
+        const u=((i/f.sys.n+f.ph)%1)*f.total;let j=1;while(j<f.L.length-1&&u>f.L[j])j++;
+        const t=(u-f.L[j-1])/Math.max(1e-6,f.L[j]-f.L[j-1]),a0=f.pts[j-1],b0=f.pts[j];
+        f.sys.pos[i*3]=a0.x+(b0.x-a0.x)*t;f.sys.pos[i*3+1]=a0.y+(b0.y-a0.y)*t;f.sys.pos[i*3+2]=a0.z+(b0.z-a0.z)*t;
+      }
+      f.sys.geo.attributes.position.needsUpdate=true;
+    });
+  }
+
+  /* ---- finalise meshes ---- */
+  const ALLM=[],PICK=[],CLIPSET=new Set(CLIP);
+  function partOf(o){while(o){if(o.isGroup&&o.userData&&o.userData.part)return o.userData.part;o=o.parent;}return null;}
+  root.traverse(o=>{
+    if(!o.isMesh)return;const id=partOf(o);if(!id)return;
+    const mat=o.material;o.userData.part=id;
+    o.userData.clipped=CLIPSET.has(mat);
+    o.userData.base={opacity:mat.opacity,transparent:mat.transparent,depthWrite:mat.depthWrite,emissive:mat.emissive?mat.emissive.clone():null,ei:mat.emissiveIntensity};
+    ALLM.push(o);PICK.push(o);
+  });
+
+  /* ---- view modes ---- */
+  const planes=[new T.Plane(V(0,0,-1),0)];
+  let viewMode='cut',focusId=null,FOCUSM=[];
+  const ACC=new T.Color(0xf2c230);
+  function refreshMaterials(){
+    const xr=viewMode==='xray';
+    for(const m of ALLM){
+      const b=m.userData.base,mat=m.material;let op=b.opacity,tr=b.transparent,dw=b.depthWrite;
+      if(xr&&(m.userData.clipped||m.userData.shellish)){op=Math.min(op,0.16);tr=true;dw=false;}
+      if(focusId&&m.userData.part!==focusId){op*=0.18;tr=true;dw=false;}
+      if(mat.opacity!==op||mat.transparent!==tr){mat.opacity=op;mat.transparent=tr;mat.depthWrite=dw;mat.needsUpdate=true;}
+    }
+  }
+  function rebuildFocus(){
+    FOCUSM.forEach(m=>{const b=m.userData.base;m.material.emissive.copy(b.emissive);m.material.emissiveIntensity=b.ei;});
+    FOCUSM=focusId?ALLM.filter(m=>m.userData.part===focusId&&m.userData.base.emissive&&!m.userData.dyn):[];
+  }
+  function setView(mode){
+    viewMode=mode;const on=mode==='cut';
+    CLIP.forEach(m=>{m.clippingPlanes=on?planes:null;m.needsUpdate=true;});
+    refreshMaterials();
+  }
+
+  /* ---- camera ---- */
+  const CT=[0.0,2.4,-1.4];
+  const cam={tx:CT[0],ty:CT[1],tz:CT[2],r:20,az:28*Math.PI/180,el:16*Math.PI/180},goal=Object.assign({},cam);
+  let W=2,H=2,sway=true;const swayBase=cam.az;
+  function homeR(){const t=Math.tan(camera.fov*Math.PI/360),asp=W/H;return clamp(Math.max(4.6/t,5.7/(t*asp)),12,42);}
+  function fly(t,r,azDeg,elDeg){
+    goal.tx=t[0];goal.ty=t[1];goal.tz=t[2];goal.r=clamp(r,3,44);
+    let d=azDeg*Math.PI/180-cam.az;d=Math.atan2(Math.sin(d),Math.cos(d));goal.az=cam.az+d;goal.el=clamp(elDeg*Math.PI/180,-0.05,1.45);
+  }
+  function camPreset(name){
+    sway=false;
+    const m={front:[0,12],right:[90,12],left:[-90,12],back:[180,12],top:[0,80],home:[28,16]}[name]||[28,16];
+    fly(CT,homeR(),m[0],m[1]);
+  }
+  function focus(id){
+    focusId=id||null;sway=false;
+    if(id){
+      const p=PBY[id];
+      if(p.internal&&viewMode==='ext'){setView('cut');if(api.onView)api.onView('cut');}
+      const k=Math.max(1,0.9/(W/H));
+      fly(p.cam.t,p.cam.r*k,p.cam.az,p.cam.el);
+    }
+    refreshMaterials();rebuildFocus();
+  }
+  function updateCamera(dt){
+    const k=reduce?1:1-Math.exp(-dt*7);
+    cam.tx+=(goal.tx-cam.tx)*k;cam.ty+=(goal.ty-cam.ty)*k;cam.tz+=(goal.tz-cam.tz)*k;cam.r+=(goal.r-cam.r)*k;cam.el+=(goal.el-cam.el)*k;cam.az+=(goal.az-cam.az)*k;
+    const ce=Math.cos(cam.el);
+    camera.position.set(cam.tx+cam.r*Math.sin(cam.az)*ce,cam.ty+cam.r*Math.sin(cam.el),cam.tz+cam.r*Math.cos(cam.az)*ce);
+    camera.lookAt(cam.tx,cam.ty,cam.tz);camera.updateMatrixWorld();
+  }
+  const _r=new T.Vector3(),_u=new T.Vector3(),_z=new T.Vector3();
+  function pan(dx,dy){
+    camera.matrixWorld.extractBasis(_r,_u,_z);const s=cam.r*0.0017;
+    goal.tx=clamp(goal.tx+(-_r.x*dx+_u.x*dy)*s,-8,8);goal.ty=clamp(goal.ty+(-_r.y*dx+_u.y*dy)*s,0,8);goal.tz=clamp(goal.tz+(-_r.z*dx+_u.z*dy)*s,-8,5);
+  }
+  const ptrs=new Map();let down=null,pinchD=0,pinchMid=null;
+  canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  canvas.addEventListener('pointerdown',e=>{
+    try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+    ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(ptrs.size===1)down={x:e.clientX,y:e.clientY,t:performance.now(),m:0};
+    else{down=null;const v=Array.from(ptrs.values());pinchD=Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y);pinchMid={x:(v[0].x+v[1].x)/2,y:(v[0].y+v[1].y)/2};}
+    sway=false;
+  });
+  canvas.addEventListener('pointermove',e=>{
+    const p=ptrs.get(e.pointerId);if(!p)return;
+    const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+    if(ptrs.size===1){
+      if(down)down.m+=Math.abs(dx)+Math.abs(dy);
+      if((e.buttons&2)||e.shiftKey)pan(dx,dy);
+      else{goal.az-=dx*0.0065;goal.el=clamp(goal.el+dy*0.0055,-0.05,1.45);}
+    }else if(ptrs.size===2){
+      const v=Array.from(ptrs.values()),d=Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y),mid={x:(v[0].x+v[1].x)/2,y:(v[0].y+v[1].y)/2};
+      if(pinchD>0&&d>0)goal.r=clamp(goal.r*pinchD/d,3,44);
+      if(pinchMid)pan(mid.x-pinchMid.x,mid.y-pinchMid.y);
+      pinchD=d;pinchMid=mid;
+    }
+  });
+  const ray=new T.Raycaster(),ndc=new T.Vector2();
+  function pick(cx,cy){
+    const rc=canvas.getBoundingClientRect();
+    ndc.set((cx-rc.left)/rc.width*2-1,-((cy-rc.top)/rc.height)*2+1);ray.setFromCamera(ndc,camera);
+    const hits=ray.intersectObjects(PICK,false);
+    for(const h of hits){
+      const o=h.object;if(!o.visible)continue;
+      if(viewMode==='cut'&&o.userData.clipped&&h.point.z>0.001)continue;
+      if(viewMode==='xray'&&(o.userData.clipped||o.userData.shellish))continue;
+      return o.userData.part;
+    }
+    return null;
+  }
+  function endPtr(e){
+    const was=down;ptrs.delete(e.pointerId);if(ptrs.size<2)pinchD=0;
+    if(was&&e.type==='pointerup'&&was.m<8&&performance.now()-was.t<600){const id=pick(e.clientX,e.clientY);if(id&&api.onPick)api.onPick(id);}
+    if(ptrs.size===0)down=null;
+  }
+  canvas.addEventListener('pointerup',endPtr);canvas.addEventListener('pointercancel',endPtr);
+  canvas.addEventListener('wheel',e=>{e.preventDefault();sway=false;goal.r=clamp(goal.r*Math.exp(e.deltaY*0.0012),3,44);},{passive:false});
+  canvas.addEventListener('keydown',e=>{
+    const k=e.key;sway=false;
+    if(k==='ArrowLeft')goal.az-=0.12;else if(k==='ArrowRight')goal.az+=0.12;
+    else if(k==='ArrowUp')goal.el=clamp(goal.el+0.08,-0.05,1.45);else if(k==='ArrowDown')goal.el=clamp(goal.el-0.08,-0.05,1.45);
+    else if(k==='+'||k==='=')goal.r=clamp(goal.r*0.9,3,44);else if(k==='-')goal.r=clamp(goal.r*1.1,3,44);else return;
+    e.preventDefault();
+  });
+
+  /* ---- pins ---- */
+  const pinsEl=$('#pins'),pinEls={};let pinMode='all',pinId=null;
+  PARTS.forEach(p=>{
+    const b=document.createElement('button');b.type='button';b.className='pin';b.style.setProperty('--pc',GROUPS[p.g].c);b.setAttribute('aria-label',p.n);
+    b.innerHTML='<span class="dot"></span><span class="lab"></span>';b.lastChild.textContent=p.n;
+    b.addEventListener('click',e=>{e.stopPropagation();if(api.onPick)api.onPick(p.id);});
+    pinsEl.appendChild(b);pinEls[p.id]=b;
+  });
+  const _v=new T.Vector3();
+  function updatePins(){
+    if(pinMode==='none')return;
+    const camAz=cam.az*180/Math.PI;
+    PARTS.forEach(p=>{
+      const el=pinEls[p.id];
+      if(!(pinMode==='all'||(pinMode==='one'&&p.id===pinId))){el.style.display='none';return;}
+      _v.set(p.pin[0],p.pin[1],p.pin[2]).project(camera);
+      if(_v.z>1||_v.z<-1){el.style.display='none';return;}
+      let op=1;
+      if(viewMode!=='xray'&&p.internal){op=viewMode==='ext'?0:clamp((Math.cos(camAz*Math.PI/180)-0.1)/0.35,0,1);}
+      if(pinMode==='one')op=Math.max(op,0.35);
+      if(op<0.05){el.style.display='none';return;}
+      el.style.display='';el.style.opacity=op;el.style.pointerEvents=op<0.5?'none':'auto';
+      el.style.transform='translate('+((_v.x*0.5+0.5)*W).toFixed(1)+'px,'+((-_v.y*0.5+0.5)*H).toFixed(1)+'px)';
+      el.classList.toggle('on',p.id===focusId||(pinMode==='one'&&p.id===pinId));
+    });
+  }
+
+  /* ---- apply simulation state ---- */
+  function applySim(s,dt,tm){
+    const nr=s.N/SIM.C.NMAX;
+    A.ang+=dt*nr*30;
+    A.rotGroups.forEach(g=>{g.rotation.x=A.ang;});
+    const gh=clamp((s.Tin-150)/450,0,1);
+    A.blMat.emissiveIntensity=gh*1.1;A.discMat.emissiveIntensity=gh*0.9;A.nozMat.emissiveIntensity=gh*1.1;A.innerMat.emissiveIntensity=gh*0.6;
+    A.plamps.forEach(l=>{l.m.material.emissiveIntensity=l.on(s)?1.6:0.06;});
+    A.lcdT+=dt;if(A.lcdT>0.3){A.lcdT=0;drawLCD(s);}
+    const sh=s.surging?0.014:(s.seized&&s.engineOn?0.01:0);
+    A.shake+=(sh-A.shake)*Math.min(1,dt*8);
+    root.position.set((Math.random()-0.5)*A.shake,(Math.random()-0.5)*A.shake,0);
+    updateFlows(s,dt,tm);
+    const d=clamp(s.ft*1.1+(s.seized?1:0)+(s.load>1?0.3:0),0,1),c=0.8-0.62*d;
+    smoke.rgb=[c,c,c*1.02];
+    updatePuff(smoke,s.engineOn?0.25+0.3*s.load:0,dt);
+  }
+
+  function resize(){
+    const r=stage.getBoundingClientRect(),w=Math.max(2,Math.floor(r.width)),h=Math.max(2,Math.floor(r.height));
+    if(w===W&&h===H)return;W=w;H=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+  }
+  if(window.ResizeObserver)new ResizeObserver(resize).observe(stage);else window.addEventListener('resize',resize);
+  resize();
+  cam.r=goal.r=homeR();
+  setView('cut');rebuildFocus();drawLCD(sim);
+
+  const api={ok:true,onPick:null,onView:null,focus:focus,setView:setView,cam:camPreset,
+    names(on){document.body.classList.toggle('names',!!on);},
+    pins(mode,id){pinMode=mode;pinId=id||null;pinsEl.classList.toggle('hide',mode==='none');},
+    tick(dt,tm){
+      resize();
+      if(sway&&!reduce)goal.az=swayBase+0.18*Math.sin(tm*0.5);
+      updateCamera(dt);
+      applySim(sim,dt,tm);
+      if(focusId&&FOCUSM.length){const k=reduce?0.4:0.45+0.25*Math.sin(tm*4.2);FOCUSM.forEach(m=>{const b=m.userData.base;m.material.emissive.copy(b.emissive).lerp(ACC,k);m.material.emissiveIntensity=Math.max(b.ei,1);});}
+      renderer.render(scene,camera);
+      updatePins();
+    }};
+  return api;
+  }catch(err){
+    console.error(err);
+    $('#stage').insertAdjacentHTML('beforeend','<p class="nogl">The 3D view hit a problem and was turned off. The guide, procedures, simulator and quiz still work.</p>');
+    return stub;
+  }
+})();
+
+/* ---------------- UI ---------------- */
+const UI={tab:'parts',filter:'all',sel:null,proc:'start',step:0,quiz:null};
+const appEl=$('#app'),panel=$('#panel');
+const toastEl=$('#toast');let toastT=0;
+function toast(msg,sev){toastEl.textContent=msg;toastEl.className='show '+(sev||'info');clearTimeout(toastT);toastT=setTimeout(()=>{toastEl.className='';},3600);}
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}return a;};
+
+const mqDesk=window.matchMedia('(min-width:900px) and (min-aspect-ratio:1/1)');
+let stops=[84,300,500];
+function calcStops(){const H=appEl.clientHeight||700;stops=[84,Math.round(H*0.48),Math.round(H*0.84)];}
+function sheetH(){return panel.getBoundingClientRect().height;}
+function setSheet(h,anim){
+  if(mqDesk.matches){panel.style.height='';return;}
+  calcStops();h=clamp(h,stops[0],stops[2]);
+  panel.classList.toggle('snap',!!anim);panel.style.height=h+'px';
+}
+function expandIfCollapsed(){if(!mqDesk.matches&&sheetH()<150)setSheet(stops[1],true);}
+const grab=$('#grab');let drag=null;
+grab.addEventListener('pointerdown',e=>{if(mqDesk.matches)return;try{grab.setPointerCapture(e.pointerId);}catch(_){}drag={y:e.clientY,h:sheetH(),m:0};panel.classList.remove('snap');});
+grab.addEventListener('pointermove',e=>{if(!drag)return;const dy=drag.y-e.clientY;drag.m=Math.max(drag.m,Math.abs(dy));setSheet(drag.h+dy,false);});
+function endDrag(){
+  if(!drag)return;const d=drag;drag=null;calcStops();const h=sheetH();
+  if(d.m<6){setSheet(h<150?stops[1]:stops[0],true);}
+  else{let best=stops[0];stops.forEach(s=>{if(Math.abs(s-h)<Math.abs(best-h))best=s;});setSheet(best,true);}
+}
+grab.addEventListener('pointerup',endDrag);grab.addEventListener('pointercancel',endDrag);
+grab.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSheet(sheetH()<150?stops[1]:stops[0],true);}});
+window.addEventListener('resize',()=>{if(mqDesk.matches)panel.style.height='';else setSheet(sheetH(),false);});
+
+function setTab(t){
+  UI.tab=t;
+  $$('#tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
+  ['parts','steps','run','quiz'].forEach(k=>{$('#v-'+k).hidden=(k!==t);});
+  if(t==='parts'){renderParts();view3d.pins('all');view3d.focus(UI.sel);}
+  else if(t==='steps'){renderSteps();applyStepFocus();}
+  else if(t==='run'){view3d.pins('none');view3d.focus(null);view3d.cam('home');updateRun();}
+  else{view3d.pins('none');view3d.focus(null);}
+}
+$$('#tabs button').forEach(b=>b.addEventListener('click',()=>{expandIfCollapsed();setTab(b.dataset.tab);}));
+
+/* progress saved on this device for the menu bars */
+const MT_PROG={
+  id:'turbocharger',
+  total:PARTS.length+QUIZ.length,
+  mark(item){
+    try{
+      const doneAll=JSON.parse(localStorage.getItem('marineTrainers.done')||'{}')||{};
+      const mine=new Set(doneAll[this.id]||[]);
+      if(mine.has(item))return;
+      mine.add(item);doneAll[this.id]=[...mine];
+      localStorage.setItem('marineTrainers.done',JSON.stringify(doneAll));
+      const prog=JSON.parse(localStorage.getItem('marineTrainers.progress')||'{}')||{};
+      prog[this.id]=Math.min(100,Math.round(mine.size/this.total*100));
+      localStorage.setItem('marineTrainers.progress',JSON.stringify(prog));
+    }catch(e){}
+  }
+};
+function selectPart(id){
+  if(id)MT_PROG.mark('part:'+id);
+  UI.sel=id;
+  if(UI.tab!=='parts')setTab('parts');
+  else{renderParts();view3d.focus(id);}
+  const v=$('#v-parts');v.scrollTop=0;
+}
+function renderParts(){
+  const v=$('#v-parts');
+  if(UI.sel){renderDetail(v);return;}
+  const chips=[['all','All']].concat(Object.keys(GROUPS).map(k=>[k,GROUPS[k].n]));
+  let h='<div class="chips" role="group" aria-label="Filter parts">'+chips.map(c=>'<button class="chip" data-f="'+c[0]+'" aria-pressed="'+(UI.filter===c[0])+'">'+c[1]+'</button>').join('')+'</div>';
+  h+='<p class="muted small">Tap a part in the 3D model or pick one below. Drag to rotate and pinch to zoom.</p>';
+  h+='<div class="legend" aria-label="Flow colours in the model">'+[['#a8d8ff','Air'],['#ff9a40','Exhaust gas'],['#ffcf70','Lube oil'],['#6fd0ff','Wash water']].map(x=>'<span><s style="background:'+x[0]+';box-shadow:0 0 0 1px var(--line)"></s>'+x[1]+'</span>').join('')+'</div>';
+  h+='<ul class="plist">'+PARTS.filter(p=>UI.filter==='all'||p.g===UI.filter).map(p=>'<li><button class="prow" data-id="'+p.id+'" style="--gc:'+GROUPS[p.g].c+'"><b>'+p.n+'</b><small>'+GROUPS[p.g].n+'</small></button></li>').join('')+'</ul>';
+  v.innerHTML=h;
+}
+function renderDetail(v){
+  const p=PBY[UI.sel],g=GROUPS[p.g];
+  let list=PARTS.filter(x=>UI.filter==='all'||x.g===UI.filter);
+  let i=list.findIndex(x=>x.id===p.id);if(i<0){list=PARTS;i=list.findIndex(x=>x.id===p.id);}
+  const prev=list[(i-1+list.length)%list.length],next=list[(i+1)%list.length];
+  let h='<button class="back" data-act="back">&larr; All parts</button>';
+  h+='<span class="gtag" style="--gc:'+g.c+'">'+g.n+'</span><h2>'+p.n+'</h2>';
+  h+='<h3>What it does</h3><p>'+p.what+'</p><h3>How it works</h3><p>'+p.how+'</p>';
+  h+='<h3>Key points</h3><ul class="facts">'+p.facts.map(f=>'<li>'+f+'</li>').join('')+'</ul>';
+  h+='<div class="watch"><b>Watch for</b>'+p.watch+'</div>';
+  h+='<div class="pnav"><button class="btn" data-id="'+prev.id+'">&larr; '+prev.n+'</button><button class="btn" data-id="'+next.id+'">'+next.n+' &rarr;</button></div>';
+  v.innerHTML=h;
+}
+$('#v-parts').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.f){UI.filter=b.dataset.f;renderParts();}
+  else if(b.dataset.id){selectPart(b.dataset.id);}
+  else if(b.dataset.act==='back'){UI.sel=null;renderParts();view3d.focus(null);view3d.cam('home');$('#v-parts').scrollTop=0;}
+});
+
+/* procedures */
+const curProc=()=>PROCS.find(p=>p.id===UI.proc);
+function applyStepFocus(){
+  const st=curProc().steps[UI.step];
+  view3d.pins('one',st.part);view3d.focus(st.part);
+}
+function renderSteps(){
+  const v=$('#v-steps'),pr=curProc(),st=pr.steps[UI.step],last=UI.step===pr.steps.length-1;
+  let h='<div class="procs" role="group" aria-label="Procedure">'+PROCS.map(p=>'<button class="chip" data-p="'+p.id+'" aria-pressed="'+(p.id===UI.proc)+'">'+p.n+'</button>').join('')+'</div>';
+  h+='<div class="stepno">Step '+(UI.step+1)+' of '+pr.steps.length+'</div><div class="prog"><i style="width:'+((UI.step+1)/pr.steps.length*100)+'%"></i></div>';
+  h+='<h2>'+st.t+'</h2><p>'+st.b+'</p><p class="muted"><b>Why:</b> '+st.why+'</p>';
+  if(st.caut)h+='<div class="caution"><b>Caution. </b>'+st.caut+'</div>';
+  if(st.chk)h+='<div class="chk" id="chk"><span class="tick"></span><span>'+st.chkL+'</span></div>';
+  h+='<div class="row">'+(st.doF?'<button class="btn pri" data-a="do">'+st.doL+'</button>':'')+'<button class="btn sm" data-a="show">Show in 3D</button></div>';
+  h+='<div class="pnav"><button class="btn" data-a="prev"'+(UI.step===0?' disabled':'')+'>Back</button><button class="btn pri" data-a="next">'+(last?'Done':'Next')+'</button></div>';
+  h+='<p class="muted small" style="margin-top:14px">Typical values for training. Always follow the maker manual and your ship procedures.</p>';
+  v.innerHTML=h;v.scrollTop=0;
+}
+function updateStepChk(){
+  if(UI.tab!=='steps')return;
+  const st=curProc().steps[UI.step],el=$('#chk');
+  if(st.chk&&el)el.classList.toggle('ok',!!st.chk(sim));
+}
+$('#v-steps').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const pr=curProc(),st=pr.steps[UI.step];
+  if(b.dataset.p){UI.proc=b.dataset.p;UI.step=0;renderSteps();applyStepFocus();}
+  else if(b.dataset.a==='next'){if(UI.step<pr.steps.length-1)UI.step++;else{UI.step=0;toast('Procedure complete. Try it in the Simulator.','ok');}renderSteps();applyStepFocus();}
+  else if(b.dataset.a==='prev'){if(UI.step>0)UI.step--;renderSteps();applyStepFocus();}
+  else if(b.dataset.a==='show'){applyStepFocus();}
+  else if(b.dataset.a==='do'&&st.doF){st.doF(sim);updateStepChk();}
+});
+
+/* simulator */
+function polar(cx,cy,r,deg){const a=deg*Math.PI/180;return [cx+Math.sin(a)*r,cy-Math.cos(a)*r];}
+function arcPath(cx,cy,r,d0,d1,col,w){
+  const p0=polar(cx,cy,r,d0),p1=polar(cx,cy,r,d1);
+  return '<path d="M'+p0[0].toFixed(1)+' '+p0[1].toFixed(1)+' A'+r+' '+r+' 0 '+((d1-d0)>180?1:0)+' 1 '+p1[0].toFixed(1)+' '+p1[1].toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+w+'"/>';
+}
+function dialSVG(id,max,step,bands,label){
+  const dg=v=>-135+v/max*270;
+  let s='<svg viewBox="0 0 160 124" role="img" aria-label="'+label+'" style="color:var(--ink);font-family:var(--font-disp)">';
+  bands.forEach(b=>{s+=arcPath(80,70,54,dg(b[0]),dg(b[1]),b[2],9);});
+  for(let v=0;v<=max+1e-6;v+=step){const a=polar(80,70,44,dg(v));s+='<text x="'+a[0].toFixed(1)+'" y="'+(a[1]+3.5).toFixed(1)+'" text-anchor="middle" font-size="11" fill="currentColor">'+v+'</text>';}
+  s+='<g id="nd-'+id+'"><line x1="80" y1="70" x2="80" y2="22" stroke="#d62020" stroke-width="3" stroke-linecap="round"/></g><circle cx="80" cy="70" r="5" fill="currentColor"/>';
+  s+='<text id="dv-'+id+'" x="80" y="108" text-anchor="middle" font-size="26" font-weight="600" fill="currentColor">0.0</text></svg>';
+  return s;
+}
+const MX0=34,MX1=290,MY0=172,MY1=14;
+const mfx=f=>MX0+f/1.2*(MX1-MX0),mfy=p=>MY0-(p-1)/3.2*(MY0-MY1);
+function surgePath(fc,ff){let d='';for(let p=1;p<=4.1;p+=0.15){d+=(d?'L':'M')+mfx(SIM.surgeFlow(p,fc,ff)).toFixed(1)+' '+mfy(p).toFixed(1);}return d;}
+function mapSVG(){
+  let s='<svg viewBox="0 0 300 200" role="img" aria-label="Compressor map: pressure ratio against air flow" style="color:var(--ink);font-family:var(--font-disp)">';
+  s+='<rect x="'+MX0+'" y="'+MY1+'" width="'+(MX1-MX0)+'" height="'+(MY0-MY1)+'" fill="none" stroke="currentColor" stroke-opacity=".4"/>';
+  [0.4,0.6,0.8,1.0].forEach(nr=>{
+    const pk=1+2.85*nr*nr,f0=SIM.surgeFlow(pk,0,0),f1=0.35+0.75*nr;let d='';
+    for(let u=0;u<=1.001;u+=0.1){const f=f0+(f1-f0)*u,p=1+(pk-1)*(1-0.45*u*u);d+=(d?'L':'M')+mfx(f).toFixed(1)+' '+mfy(p).toFixed(1);}
+    s+='<path d="'+d+'" fill="none" stroke="currentColor" stroke-opacity=".28" stroke-width="1.2"/>';
+    s+='<text x="'+(mfx(f1)+3).toFixed(1)+'" y="'+(mfy(1+(pk-1)*0.55)+3).toFixed(1)+'" font-size="9" fill="currentColor" fill-opacity=".6">'+Math.round(nr*100)+'%</text>';
+  });
+  s+='<path d="'+surgePath(0,0)+'" fill="none" stroke="#d83a3a" stroke-width="2"/>';
+  s+='<path id="mSurge" d="'+surgePath(0,0)+'" fill="none" stroke="#d83a3a" stroke-width="2" stroke-dasharray="4 3"/>';
+  let rl='';for(let L=0.05;L<=1.101;L+=0.05){const nr=SIM.runN(L);rl+=(rl?'L':'M')+mfx(0.15+0.85*L).toFixed(1)+' '+mfy(1+2.85*nr*nr).toFixed(1);}
+  s+='<path d="'+rl+'" fill="none" stroke="#2fae6a" stroke-width="2"/>';
+  s+='<circle id="mPt" cx="'+mfx(0.02)+'" cy="'+mfy(1)+'" r="6" fill="#f2c230" stroke="#10222d" stroke-width="1.5"/>';
+  s+='<text x="'+((MX0+MX1)/2)+'" y="195" text-anchor="middle" font-size="12" fill="currentColor">Air flow</text>';
+  s+='<text x="10" y="'+((MY0+MY1)/2)+'" text-anchor="middle" font-size="12" fill="currentColor" transform="rotate(-90 10 '+((MY0+MY1)/2)+')">Pressure ratio</text>';
+  s+='<text x="'+(MX0+4)+'" y="'+(MY1+12)+'" font-size="11" fill="#d83a3a">Surge line (solid clean, dashed now)</text>';
+  s+='<text x="'+(MX0+4)+'" y="'+(MY1+25)+'" font-size="11" fill="#2fae6a">Engine working line</text>';
+  return s+'</svg>';
+}
+const seg=(label,id,opts)=>'<div class="ctl"><span>'+label+'</span><div class="seg" data-ctl="'+id+'" role="group" aria-label="'+label+'">'+opts.map(o=>'<button data-v="'+o[0]+'" aria-pressed="false">'+o[1]+'</button>').join('')+'</div></div>';
+const FOUL=[['ft','Turbine'],['fc','Compressor'],['fa','Air cooler'],['ff','Air filter']];
+function buildRun(){
+  const v=$('#v-run');
+  let h='<p id="bstat" class="small" style="margin:0 0 10px"></p>';
+  h+='<div class="gauges"><div class="gbox">'+dialSVG('n',16,2,[[0,13.65,'#8fa5b2'],[13.65,14.3,'#e0a020'],[14.3,16,'#d83a3a']],'Rotor speed')+'<div class="cap">Rotor speed, krpm</div></div>';
+  h+='<div class="gbox">'+dialSVG('b',4,1,[[0,3.2,'#8fa5b2'],[3.2,3.6,'#e0a020'],[3.6,4,'#d83a3a']],'Boost pressure')+'<div class="cap">Boost pressure, bar</div></div></div>';
+  h+='<div class="gbox" style="margin-top:10px">'+mapSVG()+'<div class="cap" id="mcap">Compressor map: keep the yellow dot away from the red surge line</div></div>';
+  h+='<div class="temps"><div><b id="t-in">30</b><span>Gas in °C</span></div><div><b id="t-out">30</b><span>Gas out °C</span></div><div><b id="t-air">32</b><span>Air out °C</span></div><div><b id="t-b">35</b><span>Bearing °C</span></div></div>';
+  h+='<div class="temps"><div><b id="t-lp">0.0</b><span>Lube bar</span></div><div><b id="t-df">8</b><span>Filter mbar</span></div><div><b id="t-dc">12</b><span>Cooler mbar</span></div><div><b id="t-sm">99</b><span>Surge margin %</span></div></div>';
+  h+=seg('Engine','engine',[['1','Run'],['0','Stop']]);
+  h+='<div class="ctl"><label for="load">Engine load</label><input type="range" id="load" min="5" max="110" step="5" value="50"><output id="loadv">50%</output></div>';
+  h+=seg('Load ramp limiter','lim',[['1','On'],['0','Off']]);
+  h+=seg('Fouling builds up','accr',[['1','On'],['0','Off']]);
+  h+='<h3>Fouling</h3><div id="foulbars">'+FOUL.map(f=>'<div class="foul"><span>'+f[1]+'</span><i><b id="fb-'+f[0]+'"></b></i><output id="fo-'+f[0]+'">0%</output></div>').join('')+'</div>';
+  h+='<div class="row"><button class="btn sm" data-wash="turbine">Wash turbine</button><button class="btn sm" data-wash="compressor">Wash compressor</button></div>';
+  h+='<div class="row"><button class="btn sm" data-m="cooler">Clean air cooler</button><button class="btn sm" data-m="filter">Change filter</button><button class="btn sm" data-m="overhaul">Overhaul rotor</button></div>';
+  h+='<h3>Alarms</h3><ul class="alist" id="alist"></ul>';
+  h+='<h3>Inject a fault</h3><div class="row"><button class="btn sm" data-fault="lube" aria-pressed="false">Lube oil fails</button><button class="btn sm" data-foul="ft">Dirty turbine</button><button class="btn sm" data-foul="fc">Dirty compressor</button><button class="btn sm" data-foul="fa">Dirty air cooler</button><button class="btn sm" data-foul="ff">Blocked filter</button></div>';
+  h+='<h3>Start from</h3><div class="row"><button class="btn sm" data-preset="cold">Stopped</button><button class="btn sm" data-preset="steady">Steady 75%</button><button class="btn sm" data-preset="full">Full load</button><button class="btn sm" data-preset="degraded">Fouled unit</button></div>';
+  h+=seg('Training speed','speed',[['1','×1'],['3','×3'],['6','×6']]);
+  h+='<p class="muted small" style="margin-top:12px">Try it: at full load, switch the ramp limiter off and drop the load fast. The rotor is still fast while the airflow falls, so the compressor surges. Set points are typical values for this trainer. Use the maker manual for real work.</p>';
+  v.innerHTML=h;
+}
+$('#v-run').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const sg=b.closest('.seg');
+  if(sg&&b.dataset.v!==undefined){
+    const id=sg.dataset.ctl,val=b.dataset.v;
+    if(id==='engine')SIM.act.engine(sim,val==='1');
+    else if(id==='lim')SIM.act.limiter(sim,val==='1');
+    else if(id==='accr')SIM.act.accrue(sim,val==='1');
+    else if(id==='speed')sim.speed=+val;
+    updateRun();return;
+  }
+  if(b.dataset.fault){SIM.act.lubeFail(sim,!sim.lubeFail);updateRun();return;}
+  if(b.dataset.foul){SIM.act.foul(sim,b.dataset.foul,0.4);toast('Fouling added','warn');updateRun();return;}
+  if(b.dataset.wash){SIM.act.wash(sim,b.dataset.wash);updateRun();return;}
+  if(b.dataset.m){const m=b.dataset.m;if(m==='cooler')SIM.act.cleanCooler(sim);else if(m==='filter')SIM.act.changeFilter(sim);else SIM.act.overhaul(sim);updateRun();return;}
+  if(b.dataset.preset){SIM.preset(sim,b.dataset.preset);toast({cold:'Stopped: ready for a start-up',steady:'Running steady at 75% load',full:'Running steady at full load',degraded:'Running with a fouled turbocharger'}[b.dataset.preset],'info');updateRun();return;}
+});
+$('#v-run').addEventListener('input',e=>{
+  if(e.target.id==='load'){SIM.act.load(sim,+e.target.value/100);$('#loadv').textContent=e.target.value+'%';}
+});
+function updateRun(){
+  if(UI.tab!=='run')return;
+  const v=$('#v-run');
+  const rot=(id,val,max)=>$('#nd-'+id).setAttribute('transform','rotate('+(-135+clamp(val,0,max)/max*270).toFixed(1)+' 80 70) translate(0 0)');
+  rot('n',sim.N/1000,16);rot('b',sim.PR-1,4);
+  $('#dv-n').textContent=(sim.N/1000).toFixed(1);$('#dv-b').textContent=(sim.PR-1).toFixed(2);
+  $('#t-in').textContent=Math.round(sim.Tin);$('#t-out').textContent=Math.round(sim.Tout);$('#t-air').textContent=Math.round(sim.Tair);$('#t-b').textContent=Math.round(sim.Tb);
+  $('#t-lp').textContent=sim.lubeP.toFixed(1);$('#t-df').textContent=Math.round(sim.dpF);$('#t-dc').textContent=Math.round(sim.dpC);
+  $('#t-sm').textContent=sim.engineOn&&sim.N>2600?Math.round(clamp(sim.surgeMargin,-99,99)):'-';
+  const pt=$('#mPt');pt.setAttribute('cx',mfx(clamp(sim.flow,0,1.2)).toFixed(1));pt.setAttribute('cy',mfy(clamp(sim.PR,1,4.2)).toFixed(1));
+  pt.setAttribute('fill',sim.surging?'#d83a3a':(sim.surgeMargin<15&&sim.engineOn?'#e0a020':'#f2c230'));
+  $('#mSurge').setAttribute('d',surgePath(sim.fc,sim.ff));
+  const bs=$('#bstat');bs.textContent=SIM.status(sim);bs.style.color=(sim.seized||sim.surging)?'var(--bad)':'var(--ink2)';
+  const state={engine:sim.engineOn?'1':'0',lim:sim.limiter?'1':'0',accr:sim.accrue?'1':'0',speed:String(sim.speed)};
+  $$('.seg[data-ctl]',v).forEach(sg=>{$$('button',sg).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===state[sg.dataset.ctl])));});
+  $$('[data-fault]',v).forEach(b=>b.setAttribute('aria-pressed',String(!!sim.lubeFail)));
+  FOUL.forEach(f=>{const p=Math.round(sim[f[0]]*100);$('#fb-'+f[0]).style.width=p+'%';$('#fo-'+f[0]).textContent=p+'%';});
+  const ld=$('#load');if(document.activeElement!==ld){ld.value=Math.round(sim.loadSet*100);$('#loadv').textContent=Math.round(sim.loadSet*100)+'%';}
+  const al=SIM.alarms(sim);
+  $('#alist').innerHTML=al.length?al.map(a=>'<li class="'+(a.sev==='bad'?'bad':'')+'">'+a.text+'</li>').join(''):'<li class="none">No alarms</li>';
+}
+
+/* quiz */
+function startQuiz(){UI.quiz={order:shuffle(QUIZ.map((q,i)=>i)).slice(0,8),i:0,score:0,picked:null,opts:null};renderQuiz();}
+function renderQuiz(){
+  const v=$('#v-quiz'),Q=UI.quiz;let h='';
+  if(!Q){
+    h='<h2>Check what you know</h2><p>Eight questions drawn from the parts guide and procedures. You get an explanation after every answer.</p><div class="row"><button class="btn pri" data-q="start">Start quiz</button></div>';
+  }else if(Q.i>=Q.order.length){
+    const msg=Q.score>=7?'Strong result. Try the surge and lube oil drills in the Simulator next.':Q.score>=5?'A solid base. Revisit the parts you missed.':'Worth another pass through Parts and Procedures.';
+    h='<p class="muted">Quiz complete</p><div class="score">'+Q.score+' / '+Q.order.length+'</div><p>'+msg+'</p><div class="row"><button class="btn pri" data-q="start">Try again</button><button class="btn" data-q="parts">Back to parts</button></div>';
+  }else{
+    const q=QUIZ[Q.order[Q.i]];
+    if(!Q.opts)Q.opts=shuffle(q.a.map((t,k)=>({t:t,ok:k===q.c})));
+    h='<div class="stepno">Question '+(Q.i+1)+' of '+Q.order.length+'</div><div class="prog"><i style="width:'+((Q.i+1)/Q.order.length*100)+'%"></i></div><h3 style="font-size:20px;margin-top:6px">'+q.q+'</h3>';
+    h+=Q.opts.map((o,k)=>{let c='opt';if(Q.picked!==null){if(o.ok)c+=' right';else if(k===Q.picked)c+=' wrong';}return '<button class="'+c+'" data-k="'+k+'"'+(Q.picked!==null?' disabled':'')+'>'+o.t+'</button>';}).join('');
+    if(Q.picked!==null){
+      const ok=Q.opts[Q.picked].ok;
+      h+='<div class="card"><b>'+(ok?'Correct.':'Not quite.')+'</b> '+q.w+'</div><div class="row"><button class="btn pri" data-q="next">'+(Q.i===Q.order.length-1?'See result':'Next question')+'</button></div>';
+    }
+  }
+  v.innerHTML=h;
+}
+$('#v-quiz').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;const Q=UI.quiz;
+  if(b.dataset.q==='start'){startQuiz();$('#v-quiz').scrollTop=0;}
+  else if(b.dataset.q==='parts'){UI.quiz=null;setTab('parts');}
+  else if(b.dataset.q==='next'){Q.i++;Q.picked=null;Q.opts=null;renderQuiz();$('#v-quiz').scrollTop=0;}
+  else if(b.dataset.k!==undefined&&Q&&Q.picked===null){Q.picked=+b.dataset.k;if(Q.opts[Q.picked].ok){Q.score++;MT_PROG.mark('q'+Q.order[Q.i]);}renderQuiz();}
+});
+
+/* stage controls */
+function setViewButtons(m){$$('#viewseg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===m)));}
+$$('#viewseg button').forEach(b=>b.addEventListener('click',()=>{view3d.setView(b.dataset.view);setViewButtons(b.dataset.view);}));
+view3d.onView=setViewButtons;
+$$('#cams button[data-cam]').forEach(b=>b.addEventListener('click',()=>view3d.cam(b.dataset.cam)));
+$('#namesBtn').addEventListener('click',e=>{const b=e.currentTarget,on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(on));view3d.names(on);});
+view3d.onPick=id=>{expandIfCollapsed();selectPart(id);};
+$('#alarmBanner').addEventListener('click',()=>{expandIfCollapsed();setTab('run');});
+
+function updateHUD(){
+  const C=SIM.C,al=SIM.alarms(sim),nr=sim.N/C.NMAX;
+  $('#r-n').textContent=(sim.N/1000).toFixed(1);$('#r-b').textContent=(sim.PR-1).toFixed(2);$('#r-t').textContent=Math.round(sim.Tin);
+  $('#pp').classList.toggle('bad',nr>=C.OVS_B);$('#pp').classList.toggle('warn',nr>=C.OVS_W&&nr<C.OVS_B);
+  $('#pb').classList.toggle('bad',sim.surging);
+  $('#pt').classList.toggle('bad',sim.Tin>=C.EGT_B);$('#pt').classList.toggle('warn',sim.Tin>=C.EGT_W&&sim.Tin<C.EGT_B);
+  $('#state').textContent=SIM.status(sim);
+  const top=al.find(a=>a.sev==='bad')||al[0],bn=$('#alarmBanner');
+  if(top){bn.hidden=false;bn.className=top.sev;bn.textContent=top.text+(al.length>1?'  (+'+(al.length-1)+' more)':'');}else bn.hidden=true;
+}
+
+/* main loop */
+let last=performance.now(),hudT=0,ok3d=true;
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=Math.min(0.05,Math.max(0,(now-last)/1000));last=now;
+  SIM.step(sim,dt);
+  while(sim.events.length){const e=sim.events.shift();toast(e.msg,e.sev);}
+  if(ok3d){try{view3d.tick(dt,now/1000);}catch(err){ok3d=false;console.error(err);}}
+  hudT+=dt;if(hudT>0.15){hudT=0;updateHUD();updateRun();updateStepChk();}
+}
+buildRun();renderParts();renderSteps();renderQuiz();
+setSheet(Math.round((appEl.clientHeight||700)*0.48),false);
+setTab('parts');updateHUD();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
