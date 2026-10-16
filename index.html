@@ -5,17 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Marine Trainers</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0b2a3c">
+<meta name="theme-color" content="#06121c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=Pacifico&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700;800&family=Pacifico&display=swap" rel="stylesheet">
 <script>
+try{if(sessionStorage.getItem("marineTrainers.user"))document.documentElement.classList.add("in");}catch(e){}
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
-// Progress is saved on the phone by each trainer under one key: {boiler:0-100, compressor:0-100, ...}
+// Progress is saved on the phone by each trainer under one key: {boiler:0-100, turbocharger:0-100, ...}
 function readProgress(){
   try{const v=JSON.parse(localStorage.getItem("marineTrainers.progress")||"{}");return (v&&typeof v==="object")?v:{};}
   catch(e){return {};}
@@ -43,169 +44,302 @@ drawProgress();
 window.addEventListener("pageshow",drawProgress);
 </script>
 <style>
-  :root{--ink:#eaf4f9;--ink2:#9fbccb;--line:rgba(120,190,225,.22);--accent:#f0b429;--glow:#3fb6e8}
+  :root{
+    --ink:#f2f8fb;--ink2:#a7c2d0;--line:rgba(140,205,235,.18);
+    --accent:#ffc247;--glow:#3fb6e8;
+    --glass:linear-gradient(160deg,rgba(26,70,100,.42),rgba(8,28,44,.55));
+  }
   *,*::before,*::after{box-sizing:border-box}
-  html{background:#071823;min-height:100%;min-height:100dvh}
+  html{background:#06121c;min-height:100%;min-height:100dvh}
   html,body{margin:0;min-height:100%;min-height:100dvh}
   body{
     color:var(--ink);font-family:'Barlow',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-    background:
-      radial-gradient(120% 60% at 50% -10%,rgba(63,182,232,.22),transparent 60%),
-      linear-gradient(180deg,#0b2a3c 0%,#071823 55%,#050f16 100%);
-    background-attachment:fixed;
+    background:#06121c;
     padding:env(safe-area-inset-top,0px) 18px calc(env(safe-area-inset-bottom,0px) + 24px);
-    display:flex;flex-direction:column;overflow-x:hidden;
+    display:flex;flex-direction:column;overflow-x:hidden;position:relative;
   }
-  /* faint chart-grid across the background */
-  body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.35;
-    background-image:linear-gradient(rgba(120,190,225,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(120,190,225,.09) 1px,transparent 1px);
-    background-size:44px 44px;mask-image:linear-gradient(180deg,#000 0%,transparent 75%);-webkit-mask-image:linear-gradient(180deg,#000 0%,transparent 75%)}
 
-  header{padding:34px 4px 22px;position:relative}
-  .eyebrow{font:600 13px/1 'Barlow Condensed',sans-serif;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:10px}
-  .eyebrow::before{content:"";width:26px;height:2px;background:var(--accent);border-radius:2px;box-shadow:0 0 10px var(--accent)}
-  h1{margin:12px 0 0;font:700 40px/1 'Barlow Condensed',sans-serif;letter-spacing:.01em;
-    background:linear-gradient(90deg,#fff,#bfe6f7 60%,#7fd0f2);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .sub{margin:10px 0 0;color:var(--ink2);font-size:17px}
-  .count{position:absolute;right:4px;top:40px;text-align:center;border:1px solid var(--line);border-radius:14px;padding:8px 12px;background:rgba(8,30,44,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-  .count b{display:block;font:700 26px/1 'Barlow Condensed',sans-serif;color:var(--accent)}
-  .count span{font-size:12px;color:var(--ink2);letter-spacing:.06em;text-transform:uppercase}
+  /* ---------- animated backdrop ---------- */
+  .aurora{position:fixed;inset:-20%;z-index:-3;pointer-events:none;filter:blur(40px);opacity:.9}
+  .aurora i{position:absolute;border-radius:50%;mix-blend-mode:screen;opacity:.55;animation:float 22s ease-in-out infinite}
+  .aurora i:nth-child(1){width:55vmax;height:55vmax;left:-10%;top:-15%;background:radial-gradient(circle,#2b8fd6 0%,transparent 65%)}
+  .aurora i:nth-child(2){width:50vmax;height:50vmax;right:-15%;top:10%;background:radial-gradient(circle,#7b5cff 0%,transparent 65%);animation-duration:28s;animation-delay:-6s}
+  .aurora i:nth-child(3){width:45vmax;height:45vmax;left:20%;bottom:-25%;background:radial-gradient(circle,#ffb020 0%,transparent 60%);opacity:.32;animation-duration:32s;animation-delay:-12s}
+  @keyframes float{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(4vw,-3vh) scale(1.08)}66%{transform:translate(-3vw,3vh) scale(.95)}}
 
-  .list{display:flex;flex-direction:column;gap:14px;margin-top:6px}
-  a.card{
-    position:relative;display:block;text-decoration:none;color:inherit;overflow:hidden;
-    border-radius:20px;padding:20px 20px 18px 24px;min-height:112px;
-    background:linear-gradient(160deg,rgba(24,62,88,.85),rgba(10,32,48,.9));
-    border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.05);
-    transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
-    opacity:0;transform:translateY(12px);animation:rise .5s ease forwards;
-  }
-  a.card:nth-child(1){animation-delay:.05s}a.card:nth-child(2){animation-delay:.14s}a.card:nth-child(3){animation-delay:.23s}a.card:nth-child(4){animation-delay:.32s}a.card:nth-child(5){animation-delay:.41s}
-  @keyframes rise{to{opacity:1;transform:none}}
-  /* coloured edge that glows */
-  a.card::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:var(--c,var(--accent));box-shadow:0 0 14px var(--c,var(--accent))}
-  /* soft light that sweeps across on hover */
-  a.card::after{content:"";position:absolute;inset:-1px;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.08) 50%,transparent 70%);transform:translateX(-100%);transition:transform .7s ease;pointer-events:none}
-  a.card:hover,a.card:focus-visible{transform:translateY(-2px);border-color:rgba(63,182,232,.5);box-shadow:0 14px 36px rgba(0,0,0,.45),0 0 0 1px rgba(63,182,232,.15)}
-  a.card:hover::after,a.card:focus-visible::after{transform:translateX(100%)}
-  a.card:active{transform:scale(.99)}
-  .row{display:flex;align-items:flex-start;gap:14px}
-  .ico{flex:0 0 46px;height:46px;border-radius:14px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 18%,transparent);border:1px solid color-mix(in srgb,var(--c) 45%,transparent)}
-  .ico svg{width:24px;height:24px;stroke:var(--c);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-  .title{font:700 24px/1.1 'Barlow Condensed',sans-serif;color:#fff;letter-spacing:.01em}
-  .desc{margin-top:5px;font-size:15.5px;line-height:1.4;color:var(--ink2)}
-  .go{margin-top:12px;display:inline-flex;align-items:center;gap:8px;font:600 14px/1 'Barlow Condensed',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--c,var(--accent))}
-  .go svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;transition:transform .2s ease}
-  a.card:hover .go svg{transform:translateX(4px)}
+  .grid{position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:.5;
+    background-image:linear-gradient(rgba(140,205,235,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(140,205,235,.08) 1px,transparent 1px);
+    background-size:46px 46px;
+    -webkit-mask-image:radial-gradient(ellipse at 50% 0%,#000 10%,transparent 70%);mask-image:radial-gradient(ellipse at 50% 0%,#000 10%,transparent 70%);
+    animation:gridmove 30s linear infinite}
+  @keyframes gridmove{to{background-position:46px 46px,46px 46px}}
 
-  .prog{margin-top:12px;display:flex;align-items:center;gap:10px}
-  .prog .track{flex:1;height:8px;border-radius:99px;background:rgba(120,190,225,.14);overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.35)}
-  .prog .fill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 70%,#fff 0%),var(--c));box-shadow:0 0 10px var(--c);transition:width .6s ease}
-  .prog .pct{min-width:96px;text-align:right;font:600 13px/1 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
-  .prog .pct.done{color:var(--c)}
-  footer{margin-top:auto;padding:44px 4px 6px;text-align:center}
-  .sig{font:400 34px/1.1 'Pacifico',cursive;background:linear-gradient(90deg,#f0b429,#ffe08a 50%,#f0b429);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 12px rgba(240,180,41,.25))}
-  .made{margin-top:6px;font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink2);opacity:.75}
-  .wave{height:28px;margin:0 auto 14px;width:min(240px,70%);opacity:.7}
+  .bubbles{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+  .bubbles span{position:absolute;bottom:-40px;border-radius:50%;border:1px solid rgba(160,225,250,.35);background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.35),rgba(255,255,255,0) 40%);opacity:0;animation:rise linear infinite}
+  @keyframes rise{0%{transform:translateY(0);opacity:0}10%{opacity:.7}90%{opacity:.5}100%{transform:translateY(-110vh);opacity:0}}
 
-
-  /* water: three drifting wave layers and a light shimmer, all behind the content */
-  .water{position:fixed;left:0;right:0;bottom:0;height:46vh;z-index:-1;pointer-events:none;overflow:hidden}
+  /* water at the bottom */
+  .water{position:fixed;left:0;right:0;bottom:0;height:40vh;z-index:-1;pointer-events:none;overflow:hidden}
   .wl{position:absolute;left:0;width:200%;background-repeat:repeat-x;background-size:50% 100%;animation:drift linear infinite}
-  .wl.w3{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath fill='%231b6f98' d='M0 50 C120 10, 240 90, 360 50 S600 10, 720 50 S960 90, 1080 50 S1320 10, 1440 50 V120 H0Z'/%3E%3C/svg%3E");bottom:-6px;height:90px;opacity:.28;animation-duration:26s}
-.wl.w2{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath fill='%2311527a' d='M0 46 C120 6, 240 86, 360 46 S600 6, 720 46 S960 86, 1080 46 S1320 6, 1440 46 V120 H0Z'/%3E%3C/svg%3E");bottom:-4px;height:110px;opacity:.38;animation-duration:18s;animation-direction:reverse}
-.wl.w1{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath fill='%230a3f5e' d='M0 42 C120 2, 240 82, 360 42 S600 2, 720 42 S960 82, 1080 42 S1320 2, 1440 42 V120 H0Z'/%3E%3C/svg%3E");bottom:-2px;height:130px;opacity:.55;animation-duration:12s}
-
-  .shimmer{position:absolute;inset:0;opacity:.5;
-    background:repeating-linear-gradient(100deg,rgba(127,208,242,.07) 0 16px,transparent 16px 52px);
-    animation:shim 14s linear infinite;
-    -webkit-mask-image:linear-gradient(transparent 0%,#000 60%);mask-image:linear-gradient(transparent 0%,#000 60%)}
+  .wl.w3{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath fill='%231b6f98' d='M0 50 C120 10, 240 90, 360 50 S600 10, 720 50 S960 90, 1080 50 S1320 10, 1440 50 V120 H0Z'/%3E%3C/svg%3E");bottom:-6px;height:90px;opacity:.3;animation-duration:26s}
+  .wl.w2{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath fill='%2311527a' d='M0 46 C120 6, 240 86, 360 46 S600 6, 720 46 S960 86, 1080 46 S1320 6, 1440 46 V120 H0Z'/%3E%3C/svg%3E");bottom:-4px;height:110px;opacity:.4;animation-duration:18s;animation-direction:reverse}
+  .wl.w1{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath fill='%230a3f5e' d='M0 42 C120 2, 240 82, 360 42 S600 2, 720 42 S960 82, 1080 42 S1320 2, 1440 42 V120 H0Z'/%3E%3C/svg%3E");bottom:-2px;height:130px;opacity:.55;animation-duration:12s}
   @keyframes drift{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .shimmer{position:absolute;inset:0;opacity:.5;background:repeating-linear-gradient(100deg,rgba(127,208,242,.07) 0 16px,transparent 16px 52px);animation:shim 14s linear infinite;-webkit-mask-image:linear-gradient(transparent 0%,#000 60%);mask-image:linear-gradient(transparent 0%,#000 60%)}
   @keyframes shim{from{transform:translateX(-30%)}to{transform:translateX(30%)}}
-  /* the water surface, a thin bright line along the top of the waves */
-  .surf{position:absolute;left:0;right:0;bottom:calc(46vh - 2px);height:2px;background:linear-gradient(90deg,transparent,rgba(127,208,242,.45),transparent);opacity:0;pointer-events:none}
-  @media (prefers-reduced-motion:reduce){a.card{animation:none;opacity:1;transform:none}a.card::after{display:none}.wl,.shimmer{animation:none}}
-  @media (min-width:700px){.list{display:grid;grid-template-columns:1fr 1fr;max-width:860px;margin:6px auto 0;width:100%}header{max-width:860px;margin:0 auto;width:100%}footer{max-width:860px;margin-left:auto;margin-right:auto;width:100%}}
 
+  /* ---------- header ---------- */
+  header{padding:34px 4px 18px;position:relative;display:flex;gap:18px;align-items:center}
+  .wheel{flex:0 0 84px;width:84px;height:84px;filter:drop-shadow(0 0 18px rgba(255,194,71,.35));animation:spin 40s linear infinite}
+  .wheel .spokes{transform-origin:50% 50%}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .hero-text{min-width:0}
+  .eyebrow{font:700 12.5px/1 'Barlow Condensed',sans-serif;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:10px}
+  .eyebrow::before{content:"";width:26px;height:2px;background:var(--accent);border-radius:2px;box-shadow:0 0 10px var(--accent)}
+  h1{margin:10px 0 0;font:800 46px/.95 'Barlow Condensed',sans-serif;letter-spacing:.005em;text-transform:uppercase;
+    background:linear-gradient(95deg,#ffffff 0%,#d9f1fc 35%,#ffc247 70%,#ffe39a 100%);background-size:200% auto;
+    -webkit-background-clip:text;background-clip:text;color:transparent;animation:sheen 6s ease-in-out infinite}
+  @keyframes sheen{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+  .sub{margin:10px 0 0;color:var(--ink2);font-size:17px;min-height:1.5em}
+  .sub::after{content:"";display:inline-block;width:2px;height:1em;margin-left:3px;vertical-align:-2px;background:var(--accent);animation:blink 1s steps(1) infinite}
+  .sub.done::after{display:none}
+  @keyframes blink{50%{opacity:0}}
 
-  /* === Marine Trainers access gate === */
-  body.locked{overflow:hidden}
-  #accessGate{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:22px;
-    background:radial-gradient(ellipse at 50% 18%,rgba(25,111,151,.3),transparent 48%),linear-gradient(180deg,#06131d 0%,#081e2b 58%,#030a10 100%);
-    color:#eaf7ff;opacity:1;visibility:visible;transition:opacity .35s ease,visibility .35s ease;overflow:hidden}
-  #accessGate::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.2;
-    background-image:linear-gradient(rgba(80,183,224,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(80,183,224,.14) 1px,transparent 1px);background-size:34px 34px;
-    mask-image:linear-gradient(to bottom,#000,transparent 90%)}
-  #accessGate.gone{opacity:0;visibility:hidden;pointer-events:none}
-  .gate-card{position:relative;width:min(100%,410px);padding:30px 24px 24px;border:1px solid rgba(100,205,245,.25);border-radius:26px;
-    background:linear-gradient(150deg,rgba(17,48,67,.96),rgba(5,20,31,.97));box-shadow:0 28px 90px rgba(0,0,0,.55),inset 0 1px rgba(255,255,255,.06);text-align:center;backdrop-filter:blur(18px)}
-  .gate-mark{width:76px;height:76px;margin:0 auto 20px;display:grid;place-items:center;border-radius:24px;position:relative;
-    background:linear-gradient(145deg,rgba(56,183,231,.2),rgba(13,58,81,.45));border:1px solid rgba(89,207,255,.45);box-shadow:0 0 34px rgba(42,174,224,.13),inset 0 0 22px rgba(62,186,234,.08)}
-  .gate-mark::after{content:"";position:absolute;inset:-7px;border:1px solid rgba(89,207,255,.16);border-radius:29px;animation:gatePulse 3s ease-in-out infinite}
-  .gate-mark svg{width:38px;height:38px;stroke:#73d8ff;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-  .gate-kicker{font:600 11px/1 'Barlow Condensed',sans-serif;letter-spacing:.25em;text-transform:uppercase;color:#70d8ff}
-  .gate-title{font:700 clamp(34px,9vw,43px)/1 'Barlow Condensed',sans-serif;letter-spacing:.015em;margin:10px 0 9px;color:#f5fbff}
-  .gate-sub{margin:0 auto 24px;max-width:280px;color:#a8c4d2;font-size:14px;line-height:1.55}
-  .gate-label{display:block;text-align:left;margin:0 0 8px 2px;color:#c9e3ee;font:600 12px 'Barlow Condensed',sans-serif;letter-spacing:.12em;text-transform:uppercase}
-  .gate-input-wrap{display:flex;align-items:center;gap:8px;padding:0 13px;border:1px solid rgba(120,190,225,.28);border-radius:14px;background:rgba(1,12,20,.48);transition:border-color .2s,box-shadow .2s}
-  .gate-input-wrap:focus-within{border-color:#51c8f4;box-shadow:0 0 0 3px rgba(81,200,244,.1)}
-  .gate-input-wrap svg{width:19px;height:19px;flex:0 0 19px;stroke:#76b9d3;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-  #gatePassword{min-width:0;width:100%;height:52px;border:0;outline:0;background:transparent;color:#f2fbff;font:500 16px 'Barlow',sans-serif;letter-spacing:.06em}
-  #gatePassword::placeholder{color:#607f8f;letter-spacing:0}
-  #gateToggle{border:0;background:transparent;color:#83bdd3;font-size:12px;font-weight:600;padding:8px 0;cursor:pointer}
-  #gateSubmit{width:100%;height:52px;margin-top:15px;border:0;border-radius:14px;background:linear-gradient(100deg,#f2b72e,#ffda75);color:#18212a;font:700 16px 'Barlow Condensed',sans-serif;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;box-shadow:0 8px 24px rgba(240,180,41,.16);transition:transform .18s,filter .18s}
-  #gateSubmit:hover{filter:brightness(1.06);transform:translateY(-1px)}#gateSubmit:active{transform:scale(.99)}
-  #gateError{min-height:19px;margin:10px 0 0;color:#ff8d8d;font-size:13px}
-  .gate-foot{display:flex;justify-content:center;align-items:center;gap:7px;margin-top:17px;color:#7896a5;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
-  .gate-dot{width:6px;height:6px;border-radius:50%;background:#51d6a4;box-shadow:0 0 9px #51d6a4}
-  .gate-note{margin-top:20px;color:#5f8293;font-size:11px;line-height:1.45}
-  @keyframes gatePulse{0%,100%{transform:scale(1);opacity:.65}50%{transform:scale(1.05);opacity:1}}
-  @keyframes gateShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
-  .gate-card.shake{animation:gateShake .35s ease}
-  @media(prefers-reduced-motion:reduce){#accessGate,.gate-mark::after,#gateSubmit{transition:none;animation:none}}
+  .count{position:absolute;right:4px;top:34px;text-align:center;border:1px solid var(--line);border-radius:16px;padding:9px 13px;background:rgba(8,30,44,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 0 0 1px rgba(255,194,71,.08),0 8px 24px rgba(0,0,0,.3)}
+  .count b{display:block;font:800 28px/1 'Barlow Condensed',sans-serif;color:var(--accent);text-shadow:0 0 14px rgba(255,194,71,.5)}
+  .count span{font-size:11.5px;color:var(--ink2);letter-spacing:.12em;text-transform:uppercase}
+
+  /* ---------- cards ---------- */
+  .list{display:flex;flex-direction:column;gap:14px;margin-top:8px}
+  a.card{
+    --mx:50%;--my:0%;
+    position:relative;display:block;text-decoration:none;color:inherit;overflow:hidden;isolation:isolate;
+    border-radius:22px;padding:20px 20px 18px 24px;min-height:120px;
+    background:var(--glass);
+    border:1px solid var(--line);
+    box-shadow:0 12px 34px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);
+    backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2);
+    transition:transform .25s cubic-bezier(.2,.8,.2,1),border-color .25s,box-shadow .25s;
+    opacity:0;transform:translateY(16px) scale(.98);animation:reveal .6s cubic-bezier(.2,.8,.2,1) forwards;
+  }
+  a.card:nth-child(1){animation-delay:.05s}a.card:nth-child(2){animation-delay:.12s}a.card:nth-child(3){animation-delay:.19s}a.card:nth-child(4){animation-delay:.26s}a.card:nth-child(5){animation-delay:.33s}a.card:nth-child(6){animation-delay:.4s}a.card:nth-child(7){animation-delay:.47s}a.card:nth-child(8){animation-delay:.54s}a.card:nth-child(9){animation-delay:.61s}a.card:nth-child(10){animation-delay:.68s}
+  @keyframes reveal{to{opacity:1;transform:none}}
+
+  /* colour edge */
+  a.card::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:4px;border-radius:0 4px 4px 0;background:var(--c);box-shadow:0 0 16px var(--c)}
+  /* spotlight that follows the pointer */
+  a.card::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .3s;
+    background:radial-gradient(420px circle at var(--mx) var(--my),color-mix(in srgb,var(--c) 22%,transparent),transparent 60%)}
+  a.card:hover,a.card:focus-visible{transform:translateY(-3px);border-color:color-mix(in srgb,var(--c) 55%,transparent);box-shadow:0 18px 44px rgba(0,0,0,.5),0 0 0 1px color-mix(in srgb,var(--c) 25%,transparent),0 0 32px -6px color-mix(in srgb,var(--c) 45%,transparent)}
+  a.card:hover::after,a.card:focus-visible::after{opacity:1}
+  a.card:active{transform:scale(.985)}
+  a.card:focus-visible{outline:none}
+
+  .idx{position:absolute;right:18px;top:14px;font:800 42px/1 'Barlow Condensed',sans-serif;color:rgba(255,255,255,.06);letter-spacing:.02em;pointer-events:none}
+  .row{display:flex;align-items:flex-start;gap:16px}
+  .ico{flex:0 0 52px;height:52px;border-radius:16px;display:grid;place-items:center;position:relative;
+    background:radial-gradient(circle at 30% 25%,color-mix(in srgb,var(--c) 45%,transparent),color-mix(in srgb,var(--c) 10%,transparent));
+    border:1px solid color-mix(in srgb,var(--c) 55%,transparent);
+    box-shadow:0 0 22px -4px color-mix(in srgb,var(--c) 60%,transparent),inset 0 0 14px color-mix(in srgb,var(--c) 25%,transparent)}
+  .ico svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px var(--c))}
+  a.card:hover .ico{transform:rotate(-6deg) scale(1.06);transition:transform .3s}
+  .txt{min-width:0;padding-right:40px}
+  .title{font:800 25px/1.05 'Barlow Condensed',sans-serif;color:#fff;letter-spacing:.01em;text-transform:uppercase}
+  .desc{margin-top:6px;font-size:15.5px;line-height:1.4;color:var(--ink2)}
+  .go{margin-top:14px;display:inline-flex;align-items:center;gap:8px;font:700 14px/1 'Barlow Condensed',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--c)}
+  .go svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2;transition:transform .25s ease}
+  a.card:hover .go svg{transform:translateX(5px)}
+
+  .prog{margin-top:14px;display:flex;align-items:center;gap:10px}
+  .prog .track{flex:1;height:8px;border-radius:99px;background:rgba(140,205,235,.12);overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.4)}
+  .prog .fill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#fff3,var(--c));background-color:var(--c);box-shadow:0 0 12px var(--c);transition:width .8s cubic-bezier(.2,.8,.2,1);position:relative;overflow:hidden}
+  .prog .fill::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.45) 50%,transparent 70%);transform:translateX(-100%);animation:glint 3.2s ease-in-out infinite}
+  @keyframes glint{0%,60%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  .prog .pct{min-width:92px;text-align:right;font:700 13px/1 'Barlow Condensed',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+  .prog .pct.done{color:var(--c);text-shadow:0 0 10px var(--c)}
+
+  footer{margin-top:auto;padding:48px 4px 8px;text-align:center;position:relative;z-index:1}
+  .sig{font:400 38px/1.1 'Pacifico',cursive;background:linear-gradient(90deg,#ffc247,#fff1c2 50%,#ffc247);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 14px rgba(255,194,71,.3));animation:sheen 5s ease-in-out infinite}
+  .made{margin-top:6px;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink2);opacity:.7}
+  .wave{height:28px;margin:0 auto 14px;width:min(260px,70%);display:block;opacity:.85;filter:drop-shadow(0 0 6px rgba(63,182,232,.6))}
+  .wave path{stroke-dasharray:400;stroke-dashoffset:400;animation:draw 2.6s ease forwards .6s}
+  @keyframes draw{to{stroke-dashoffset:0}}
+
+  @media (min-width:700px){
+    .list{display:grid;grid-template-columns:1fr 1fr;max-width:920px;margin:8px auto 0;width:100%}
+    header,footer{max-width:920px;margin-left:auto;margin-right:auto;width:100%}
+    h1{font-size:60px}
+  }
+  @media (max-width:420px){
+    .wheel{flex-basis:64px;width:64px;height:64px}
+    h1{font-size:38px}
+    .count{top:auto;bottom:-6px;right:0}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important}
+    a.card{opacity:1;transform:none}
+    .prog .fill::after{display:none}
+    .sub{min-height:0}
+  }
+  /* ---------- login gate ---------- */
+  .gate{display:none;flex:1;align-items:center;justify-content:center;padding:28px 0 12px;position:relative;z-index:1}
+  html:not(.in) .gate{display:flex}
+  html:not(.in) header,html:not(.in) main,html:not(.in) footer{display:none}
+  .gcard{width:100%;max-width:380px;border-radius:24px;padding:30px 26px 24px;background:var(--glass);border:1px solid var(--line);
+    box-shadow:0 20px 50px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07);
+    backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);position:relative;overflow:hidden;
+    animation:reveal .6s cubic-bezier(.2,.8,.2,1) both}
+  .gcard::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,transparent,var(--accent),transparent);box-shadow:0 0 14px var(--accent)}
+  .gcard h2{margin:12px 0 0;font:800 36px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;color:#fff;letter-spacing:.01em}
+  .gcard .lead{margin:8px 0 18px;color:var(--ink2);font-size:15.5px}
+  .gcard label{display:block;margin:14px 0 6px;font:700 13px/1 'Barlow Condensed',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--ink2)}
+  .gcard input{width:100%;padding:13px 14px;font:inherit;font-size:16px;color:var(--ink);background:rgba(4,16,26,.6);border:1px solid var(--line);border-radius:12px;transition:border-color .2s,box-shadow .2s}
+  .gcard input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,194,71,.18)}
+  .gcard input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+  .gbtn{width:100%;margin-top:22px;min-height:50px;border:0;border-radius:12px;cursor:pointer;
+    font:800 18px/1 'Barlow Condensed',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1a1204;
+    background:linear-gradient(95deg,#ffc247,#ffe39a);box-shadow:0 8px 24px -6px rgba(255,194,71,.55)}
+  .gbtn:active{transform:scale(.99)}
+  .gbtn:focus-visible{outline:3px solid #fff;outline-offset:2px}
+  .gerr{min-height:20px;margin-top:12px;font-size:14.5px;color:#ff8a7a}
+  .ghint{margin-top:12px;font-size:13px;color:var(--ink2);opacity:.8}
+  .gcard.shake{animation:shake .4s}
+  @keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+  .logout{margin-top:18px;background:none;border:1px solid var(--line);color:var(--ink2);border-radius:999px;padding:9px 18px;min-height:40px;font:600 13px/1 'Barlow Condensed',sans-serif;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+  .logout:hover{color:var(--ink);border-color:var(--accent)}
+  .logout:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+  /* ---------- premium login ---------- */
+  @property --a{syntax:'<angle>';initial-value:0deg;inherits:false}
+  @keyframes ring{to{--a:360deg}}
+  .gate{position:relative;isolation:isolate;padding:40px 0 16px}
+  .gate::before{content:"";position:absolute;left:50%;top:50%;width:min(620px,140vw);height:min(620px,140vw);transform:translate(-50%,-50%);z-index:-1;pointer-events:none;
+    background:radial-gradient(circle,rgba(255,194,71,.16) 0%,rgba(63,182,232,.12) 35%,transparent 65%);animation:breathe 7s ease-in-out infinite}
+  @keyframes breathe{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.8}50%{transform:translate(-50%,-50%) scale(1.08);opacity:1}}
+  .gcard{--a:0deg;isolation:isolate;max-width:400px;padding:36px 28px 26px;border:0;border-radius:26px;
+    background:linear-gradient(170deg,rgba(14,44,66,.9),rgba(5,18,30,.94));
+    box-shadow:0 30px 80px -10px rgba(0,0,0,.7),0 0 60px -20px rgba(255,194,71,.25)}
+  .gcard::before{content:"";position:absolute;inset:0;height:auto;top:0;left:0;right:0;border-radius:inherit;padding:1.5px;z-index:-1;
+    background:conic-gradient(from var(--a),#ffc247,#3fb6e8,#7b5cff,#ffc247);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+    mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+    box-shadow:none;animation:ring 7s linear infinite}
+  .gcard.ok{animation:accept .5s cubic-bezier(.4,0,.2,1) forwards}
+  @keyframes accept{to{opacity:0;transform:scale(.94) translateY(-10px);filter:blur(6px)}}
+  .gseal{display:block;width:76px;height:76px;margin:0 auto;filter:drop-shadow(0 0 18px rgba(255,194,71,.5));animation:spin 60s linear infinite}
+  .gcard .eyebrow{justify-content:center}
+  .gcard .eyebrow::before{display:none}
+  .gcard .eyebrow::after{content:"";width:26px;height:2px;background:var(--accent);border-radius:2px;box-shadow:0 0 10px var(--accent)}
+  .gcard h2{margin-top:10px;text-align:center;font-size:44px;background:linear-gradient(95deg,#fff,#d9f1fc 40%,#ffc247);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:sheen 6s ease-in-out infinite}
+  .gcard .lead{text-align:center;margin:8px 0 22px}
+  .gcard label{margin:16px 0 0}
+  .field{position:relative;margin-top:7px}
+  .field .fi{position:absolute;left:15px;top:50%;transform:translateY(-50%);width:18px;height:18px;stroke:var(--ink2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke .25s;pointer-events:none}
+  .field:focus-within .fi{stroke:var(--accent);filter:drop-shadow(0 0 4px var(--accent))}
+  .field input{padding-left:44px;padding-right:46px;margin-top:0}
+  .gcard input{background:rgba(2,12,20,.7)}
+  .eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;border-radius:10px;background:none;color:var(--ink2);display:grid;place-items:center;cursor:pointer}
+  .eye:hover{color:var(--ink)}
+  .eye:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+  .eye svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .eye .off{display:none}
+  .eye[aria-pressed="true"] .on{display:none}
+  .eye[aria-pressed="true"] .off{display:block}
+  .gbtn{position:relative;overflow:hidden;margin-top:26px;min-height:54px;font-size:19px;background:linear-gradient(95deg,#ffc247,#ffe39a 60%,#ffc247);background-size:200% auto;transition:background-position .6s ease,box-shadow .3s,transform .15s}
+  .gbtn::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.6) 50%,transparent 70%);transform:translateX(-120%);pointer-events:none}
+  .gbtn:hover{background-position:100% 50%;box-shadow:0 12px 30px -6px rgba(255,194,71,.7)}
+  .gbtn:hover::after{transform:translateX(120%);transition:transform .8s ease}
+  .gerr{text-align:center}
+  .gfoot{margin:18px 0 0;text-align:center;font:600 11.5px/1 'Barlow Condensed',sans-serif;letter-spacing:.22em;text-transform:uppercase;color:var(--ink2);opacity:.6}
+  @media (prefers-reduced-motion:reduce){.gcard::before,.gseal,.gate::before{animation:none!important}}
 </style>
 </head>
-<body class="locked">
-<div id="accessGate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
-  <section class="gate-card" id="gateCard">
-    <div class="gate-mark" aria-hidden="true">
-      <svg viewBox="0 0 48 48"><path d="M24 5 39 11v11c0 10-6 16-15 21C15 38 9 32 9 22V11z"/><rect x="18" y="21" width="12" height="10" rx="2"/><path d="M21 21v-4a3 3 0 0 1 6 0v4"/><path d="M24 25v2"/></svg>
-    </div>
-    <div class="gate-kicker">Marine learning system</div>
-    <h2 class="gate-title" id="gateTitle">ACCESS CONTROL</h2>
-    <p class="gate-sub">Your engine-room training hub is secured. Enter the access key to come aboard.</p>
-    <form id="gateForm">
-      <label class="gate-label" for="gatePassword">Access key</label>
-      <div class="gate-input-wrap">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>
-        <input id="gatePassword" type="password" placeholder="Enter your access key" autocomplete="current-password" required>
-        <button id="gateToggle" type="button" aria-label="Show password">SHOW</button>
-      </div>
-      <button id="gateSubmit" type="submit">Unlock training hub <span aria-hidden="true"> ↗</span></button>
-      <p id="gateError" role="status" aria-live="polite"></p>
-    </form>
-    <div class="gate-foot"><span class="gate-dot"></span> Local access checkpoint</div>
-    <div class="gate-note">Marine Trainers · Boiler · Compressor · Purifier · Steering · OWS</div>
-  </section>
-</div>
+<body>
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="grid" aria-hidden="true"></div>
+<div class="bubbles" aria-hidden="true"></div>
 <div class="water" aria-hidden="true">
   <div class="shimmer"></div>
   <div class="wl w3"></div>
   <div class="wl w2"></div>
   <div class="wl w1"></div>
 </div>
+
+<section class="gate" aria-label="Sign in">
+  <form class="gcard" id="loginForm" autocomplete="off">
+    <svg class="gseal" viewBox="0 0 100 100" aria-hidden="true">
+      <defs><radialGradient id="wg2" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#ffe39a"/><stop offset="100%" stop-color="#c98a0b"/></radialGradient></defs>
+      <g stroke="url(#wg2)" stroke-width="5" stroke-linecap="round">
+        <line x1="50" y1="12" x2="50" y2="88"/><line x1="12" y1="50" x2="88" y2="50"/>
+        <line x1="23" y1="23" x2="77" y2="77"/><line x1="77" y1="23" x2="23" y2="77"/>
+      </g>
+      <circle cx="50" cy="50" r="36" fill="none" stroke="url(#wg2)" stroke-width="5"/>
+      <circle cx="50" cy="50" r="11" fill="#06121c" stroke="url(#wg2)" stroke-width="4"/>
+    </svg>
+    <div class="eyebrow">Ship training</div>
+    <h2>Welcome</h2>
+    <p class="lead">Sign in to open your trainers</p>
+    <label for="user">Username</label>
+    <div class="field">
+      <svg class="fi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>
+      <input id="user" name="user" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" required>
+    </div>
+    <label for="pass">Password</label>
+    <div class="field">
+      <svg class="fi" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      <input id="pass" name="pass" type="password" autocomplete="current-password" required>
+      <button class="eye" id="eye" type="button" aria-label="Show password" aria-pressed="false">
+        <svg class="on" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="off" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 6.1A9.8 9.8 0 0 1 12 6c6.5 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.6 6.7C3.9 8.5 2 12 2 12s3.5 6 10 6c1.7 0 3.2-.4 4.5-1"/></svg>
+      </button>
+    </div>
+    <button class="gbtn" type="submit">Log in</button>
+    <div class="gerr" id="gerr" role="alert"></div>
+    <p class="gfoot">Restricted training access</p>
+  </form>
+</section>
+
 <header>
-  <div class="eyebrow">Ship training</div>
-  <h1>Marine Trainers</h1>
-  <p class="sub">Choose a system to study</p>
-  <div class="count"><b>5</b><span>Systems</span></div>
+  <svg class="wheel" viewBox="0 0 100 100" aria-hidden="true">
+    <defs>
+      <radialGradient id="wg" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#ffe39a"/><stop offset="100%" stop-color="#c98a0b"/></radialGradient>
+    </defs>
+    <g class="spokes" stroke="url(#wg)" stroke-width="5" stroke-linecap="round">
+      <line x1="50" y1="12" x2="50" y2="88"/>
+      <line x1="12" y1="50" x2="88" y2="50"/>
+      <line x1="23" y1="23" x2="77" y2="77"/>
+      <line x1="77" y1="23" x2="23" y2="77"/>
+    </g>
+    <circle cx="50" cy="50" r="36" fill="none" stroke="url(#wg)" stroke-width="5"/>
+    <circle cx="50" cy="50" r="11" fill="#06121c" stroke="url(#wg)" stroke-width="4"/>
+    <circle cx="50" cy="12" r="5" fill="#ffc247"/><circle cx="88" cy="50" r="5" fill="#ffc247"/><circle cx="50" cy="88" r="5" fill="#ffc247"/><circle cx="12" cy="50" r="5" fill="#ffc247"/>
+  </svg>
+  <div class="hero-text">
+    <div class="eyebrow">Ship training</div>
+    <h1>Marine Trainers</h1>
+    <p class="sub" id="typed">Choose a system to study</p>
+  </div>
+  <div class="count"><b>9</b><span>Systems</span></div>
 </header>
 
 <main class="list">
+  <a class="card" data-id="engineroom" href="engineroom.html" style="--c:#a98bff">
+    <span class="idx">01</span>
+    <div class="row">
+      <div class="ico"><svg viewBox="0 0 24 24"><path d="M3 15h18l-2 4H5z"/><path d="M6 15V9h5v6M13 15V6h5v9"/><path d="M15 3v3"/></svg></div>
+      <div class="txt">
+        <div class="title">Engine room explorer</div>
+        <div class="desc">A 3D cutaway of a ship's engine room. See where each machine sits, and tap to learn.</div>
+        <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+    </div>
+  </a>
+
   <a class="card" data-id="boiler" href="boiler.html" style="--c:#f0b429">
+    <span class="idx">02</span>
     <div class="row">
       <div class="ico"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="13" rx="6" ry="7"/><path d="M9 6V3M12 6V2M15 6V3"/></svg></div>
-      <div>
+      <div class="txt">
         <div class="title">Boiler trainer</div>
         <div class="desc">Oil-fired auxiliary boiler: components, water and steam, safety, and procedures.</div>
         <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
@@ -213,10 +347,23 @@ window.addEventListener("pageshow",drawProgress);
     </div>
   </a>
 
+  <a class="card" data-id="turbocharger" href="turbo.html" style="--c:#ff5fa2">
+    <span class="idx">03</span>
+    <div class="row">
+      <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.5"/><path d="M12 9.5C12 6 14 4 17 4c0 3-2 5.5-5 5.5zM14.5 12c3.5 0 5.5 2 5.5 5-3 0-5.5-2-5.5-5zM12 14.5c0 3.5-2 5.5-5 5.5 0-3 2-5.5 5-5.5zM9.5 12c-3.5 0-5.5-2-5.5-5 3 0 5.5 2 5.5 5z"/></svg></div>
+      <div class="txt">
+        <div class="title">Turbocharger trainer</div>
+        <div class="desc">Exhaust-gas turbocharger: 3D cutaway, surge and lube oil drills, washing, and a live simulator.</div>
+        <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+    </div>
+  </a>
+
   <a class="card" data-id="compressor" href="compressor.html" style="--c:#ff8a3d">
+    <span class="idx">04</span>
     <div class="row">
       <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="8.5" stroke-dasharray="3 3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg></div>
-      <div>
+      <div class="txt">
         <div class="title">Air compressor trainer</div>
         <div class="desc">Marine air compressor: detailed components and step-by-step operation.</div>
         <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
@@ -225,9 +372,10 @@ window.addEventListener("pageshow",drawProgress);
   </a>
 
   <a class="card" data-id="purifier" href="purifier.html" style="--c:#59c3ff">
+    <span class="idx">05</span>
     <div class="row">
       <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 3c3 4 5 7 5 10a5 5 0 0 1-10 0c0-3 2-6 5-10z"/></svg></div>
-      <div>
+      <div class="txt">
         <div class="title">Oil purifier trainer</div>
         <div class="desc">Marine centrifugal separator: system, bowl parts, operation, faults, and overhaul.</div>
         <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
@@ -236,21 +384,48 @@ window.addEventListener("pageshow",drawProgress);
   </a>
 
   <a class="card" data-id="steering" href="steering.html" style="--c:#7ee08a">
+    <span class="idx">06</span>
     <div class="row">
       <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 4v6M12 14v6M4 12h6M14 12h6"/></svg></div>
-      <div>
+      <div class="txt">
         <div class="title">Steering gear trainer</div>
         <div class="desc">Electro-hydraulic two-ram steering gear: parts, pump control, tests, and emergency steering.</div>
         <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
       </div>
     </div>
   </a>
+
   <a class="card" data-id="ows" href="ows.html" style="--c:#4dd4c0">
+    <span class="idx">07</span>
     <div class="row">
       <div class="ico"><svg viewBox="0 0 24 24"><path d="M4 8h16M4 12h16"/><path d="M12 14c2 2.6 3 4 3 5.3a3 3 0 0 1-6 0c0-1.3 1-2.7 3-5.3z"/></svg></div>
-      <div>
+      <div class="txt">
         <div class="title">Oily water separator trainer</div>
         <div class="desc">Bilge water separator: the 15 ppm rule, coalescer, alarms, and safe operation.</div>
+        <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+    </div>
+  </a>
+
+  <a class="card" data-id="mainengine" href="mainengine.html" style="--c:#ff7a5c">
+    <span class="idx">08</span>
+    <div class="row">
+      <div class="ico"><svg viewBox="0 0 24 24"><path d="M4 18h16M6 18V9h3v9M10.5 18V6h3v12M15 18V9h3v9"/><path d="M12 3v3"/></svg></div>
+      <div class="txt">
+        <div class="title">Main diesel engine trainer</div>
+        <div class="desc">Slow-speed two-stroke engine: six cylinders, every system, and a live animation.</div>
+        <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+    </div>
+  </a>
+
+  <a class="card" data-id="pump" href="pump.html" style="--c:#5cc8ff">
+    <span class="idx">09</span>
+    <div class="row">
+      <div class="ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="5"/><path d="M14 12h7M3 12h1"/><path d="M9 7v10"/></svg></div>
+      <div class="txt">
+        <div class="title">Centrifugal pump trainer</div>
+        <div class="desc">Live pump curve, suction and cavitation, and the faults that cause them.</div>
         <div class="go">Open <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
       </div>
     </div>
@@ -258,53 +433,78 @@ window.addEventListener("pageshow",drawProgress);
 </main>
 
 <footer>
-  <svg class="wave" viewBox="0 0 240 28" aria-hidden="true"><path d="M0 14 Q20 2 40 14 T80 14 T120 14 T160 14 T200 14 T240 14" fill="none" stroke="#3fb6e8" stroke-width="2" stroke-linecap="round"/></svg>
+  <svg class="wave" viewBox="0 0 240 28" aria-hidden="true"><path d="M0 14 Q20 2 40 14 T80 14 T120 14 T160 14 T200 14 T240 14" fill="none" stroke="#3fb6e8" stroke-width="2" stroke-linecap="round" pathLength="400"/></svg>
   <div class="sig">Thura Maung</div>
   <div class="made">Trainers by</div>
+  <button class="logout" id="logout" type="button">Log out</button>
 </footer>
 
 <script>
-(()=>{
-  // CHANGE THIS to the shared password you want everyone to use.
-  const ACCESS_KEY = "CHANGE-ME-123";
-  const gate = document.getElementById("accessGate");
-  const card = document.getElementById("gateCard");
-  const form = document.getElementById("gateForm");
-  const input = document.getElementById("gatePassword");
-  const error = document.getElementById("gateError");
-  const toggle = document.getElementById("gateToggle");
-  const submit = document.getElementById("gateSubmit");
-  function unlock(){
-    gate.classList.add("gone");
-    document.body.classList.remove("locked");
-    setTimeout(()=>{gate.style.display="none"},380);
-  }
-  function requireLogin(){
-    gate.style.display="grid";
-    gate.classList.remove("gone");
-    document.body.classList.add("locked");
-    input.value="";
-    error.textContent="";
-    submit.textContent="Unlock training hub ↗";
-    setTimeout(()=>input.focus({preventScroll:true}),100);
-  }
-  form.addEventListener("submit",event=>{
-    event.preventDefault();
-    if(input.value===ACCESS_KEY){error.textContent="";submit.textContent="Access granted ✓";unlock();}
-    else{
-      error.textContent="Incorrect access key. Try again.";
-      card.classList.remove("shake");void card.offsetWidth;card.classList.add("shake");
-      input.value="";input.focus();
+(function(){
+  // Bubbles rising from the water
+  var b=document.querySelector('.bubbles');
+  if(b && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+    for(var i=0;i<22;i++){
+      var s=document.createElement('span'),d=6+Math.random()*22;
+      s.style.left=(Math.random()*100)+'%';
+      s.style.width=s.style.height=d+'px';
+      s.style.animationDuration=(9+Math.random()*12)+'s';
+      s.style.animationDelay=(-Math.random()*16)+'s';
+      b.appendChild(s);
     }
+  }
+  // Typewriter tagline
+  var el=document.getElementById('typed');
+  if(el && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+    var full=el.textContent,n=0;el.textContent='';
+    (function t(){
+      el.textContent=full.slice(0,++n);
+      if(n<full.length)setTimeout(t,38);else el.classList.add('done');
+    })();
+  } else if(el){el.classList.add('done');}
+  // Test login. Credentials are visible in this file, so this is not real security.
+  var USERS={alex:'13579'},KEY='marineTrainers.user';
+  var form=document.getElementById('loginForm');
+  if(form){
+    form.addEventListener('submit',function(e){
+      e.preventDefault();
+      var u=document.getElementById('user').value.trim(),p=document.getElementById('pass').value;
+      if(Object.prototype.hasOwnProperty.call(USERS,u)&&USERS[u]===p){
+        try{sessionStorage.setItem(KEY,u);}catch(err){}
+        document.getElementById('gerr').textContent='';
+        document.getElementById('pass').value='';
+        form.classList.add('ok');
+        setTimeout(function(){document.documentElement.classList.add('in');form.classList.remove('ok');window.scrollTo(0,0);},480);
+      }else{
+        document.getElementById('gerr').textContent='Wrong username or password.';
+        document.getElementById('pass').value='';
+        form.classList.remove('shake');void form.offsetWidth;form.classList.add('shake');
+        document.getElementById('pass').focus();
+      }
+    });
+    document.getElementById('logout').addEventListener('click',function(){
+      try{sessionStorage.removeItem(KEY);}catch(err){}
+      document.getElementById('user').value='';
+      document.documentElement.classList.remove('in');
+      document.getElementById('user').focus();
+    });
+  }
+  var eye=document.getElementById('eye');
+  if(eye){eye.addEventListener('click',function(){
+    var p=document.getElementById('pass'),show=p.type==='password';
+    p.type=show?'text':'password';
+    eye.setAttribute('aria-label',show?'Hide password':'Show password');
+    eye.setAttribute('aria-pressed',String(show));
+  });}
+  // Spotlight follows the pointer over each card
+  document.querySelectorAll('a.card').forEach(function(c){
+    c.addEventListener('pointermove',function(e){
+      var r=c.getBoundingClientRect();
+      c.style.setProperty('--mx',(e.clientX-r.left)+'px');
+      c.style.setProperty('--my',(e.clientY-r.top)+'px');
+    });
   });
-  toggle.addEventListener("click",()=>{
-    const showing=input.type==="text";input.type=showing?"password":"text";toggle.textContent=showing?"SHOW":"HIDE";toggle.setAttribute("aria-label",showing?"Show password":"Hide password");input.focus();
-  });
-  // Require the shared access key on every page load, including back/forward cache restores.
-  window.addEventListener("pageshow",requireLogin);
-  if(!gate.classList.contains("gone"))setTimeout(()=>input.focus({preventScroll:true}),100);
 })();
 </script>
-
 </body>
 </html>
